@@ -3,8 +3,8 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useStore } from './index';
-import type { AnalysisResult } from '../types';
+import { useStore, selectFilteredTreemapNode } from './index';
+import type { AnalysisResult, TreemapNode } from '../types';
 
 const mockAnalysisResult: AnalysisResult = {
   repository: {
@@ -41,6 +41,9 @@ const mockAnalysisResult: AnalysisResult = {
     ],
   },
   analyzedAt: '2024-12-01T00:00:00Z',
+  analyzedCommitCount: 50,
+  maxCommitsLimit: 10000,
+  limitReached: false,
 };
 
 describe('useStore', () => {
@@ -171,5 +174,179 @@ describe('useStore', () => {
       expect(useStore.getState().activeView).toBe('contributors');
       expect(useStore.getState().timePeriod).toBe('all');
     });
+  });
+
+  describe('treemap filter', () => {
+    it('should set filter preset', () => {
+      useStore.getState().setTreemapFilterPreset('hide-binary');
+      expect(useStore.getState().treemapFilter.preset).toBe('hide-binary');
+    });
+
+    it('should toggle language selection', () => {
+      useStore.getState().toggleTreemapLanguage('TypeScript');
+      expect(useStore.getState().treemapFilter.selectedLanguages.has('TypeScript')).toBe(true);
+
+      useStore.getState().toggleTreemapLanguage('TypeScript');
+      expect(useStore.getState().treemapFilter.selectedLanguages.has('TypeScript')).toBe(false);
+    });
+  });
+});
+
+describe('selectFilteredTreemapNode', () => {
+  const treeWithMixedFiles: TreemapNode = {
+    name: 'root',
+    path: '',
+    type: 'directory',
+    lines: 1800,
+    children: [
+      { name: 'app.tsx', path: 'app.tsx', type: 'file', lines: 500, language: 'TypeScript' },
+      { name: 'config.json', path: 'config.json', type: 'file', lines: 100, language: 'JSON' },
+      { name: 'logo.png', path: 'logo.png', type: 'file', lines: 0, language: 'Unknown' },
+      { name: 'README.md', path: 'README.md', type: 'file', lines: 200, language: 'Markdown' },
+      {
+        name: 'assets',
+        path: 'assets',
+        type: 'directory',
+        lines: 1000,
+        children: [
+          { name: 'image.jpg', path: 'assets/image.jpg', type: 'file', lines: 0, language: 'Unknown' },
+          { name: 'styles.css', path: 'assets/styles.css', type: 'file', lines: 700, language: 'CSS' },
+          { name: 'data.yaml', path: 'assets/data.yaml', type: 'file', lines: 300, language: 'YAML' },
+        ],
+      },
+    ],
+  };
+
+  beforeEach(() => {
+    useStore.getState().reset();
+  });
+
+  it('should return null when currentTreemapNode is null', () => {
+    const result = selectFilteredTreemapNode(useStore.getState());
+    expect(result).toBeNull();
+  });
+
+  it('should return unfiltered node when preset is "all"', () => {
+    useStore.setState({
+      currentTreemapNode: treeWithMixedFiles,
+      treemapFilter: { preset: 'all', selectedLanguages: new Set() },
+    });
+
+    const result = selectFilteredTreemapNode(useStore.getState());
+    expect(result).toBe(treeWithMixedFiles);
+  });
+
+  it('should exclude binary files when preset is "hide-binary"', () => {
+    useStore.setState({
+      currentTreemapNode: treeWithMixedFiles,
+      treemapFilter: { preset: 'hide-binary', selectedLanguages: new Set() },
+    });
+
+    const result = selectFilteredTreemapNode(useStore.getState());
+    expect(result).not.toBeNull();
+
+    // Check root children - logo.png should be filtered out
+    const rootChildren = result!.children || [];
+    expect(rootChildren.some(c => c.name === 'logo.png')).toBe(false);
+    expect(rootChildren.some(c => c.name === 'app.tsx')).toBe(true);
+    expect(rootChildren.some(c => c.name === 'config.json')).toBe(true);
+
+    // Check assets children - image.jpg should be filtered out
+    const assetsDir = rootChildren.find(c => c.name === 'assets');
+    expect(assetsDir).toBeDefined();
+    expect(assetsDir!.children?.some(c => c.name === 'image.jpg')).toBe(false);
+    expect(assetsDir!.children?.some(c => c.name === 'styles.css')).toBe(true);
+  });
+
+  it('should only include code files when preset is "code-only"', () => {
+    useStore.setState({
+      currentTreemapNode: treeWithMixedFiles,
+      treemapFilter: { preset: 'code-only', selectedLanguages: new Set() },
+    });
+
+    const result = selectFilteredTreemapNode(useStore.getState());
+    expect(result).not.toBeNull();
+
+    const rootChildren = result!.children || [];
+    // JSON, Markdown, Unknown are NOT code
+    expect(rootChildren.some(c => c.name === 'config.json')).toBe(false);
+    expect(rootChildren.some(c => c.name === 'README.md')).toBe(false);
+    expect(rootChildren.some(c => c.name === 'logo.png')).toBe(false);
+    // TypeScript is code
+    expect(rootChildren.some(c => c.name === 'app.tsx')).toBe(true);
+
+    // assets dir should only have styles.css (YAML is not code)
+    const assetsDir = rootChildren.find(c => c.name === 'assets');
+    expect(assetsDir).toBeDefined();
+    expect(assetsDir!.children?.some(c => c.name === 'styles.css')).toBe(true);
+    expect(assetsDir!.children?.some(c => c.name === 'data.yaml')).toBe(false);
+  });
+
+  it('should recalculate directory line counts after filtering', () => {
+    useStore.setState({
+      currentTreemapNode: treeWithMixedFiles,
+      treemapFilter: { preset: 'code-only', selectedLanguages: new Set() },
+    });
+
+    const result = selectFilteredTreemapNode(useStore.getState());
+    // Only TypeScript (500) and CSS (700) should remain
+    expect(result?.lines).toBe(1200);
+
+    // assets dir should only count CSS (700), not YAML
+    const assetsDir = result!.children?.find(c => c.name === 'assets');
+    expect(assetsDir?.lines).toBe(700);
+  });
+
+  it('should prune empty directories', () => {
+    const treeWithEmptyDir: TreemapNode = {
+      name: 'root',
+      path: '',
+      type: 'directory',
+      lines: 100,
+      children: [
+        { name: 'app.tsx', path: 'app.tsx', type: 'file', lines: 100, language: 'TypeScript' },
+        {
+          name: 'images',
+          path: 'images',
+          type: 'directory',
+          lines: 0,
+          children: [
+            { name: 'logo.png', path: 'images/logo.png', type: 'file', lines: 0, language: 'Unknown' },
+            { name: 'icon.jpg', path: 'images/icon.jpg', type: 'file', lines: 0, language: 'Unknown' },
+          ],
+        },
+      ],
+    };
+
+    useStore.setState({
+      currentTreemapNode: treeWithEmptyDir,
+      treemapFilter: { preset: 'hide-binary', selectedLanguages: new Set() },
+    });
+
+    const result = selectFilteredTreemapNode(useStore.getState());
+    // images dir should be pruned because all its children are binary
+    expect(result!.children?.some(c => c.name === 'images')).toBe(false);
+    expect(result!.children?.some(c => c.name === 'app.tsx')).toBe(true);
+  });
+
+  it('should filter by custom language selection', () => {
+    useStore.setState({
+      currentTreemapNode: treeWithMixedFiles,
+      treemapFilter: {
+        preset: 'custom',
+        selectedLanguages: new Set(['TypeScript', 'CSS']),
+      },
+    });
+
+    const result = selectFilteredTreemapNode(useStore.getState());
+    expect(result).not.toBeNull();
+
+    const rootChildren = result!.children || [];
+    expect(rootChildren.some(c => c.name === 'app.tsx')).toBe(true);
+    expect(rootChildren.some(c => c.name === 'config.json')).toBe(false);
+
+    const assetsDir = rootChildren.find(c => c.name === 'assets');
+    expect(assetsDir!.children?.some(c => c.name === 'styles.css')).toBe(true);
+    expect(assetsDir!.children?.some(c => c.name === 'data.yaml')).toBe(false);
   });
 });

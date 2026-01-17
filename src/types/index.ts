@@ -69,6 +69,10 @@ export interface AnalysisResult {
   codeFrequency: CodeFrequency[];
   fileTree: TreemapNode;
   analyzedAt: string; // ISO date string
+  // Limit tracking - shows warning when data may be incomplete
+  analyzedCommitCount: number;
+  maxCommitsLimit: number;
+  limitReached: boolean;
 }
 
 // ============================================================================

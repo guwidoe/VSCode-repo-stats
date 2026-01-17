@@ -4,9 +4,10 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { hierarchy, treemap, treemapSquarify, HierarchyRectangularNode } from 'd3-hierarchy';
-import { useStore } from '../../store';
+import { useStore, selectFilteredTreemapNode } from '../../store';
 import { useVsCodeApi } from '../../hooks/useVsCodeApi';
 import { getLanguageColor, getAgeColor, formatNumber, formatRelativeTime } from '../../utils/colors';
+import { TreemapFilter } from './TreemapFilter';
 import type { TreemapNode, ColorMode } from '../../types';
 import './TreemapPanel.css';
 
@@ -19,7 +20,8 @@ interface TooltipData {
 export function TreemapPanel() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { currentTreemapNode, treemapPath, navigateToTreemapPath, colorMode, setColorMode } = useStore();
+  const { treemapPath, navigateToTreemapPath, colorMode, setColorMode } = useStore();
+  const filteredTreemapNode = useStore(selectFilteredTreemapNode);
   const { openFile, revealInExplorer, copyPath } = useVsCodeApi();
 
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
@@ -48,9 +50,9 @@ export function TreemapPanel() {
 
   // Build treemap layout
   useEffect(() => {
-    if (!currentTreemapNode) {return;}
+    if (!filteredTreemapNode) {return;}
 
-    const root = hierarchy<TreemapNode>(currentTreemapNode)
+    const root = hierarchy<TreemapNode>(filteredTreemapNode)
       .sum((d) => (d.type === 'file' ? d.lines || 0 : 0))
       .sort((a, b) => (b.value || 0) - (a.value || 0));
 
@@ -71,7 +73,7 @@ export function TreemapPanel() {
     });
 
     setNodes(layoutNodes);
-  }, [currentTreemapNode, dimensions]);
+  }, [filteredTreemapNode, dimensions]);
 
   // Render treemap to canvas
   useEffect(() => {
@@ -201,7 +203,7 @@ export function TreemapPanel() {
     return () => window.removeEventListener('click', handleClickOutside);
   }, []);
 
-  if (!currentTreemapNode) {
+  if (!filteredTreemapNode) {
     return (
       <div className="treemap-panel">
         <div className="empty-state">
@@ -215,7 +217,10 @@ export function TreemapPanel() {
     <div className="treemap-panel">
       <div className="panel-header">
         <h2>Repository Treemap</h2>
-        <ColorModeToggle value={colorMode} onChange={setColorMode} />
+        <div className="header-controls">
+          <TreemapFilter />
+          <ColorModeToggle value={colorMode} onChange={setColorMode} />
+        </div>
       </div>
 
       <Breadcrumb path={treemapPath} onNavigate={navigateToTreemapPath} />

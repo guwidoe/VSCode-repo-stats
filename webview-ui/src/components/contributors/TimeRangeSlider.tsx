@@ -188,18 +188,24 @@ export function TimeRangeSlider() {
   const startPercent = (safeStartIdx / displayMaxIdx) * 100;
   const endPercent = (safeEndIdx / displayMaxIdx) * 100;
 
-  // Get date labels with validation
+  // Get date labels with validation - fall back to first/last valid week if needed
   const startWeek = allWeeks[safeStartIdx];
   const endWeek = allWeeks[safeEndIdx];
-  const startLabel = isValidISOWeek(startWeek) ? formatWeekShort(startWeek) : '';
-  const endLabel = isValidISOWeek(endWeek) ? formatWeekShort(endWeek) : '';
+
+  // Use the actual week if valid, otherwise fall back to first/last week in array
+  const startLabel = isValidISOWeek(startWeek)
+    ? formatWeekShort(startWeek)
+    : (allWeeks[0] ? formatWeekShort(allWeeks[0]) : '');
+  const endLabel = isValidISOWeek(endWeek)
+    ? formatWeekShort(endWeek)
+    : (allWeeks[allWeeks.length - 1] ? formatWeekShort(allWeeks[allWeeks.length - 1]) : '');
 
   return (
     <div className="time-range-slider">
       <div className="slider-labels">
-        <span className="range-label">{startLabel || '...'}</span>
+        <span className="range-label">{startLabel}</span>
         <span className="range-separator">–</span>
-        <span className="range-label">{endLabel || '...'}</span>
+        <span className="range-label">{endLabel}</span>
       </div>
 
       <div className="slider-track" ref={trackRef} onClick={handleTrackClick}>

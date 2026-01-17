@@ -201,3 +201,35 @@ body {
   font-size: 14px;
   color: var(--vscode-descriptionForeground);
 }
+
+/* Limit warning banner */
+.limit-warning {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--vscode-inputValidation-warningBackground, rgba(255, 170, 0, 0.15));
+  border: 1px solid var(--vscode-inputValidation-warningBorder, #ffaa00);
+  border-left-width: 3px;
+  margin: 0;
+}
+
+.limit-warning .warning-icon {
+  font-size: 16px;
+  color: var(--vscode-editorWarning-foreground, #ffaa00);
+  flex-shrink: 0;
+}
+
+.limit-warning .warning-text {
+  font-size: 13px;
+  color: var(--vscode-foreground);
+  line-height: 1.4;
+}
+
+.limit-warning code {
+  padding: 2px 6px;
+  background: var(--vscode-textCodeBlock-background);
+  border-radius: 3px;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 12px;
+}

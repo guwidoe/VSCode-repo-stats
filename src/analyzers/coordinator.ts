@@ -68,12 +68,21 @@ export class AnalysisCoordinator {
     // Complete
     onProgress?.('Analysis complete', 100);
 
+    // Calculate actual commits analyzed (sum across all contributors)
+    const analyzedCommitCount = contributors.reduce((sum, c) => sum + c.commits, 0);
+    const maxCommitsLimit = this.settings.maxCommitsToAnalyze;
+    // Limit is reached if repo has more commits than we analyzed
+    const limitReached = repository.commitCount > maxCommitsLimit;
+
     return {
       repository,
       contributors,
       codeFrequency,
       fileTree,
       analyzedAt: new Date().toISOString(),
+      analyzedCommitCount,
+      maxCommitsLimit,
+      limitReached,
     };
   }
 

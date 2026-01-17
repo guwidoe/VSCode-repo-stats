@@ -57,6 +57,10 @@ export interface AnalysisResult {
   codeFrequency: CodeFrequency[];
   fileTree: TreemapNode;
   analyzedAt: string;
+  // Limit tracking - shows warning when data may be incomplete
+  analyzedCommitCount: number;
+  maxCommitsLimit: number;
+  limitReached: boolean;
 }
 
 // ============================================================================
@@ -88,6 +92,13 @@ export type TimePeriod = 'all' | 'year' | '6months' | '3months' | 'month';
 export type FrequencyGranularity = 'weekly' | 'monthly';
 
 export type ColorMode = 'language' | 'age';
+
+export type TreemapFilterPreset = 'all' | 'hide-binary' | 'code-only' | 'custom';
+
+export interface TreemapFilterState {
+  preset: TreemapFilterPreset;
+  selectedLanguages: Set<string>;
+}
 
 export interface LoadingState {
   isLoading: boolean;

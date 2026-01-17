@@ -1,0 +1,121 @@
+.treemap-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filter-presets {
+  display: flex;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.preset-btn {
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  color: var(--vscode-foreground);
+  font-size: 12px;
+  font-family: var(--vscode-font-family);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.preset-btn:not(:last-child) {
+  border-right: 1px solid var(--vscode-panel-border);
+}
+
+.preset-btn:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.preset-btn.active {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+
+.language-picker {
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  padding: 8px;
+  max-height: 200px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.picker-header {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.language-search {
+  flex: 1;
+  padding: 4px 8px;
+  border: 1px solid var(--vscode-input-border);
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border-radius: 3px;
+  font-size: 12px;
+  font-family: var(--vscode-font-family);
+}
+
+.language-search:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+.select-all-btn {
+  padding: 4px 8px;
+  font-size: 11px;
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: var(--vscode-font-family);
+  white-space: nowrap;
+}
+
+.select-all-btn:hover {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+
+.language-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  overflow-y: auto;
+  max-height: 140px;
+}
+
+.language-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: var(--vscode-font-family);
+}
+
+.language-item:hover {
+  color: var(--vscode-textLink-foreground);
+}
+
+.language-item input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+.language-name {
+  color: var(--vscode-foreground);
+}
+
+.no-languages {
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+  font-style: italic;
+}

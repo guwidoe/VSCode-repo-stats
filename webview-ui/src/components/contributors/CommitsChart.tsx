@@ -13,13 +13,19 @@ interface Props {
 
 /**
  * Parses an ISO week string to a Date.
+ * Returns null for invalid weeks instead of epoch.
  */
-function parseISOWeek(isoWeek: string): Date {
+function parseISOWeek(isoWeek: string): Date | null {
   const match = isoWeek.match(/^(\d{4})-W(\d{2})$/);
-  if (!match) {return new Date(0);}
+  if (!match) {return null;}
 
   const year = parseInt(match[1], 10);
   const week = parseInt(match[2], 10);
+
+  // Validate reasonable year range (1970-2100)
+  if (year < 1970 || year > 2100 || week < 1 || week > 53) {
+    return null;
+  }
 
   const jan4 = new Date(year, 0, 4);
   const dayOfWeek = jan4.getDay() || 7;
@@ -33,10 +39,11 @@ function parseISOWeek(isoWeek: string): Date {
 
 /**
  * Formats an ISO week to a readable label.
+ * Returns null if the week is invalid.
  */
-function formatWeekLabel(isoWeek: string): string {
+function formatWeekLabel(isoWeek: string): string | null {
   const date = parseISOWeek(isoWeek);
-  if (date.getTime() === 0) {return isoWeek;}
+  if (!date) {return null;}
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   return `${monthNames[date.getMonth()]} ${date.getDate()}`;
 }
@@ -55,17 +62,21 @@ function formatMonthLabel(monthKey: string): string {
 
 export function CommitsChart({ contributors, granularity }: Props) {
   const chartData = useMemo(() => {
-    // Aggregate all weekly commits across contributors
+    // Aggregate all weekly commits across contributors, filtering invalid weeks
     const weeklyMap = new Map<string, number>();
 
     for (const contributor of contributors) {
       for (const week of contributor.weeklyActivity) {
-        weeklyMap.set(week.week, (weeklyMap.get(week.week) || 0) + week.commits);
+        // Only include valid weeks (skip any malformed data)
+        if (parseISOWeek(week.week)) {
+          weeklyMap.set(week.week, (weeklyMap.get(week.week) || 0) + week.commits);
+        }
       }
     }
 
-    // Sort by week
+    // Sort by week and filter out any remaining invalid entries
     const weeks = Array.from(weeklyMap.entries())
+      .filter(([week]) => parseISOWeek(week) !== null)
       .sort((a, b) => a[0].localeCompare(b[0]));
 
     if (granularity === 'monthly') {
@@ -75,6 +86,7 @@ export function CommitsChart({ contributors, granularity }: Props) {
 
       for (const [week, commits] of weeks) {
         const date = parseISOWeek(week);
+        if (!date) {continue;} // Skip invalid weeks
         const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
         if (!monthlyMap.has(monthKey)) {
           monthlyMap.set(monthKey, 0);
@@ -83,15 +95,21 @@ export function CommitsChart({ contributors, granularity }: Props) {
         monthlyMap.set(monthKey, monthlyMap.get(monthKey)! + commits);
       }
 
+      // Filter out any invalid month labels (like 1970-01)
+      const validMonths = monthOrder.filter(m => !m.startsWith('1970-'));
+
       return {
-        x: monthOrder.map(formatMonthLabel),
-        y: monthOrder.map((month) => monthlyMap.get(month) ?? 0),
+        x: validMonths.map(formatMonthLabel),
+        y: validMonths.map((month) => monthlyMap.get(month) ?? 0),
       };
     }
 
+    // Filter out weeks that can't be formatted (invalid)
+    const validWeeks = weeks.filter(([week]) => formatWeekLabel(week) !== null);
+
     return {
-      x: weeks.map(([week]) => formatWeekLabel(week)),
-      y: weeks.map(([, commits]) => commits),
+      x: validWeeks.map(([week]) => formatWeekLabel(week)!),
+      y: validWeeks.map(([, commits]) => commits),
     };
   }, [contributors, granularity]);
 

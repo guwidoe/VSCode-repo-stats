@@ -71,3 +71,29 @@
   height: 200px;
   color: var(--vscode-descriptionForeground);
 }
+
+.show-more-container {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+}
+
+.show-more-btn {
+  padding: 10px 24px;
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+  border: 1px solid var(--vscode-button-border, transparent);
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+}
+
+.show-more-btn:hover {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+
+.show-more-btn:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 2px;
+}

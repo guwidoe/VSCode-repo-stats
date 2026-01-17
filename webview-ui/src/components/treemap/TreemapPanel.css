@@ -21,6 +21,13 @@
   color: var(--vscode-foreground);
 }
 
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .color-mode-toggle {
   display: flex;
   border: 1px solid var(--vscode-panel-border);

@@ -11,7 +11,10 @@ import type {
   ColorMode,
   LoadingState,
   TreemapNode,
+  TreemapFilterPreset,
+  TreemapFilterState,
 } from '../types';
+import { isBinaryFile, isCodeLanguage } from '../utils/fileTypes';
 
 // ============================================================================
 // Store State Interface
@@ -40,6 +43,9 @@ interface RepoStatsState {
   treemapPath: string[];
   currentTreemapNode: TreemapNode | null;
 
+  // Treemap filter
+  treemapFilter: TreemapFilterState;
+
   // Actions
   setData: (data: AnalysisResult) => void;
   setError: (error: string | null) => void;
@@ -51,6 +57,8 @@ interface RepoStatsState {
   setColorMode: (mode: ColorMode) => void;
   setTimeRange: (start: number | null, end: number | null) => void;
   navigateToTreemapPath: (path: string[]) => void;
+  setTreemapFilterPreset: (preset: TreemapFilterPreset) => void;
+  toggleTreemapLanguage: (language: string) => void;
   reset: () => void;
 }
 
@@ -75,6 +83,10 @@ const initialState = {
   timeRangeEnd: null as number | null,
   treemapPath: [] as string[],
   currentTreemapNode: null,
+  treemapFilter: {
+    preset: 'all' as TreemapFilterPreset,
+    selectedLanguages: new Set<string>(),
+  },
 };
 
 // ============================================================================
@@ -152,10 +164,54 @@ export const useStore = create<RepoStatsState>((set, get) => ({
     });
   },
 
+  setTreemapFilterPreset: (preset: TreemapFilterPreset) => {
+    set((state) => ({
+      treemapFilter: { ...state.treemapFilter, preset },
+    }));
+  },
+
+  toggleTreemapLanguage: (language: string) => {
+    set((state) => {
+      const newSet = new Set(state.treemapFilter.selectedLanguages);
+      if (newSet.has(language)) {
+        newSet.delete(language);
+      } else {
+        newSet.add(language);
+      }
+      return {
+        treemapFilter: { ...state.treemapFilter, selectedLanguages: newSet },
+      };
+    });
+  },
+
   reset: () => {
     set(initialState);
   },
 }));
+
+// ============================================================================
+// Memoization Cache
+// ============================================================================
+
+// Simple memoization for expensive selectors that only depend on data
+let cachedData: AnalysisResult | null = null;
+let cachedAllWeeks: string[] = [];
+let cachedWeeklyTotals: { week: string; commits: number }[] = [];
+
+// Memoization for filtered treemap
+let cachedFilteredTreemapNode: TreemapNode | null = null;
+let cachedFilterParams: {
+  node: TreemapNode | null;
+  preset: TreemapFilterPreset;
+  selectedLanguages: string[];
+} | null = null;
+
+/**
+ * Validates that a string is a properly formatted ISO week (YYYY-Www).
+ */
+function isValidISOWeek(value: string): boolean {
+  return /^\d{4}-W\d{2}$/.test(value);
+}
 
 // ============================================================================
 // Selectors
@@ -163,36 +219,58 @@ export const useStore = create<RepoStatsState>((set, get) => ({
 
 /**
  * Returns ALL weeks from the data (for the slider background).
+ * Memoized to prevent creating new arrays when data hasn't changed.
  */
 export const selectAllWeeks = (state: RepoStatsState): string[] => {
   if (!state.data) {return [];}
 
+  // Return cached result if data hasn't changed
+  if (state.data === cachedData && cachedAllWeeks.length > 0) {
+    return cachedAllWeeks;
+  }
+
   const allWeeks = new Set<string>();
   for (const contributor of state.data.contributors) {
     for (const week of contributor.weeklyActivity) {
-      allWeeks.add(week.week);
+      // Only include valid ISO week strings
+      if (isValidISOWeek(week.week)) {
+        allWeeks.add(week.week);
+      }
     }
   }
 
-  return Array.from(allWeeks).sort();
+  cachedData = state.data;
+  cachedAllWeeks = Array.from(allWeeks).sort();
+  return cachedAllWeeks;
 };
 
 /**
  * Returns aggregated commit counts per week (for slider background chart).
+ * Memoized to prevent creating new arrays when data hasn't changed.
  */
 export const selectWeeklyCommitTotals = (state: RepoStatsState): { week: string; commits: number }[] => {
   if (!state.data) {return [];}
 
+  // Return cached result if data hasn't changed
+  if (state.data === cachedData && cachedWeeklyTotals.length > 0) {
+    return cachedWeeklyTotals;
+  }
+
   const weekMap = new Map<string, number>();
   for (const contributor of state.data.contributors) {
     for (const week of contributor.weeklyActivity) {
-      weekMap.set(week.week, (weekMap.get(week.week) || 0) + week.commits);
+      // Only include valid ISO week strings
+      if (isValidISOWeek(week.week)) {
+        weekMap.set(week.week, (weekMap.get(week.week) || 0) + week.commits);
+      }
     }
   }
 
-  return Array.from(weekMap.entries())
+  cachedWeeklyTotals = Array.from(weekMap.entries())
     .map(([week, commits]) => ({ week, commits }))
     .sort((a, b) => a.week.localeCompare(b.week));
+
+  return cachedWeeklyTotals;
 };
 
 export const selectFilteredContributors = (state: RepoStatsState) => {
@@ -330,4 +408,145 @@ function aggregateToMonthly(weekly: { week: string; additions: number; deletions
       ...data,
     }))
     .sort((a, b) => a.week.localeCompare(b.week));
+}
+
+// ============================================================================
+// Treemap Filter Selector
+// ============================================================================
+
+/**
+ * Returns the filtered treemap node based on current filter settings.
+ * Memoized to prevent expensive tree traversal on every render.
+ */
+export const selectFilteredTreemapNode = (state: RepoStatsState): TreemapNode | null => {
+  const { currentTreemapNode, treemapFilter } = state;
+
+  if (!currentTreemapNode) {
+    return null;
+  }
+
+  // 'all' preset returns the unfiltered node
+  if (treemapFilter.preset === 'all') {
+    return currentTreemapNode;
+  }
+
+  // Check memoization cache
+  const selectedLanguagesArray = Array.from(treemapFilter.selectedLanguages).sort();
+  if (
+    cachedFilterParams &&
+    cachedFilterParams.node === currentTreemapNode &&
+    cachedFilterParams.preset === treemapFilter.preset &&
+    arraysEqual(cachedFilterParams.selectedLanguages, selectedLanguagesArray)
+  ) {
+    return cachedFilteredTreemapNode;
+  }
+
+  // Build filter function based on preset
+  const filterFn = createTreemapFilterFunction(treemapFilter);
+
+  // Recursively filter the tree
+  const filtered = filterTreeNode(currentTreemapNode, filterFn);
+
+  // Update cache
+  cachedFilterParams = {
+    node: currentTreemapNode,
+    preset: treemapFilter.preset,
+    selectedLanguages: selectedLanguagesArray,
+  };
+  cachedFilteredTreemapNode = filtered;
+
+  return filtered;
+};
+
+/**
+ * Creates a filter function based on the current filter state.
+ */
+function createTreemapFilterFunction(
+  filter: TreemapFilterState
+): (node: TreemapNode) => boolean {
+  switch (filter.preset) {
+    case 'hide-binary':
+      return (node) => {
+        if (node.type === 'directory') {
+          return true;
+        }
+        return !isBinaryFile(node.path);
+      };
+
+    case 'code-only':
+      return (node) => {
+        if (node.type === 'directory') {
+          return true;
+        }
+        return isCodeLanguage(node.language);
+      };
+
+    case 'custom':
+      return (node) => {
+        if (node.type === 'directory') {
+          return true;
+        }
+        return filter.selectedLanguages.has(node.language || 'Unknown');
+      };
+
+    default:
+      return () => true;
+  }
+}
+
+/**
+ * Recursively filters a tree node, recalculating directory line counts.
+ * Returns null if the node should be excluded entirely.
+ */
+function filterTreeNode(
+  node: TreemapNode,
+  filterFn: (node: TreemapNode) => boolean
+): TreemapNode | null {
+  // Check if this node passes the filter
+  if (!filterFn(node)) {
+    return null;
+  }
+
+  // For files, return a copy if it passes
+  if (node.type === 'file') {
+    return { ...node };
+  }
+
+  // For directories, recursively filter children
+  const filteredChildren: TreemapNode[] = [];
+  let totalLines = 0;
+
+  for (const child of node.children || []) {
+    const filteredChild = filterTreeNode(child, filterFn);
+    if (filteredChild) {
+      filteredChildren.push(filteredChild);
+      totalLines += filteredChild.lines || 0;
+    }
+  }
+
+  // Prune empty directories
+  if (filteredChildren.length === 0) {
+    return null;
+  }
+
+  return {
+    ...node,
+    children: filteredChildren,
+    lines: totalLines,
+  };
+}
+
+/**
+ * Helper for array comparison in memoization.
+ */
+function arraysEqual(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) {
+      return false;
+    }
+  }
+  return true;
 }

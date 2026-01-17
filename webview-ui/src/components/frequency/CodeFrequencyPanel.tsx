@@ -61,7 +61,7 @@ export function CodeFrequencyPanel() {
               x: chartData.x,
               y: chartData.additions,
               marker: {
-                color: 'var(--vscode-gitDecoration-addedResourceForeground, #3fb950)',
+                color: '#3fb950', // Green for additions
               },
               hovertemplate: '%{x}<br>+%{y} lines<extra>Additions</extra>',
             },
@@ -71,7 +71,7 @@ export function CodeFrequencyPanel() {
               x: chartData.x,
               y: chartData.deletions,
               marker: {
-                color: 'var(--vscode-gitDecoration-deletedResourceForeground, #f85149)',
+                color: '#f85149', // Red for deletions
               },
               hovertemplate: '%{x}<br>%{y} lines<extra>Deletions</extra>',
             },
@@ -125,13 +125,13 @@ export function CodeFrequencyPanel() {
         <SummaryCard
           label="Total Additions"
           value={chartData.additions.reduce((a, b) => a + b, 0)}
-          color="var(--vscode-gitDecoration-addedResourceForeground, #3fb950)"
+          color="#3fb950"
           prefix="+"
         />
         <SummaryCard
           label="Total Deletions"
           value={Math.abs(chartData.deletions.reduce((a, b) => a + b, 0))}
-          color="var(--vscode-gitDecoration-deletedResourceForeground, #f85149)"
+          color="#f85149"
           prefix="-"
         />
         <SummaryCard
