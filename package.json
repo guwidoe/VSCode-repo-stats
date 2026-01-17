@@ -78,12 +78,18 @@
     "test:unit": "vitest run",
     "test:unit:watch": "vitest watch",
     "test:integration": "vscode-test",
+    "test:e2e": "extest setup-and-run './test/e2e/*.test.ts' --mocha_config .mocharc.json",
+    "test:e2e:setup": "extest get-vscode && extest get-chromedriver",
     "test:coverage": "vitest run --coverage",
     "validate": "npm run typecheck && npm run lint && npm run test && npm run package",
     "package": "vsce package --no-dependencies",
     "build": "npm run compile"
   },
   "devDependencies": {
+    "vscode-extension-tester": "^8.0.0",
+    "ts-node": "^10.9.2",
+    "chai": "^4.4.1",
+    "@types/chai": "^4.3.11",
     "@types/mocha": "^10.0.6",
     "@types/node": "^20.x",
     "@types/vscode": "^1.85.0",
