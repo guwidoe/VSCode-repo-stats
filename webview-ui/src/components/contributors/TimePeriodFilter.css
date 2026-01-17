@@ -1,0 +1,30 @@
+.time-period-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.time-period-filter label {
+  font-size: 13px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.time-period-filter select {
+  padding: 4px 8px;
+  font-size: 13px;
+  font-family: var(--vscode-font-family);
+  background: var(--vscode-dropdown-background);
+  color: var(--vscode-dropdown-foreground);
+  border: 1px solid var(--vscode-dropdown-border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.time-period-filter select:hover {
+  border-color: var(--vscode-focusBorder);
+}
+
+.time-period-filter select:focus {
+  outline: none;
+  border-color: var(--vscode-focusBorder);
+}

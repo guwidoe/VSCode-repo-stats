@@ -14,26 +14,6 @@ A VSCode extension for visualizing repository statistics with three views:
 - Webview: React + TypeScript, Vite, D3.js, Plotly.js, Zustand
 - Communication: postMessage API between extension and webview
 
-## First-Time Setup
-
-Run these commands before starting development:
-
-```bash
-npm install                    # Install root dependencies
-cd webview-ui && npm install   # Install webview dependencies
-cd ..
-npm run test:e2e:setup         # Download VSCode + ChromeDriver for E2E tests
-```
-
-After you've done the installation and verified it works, you can remove the first time setup section from claude.md since its now irrelevant.
-
-Verify setup works:
-
-```bash
-npm run build      # Should compile without errors
-npm run typecheck  # Should pass
-```
-
 ## Build & Test Commands
 
 ```bash

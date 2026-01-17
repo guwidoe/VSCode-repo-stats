@@ -1,0 +1,214 @@
+.treemap-panel {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.treemap-panel .panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.treemap-panel .panel-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+
+.color-mode-toggle {
+  display: flex;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.color-mode-toggle .toggle-button {
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  color: var(--vscode-foreground);
+  font-size: 12px;
+  font-family: var(--vscode-font-family);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.color-mode-toggle .toggle-button:not(:last-child) {
+  border-right: 1px solid var(--vscode-panel-border);
+}
+
+.color-mode-toggle .toggle-button:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.color-mode-toggle .toggle-button.active {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+}
+
+.breadcrumb-item {
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  color: var(--vscode-textLink-foreground);
+  font-size: 13px;
+  font-family: var(--vscode-font-family);
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.breadcrumb-item:hover {
+  background: var(--vscode-list-hoverBackground);
+  text-decoration: underline;
+}
+
+.breadcrumb-separator {
+  color: var(--vscode-descriptionForeground);
+}
+
+.treemap-container {
+  flex: 1;
+  position: relative;
+  min-height: 400px;
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.treemap-container canvas {
+  display: block;
+  cursor: pointer;
+}
+
+.treemap-tooltip {
+  position: fixed;
+  z-index: 1000;
+  padding: 8px 12px;
+  background: var(--vscode-editorHoverWidget-background);
+  border: 1px solid var(--vscode-editorHoverWidget-border);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+  max-width: 300px;
+}
+
+.tooltip-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--vscode-foreground);
+  margin-bottom: 4px;
+}
+
+.tooltip-path {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  word-break: break-all;
+  margin-bottom: 8px;
+}
+
+.tooltip-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--vscode-foreground);
+}
+
+.tooltip-info span {
+  padding: 2px 6px;
+  background: var(--vscode-badge-background);
+  border-radius: 3px;
+}
+
+.context-menu {
+  position: fixed;
+  z-index: 1001;
+  background: var(--vscode-menu-background);
+  border: 1px solid var(--vscode-menu-border);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.context-menu button {
+  display: block;
+  width: 100%;
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  color: var(--vscode-menu-foreground);
+  font-size: 13px;
+  font-family: var(--vscode-font-family);
+  text-align: left;
+  cursor: pointer;
+}
+
+.context-menu button:hover {
+  background: var(--vscode-menu-selectionBackground);
+  color: var(--vscode-menu-selectionForeground);
+}
+
+.legend {
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 6px;
+}
+
+.language-legend,
+.age-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.legend-label {
+  font-size: 12px;
+  color: var(--vscode-foreground);
+}
+
+.legend-value {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  color: var(--vscode-descriptionForeground);
+}

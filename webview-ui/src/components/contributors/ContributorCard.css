@@ -1,0 +1,114 @@
+.contributor-card {
+  padding: 16px;
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 6px;
+  transition: border-color 0.15s ease;
+}
+
+.contributor-card:hover {
+  border-color: var(--vscode-focusBorder);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  flex-shrink: 0;
+}
+
+.contributor-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.contributor-name {
+  display: block;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--vscode-foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.contributor-email {
+  display: block;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rank-badge {
+  padding: 4px 8px;
+  background: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 4px;
+}
+
+.stats-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stat-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat.additions .stat-value {
+  color: var(--vscode-gitDecoration-addedResourceForeground, #3fb950);
+}
+
+.stat.deletions .stat-value {
+  color: var(--vscode-gitDecoration-deletedResourceForeground, #f85149);
+}
+
+.sparkline-container {
+  height: 30px;
+}
+
+.sparkline {
+  width: 100%;
+  height: 100%;
+}
+
+.sparkline.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}

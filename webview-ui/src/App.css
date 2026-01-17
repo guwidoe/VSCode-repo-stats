@@ -1,0 +1,203 @@
+/* Global styles */
+:root {
+  --vscode-charts-blue: #1f77b4;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  color: var(--vscode-foreground);
+  background: var(--vscode-editor-background);
+}
+
+/* App layout */
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--vscode-sideBar-background);
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+
+.repo-info {
+  font-size: 13px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.refresh-button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  font-size: 12px;
+  font-family: var(--vscode-font-family);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.refresh-button:hover:not(:disabled) {
+  background: var(--vscode-button-hoverBackground);
+}
+
+.refresh-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.app-content {
+  flex: 1;
+  overflow: auto;
+}
+
+/* Loading state */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--vscode-panel-border);
+  border-top-color: var(--vscode-progressBar-background);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-phase {
+  font-size: 14px;
+  color: var(--vscode-foreground);
+  margin-bottom: 12px;
+}
+
+.progress-bar {
+  width: 200px;
+  height: 4px;
+  background: var(--vscode-panel-border);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--vscode-progressBar-background);
+  transition: width 0.3s ease;
+}
+
+.loading-hint {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+/* Error state */
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.error-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--vscode-errorForeground);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 16px;
+}
+
+.error-state h2 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  color: var(--vscode-foreground);
+}
+
+.error-state p {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  color: var(--vscode-descriptionForeground);
+  max-width: 400px;
+}
+
+.retry-button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  font-size: 13px;
+  font-family: var(--vscode-font-family);
+  cursor: pointer;
+}
+
+.retry-button:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+/* Empty state */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.empty-state h2 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  color: var(--vscode-foreground);
+}
+
+.empty-state p {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  color: var(--vscode-descriptionForeground);
+}

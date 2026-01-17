@@ -1,0 +1,99 @@
+.frequency-panel {
+  padding: 16px;
+}
+
+.frequency-panel .panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.frequency-panel .panel-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+
+.frequency-panel .controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.granularity-toggle {
+  display: flex;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.toggle-button {
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  color: var(--vscode-foreground);
+  font-size: 12px;
+  font-family: var(--vscode-font-family);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.toggle-button:not(:last-child) {
+  border-right: 1px solid var(--vscode-panel-border);
+}
+
+.toggle-button:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.toggle-button.active {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+
+.chart-container {
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.summary-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+}
+
+.summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 6px;
+}
+
+.summary-label {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summary-value {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: var(--vscode-descriptionForeground);
+}

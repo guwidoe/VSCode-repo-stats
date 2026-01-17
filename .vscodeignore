@@ -1,0 +1,55 @@
+# Ignore for VSCode extension packaging
+
+# Source files (we bundle everything)
+src/**
+!src/**/*.d.ts
+
+# Webview source and dev dependencies
+webview-ui/src/**
+webview-ui/node_modules/**
+webview-ui/test/**
+webview-ui/tsconfig*.json
+webview-ui/vite.config.ts
+webview-ui/package.json
+webview-ui/package-lock.json
+
+# Keep webview dist
+!webview-ui/dist/**
+
+# Test files
+test/**
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+.vscode-test/**
+
+# Development files
+.vscode/**
+.claude/**
+.git/**
+.gitignore
+node_modules/**
+*.vsix
+
+# Config files
+.eslintrc.json
+.mocharc.json
+.vscode-test.js
+tsconfig.json
+vitest.config.ts
+
+# Documentation (can be kept or excluded)
+Orchestration Setup Resources/**
+ARCHITECTURE.md
+ARCHITECTURE_DECISIONS.md
+TASK.md
+SPECIFICATIONS.md
+
+# Only include these in final package
+!out/**
+!webview-ui/dist/**
+!webview-ui/index.html
+!package.json
+!CLAUDE.md
+!LICENSE.txt

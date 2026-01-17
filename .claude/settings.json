@@ -31,5 +31,8 @@
       "Bash(npm publish*)",
       "Bash(sudo *)"
     ]
+  },
+    "commit": {
+    "addCoAuthoredBy": false
   }
 }
