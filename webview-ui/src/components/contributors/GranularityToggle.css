@@ -1,0 +1,31 @@
+.granularity-toggle {
+  display: flex;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.toggle-btn {
+  padding: 4px 12px;
+  font-size: 12px;
+  font-family: var(--vscode-font-family);
+  background: var(--vscode-editor-background);
+  color: var(--vscode-descriptionForeground);
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.toggle-btn:not(:last-child) {
+  border-right: 1px solid var(--vscode-panel-border);
+}
+
+.toggle-btn:hover:not(.active) {
+  background: var(--vscode-list-hoverBackground);
+  color: var(--vscode-foreground);
+}
+
+.toggle-btn.active {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}

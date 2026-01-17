@@ -4,13 +4,56 @@
 
 import { useMemo } from 'react';
 import Plot from 'react-plotly.js';
-import type { ContributorStats } from '../../types';
+import type { ContributorStats, FrequencyGranularity } from '../../types';
 
 interface Props {
   contributors: ContributorStats[];
+  granularity: FrequencyGranularity;
 }
 
-export function CommitsChart({ contributors }: Props) {
+/**
+ * Parses an ISO week string to a Date.
+ */
+function parseISOWeek(isoWeek: string): Date {
+  const match = isoWeek.match(/^(\d{4})-W(\d{2})$/);
+  if (!match) {return new Date(0);}
+
+  const year = parseInt(match[1], 10);
+  const week = parseInt(match[2], 10);
+
+  const jan4 = new Date(year, 0, 4);
+  const dayOfWeek = jan4.getDay() || 7;
+  const week1Monday = new Date(jan4);
+  week1Monday.setDate(jan4.getDate() - dayOfWeek + 1);
+  const weekStart = new Date(week1Monday);
+  weekStart.setDate(week1Monday.getDate() + (week - 1) * 7);
+
+  return weekStart;
+}
+
+/**
+ * Formats an ISO week to a readable label.
+ */
+function formatWeekLabel(isoWeek: string): string {
+  const date = parseISOWeek(isoWeek);
+  if (date.getTime() === 0) {return isoWeek;}
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${monthNames[date.getMonth()]} ${date.getDate()}`;
+}
+
+/**
+ * Formats a month key to a readable label.
+ */
+function formatMonthLabel(monthKey: string): string {
+  const match = monthKey.match(/^(\d{4})-(\d{2})$/);
+  if (!match) {return monthKey;}
+  const year = parseInt(match[1], 10);
+  const month = parseInt(match[2], 10) - 1;
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${monthNames[month]} ${year}`;
+}
+
+export function CommitsChart({ contributors, granularity }: Props) {
   const chartData = useMemo(() => {
     // Aggregate all weekly commits across contributors
     const weeklyMap = new Map<string, number>();
@@ -25,11 +68,32 @@ export function CommitsChart({ contributors }: Props) {
     const weeks = Array.from(weeklyMap.entries())
       .sort((a, b) => a[0].localeCompare(b[0]));
 
+    if (granularity === 'monthly') {
+      // Aggregate to monthly
+      const monthlyMap = new Map<string, number>();
+      const monthOrder: string[] = [];
+
+      for (const [week, commits] of weeks) {
+        const date = parseISOWeek(week);
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        if (!monthlyMap.has(monthKey)) {
+          monthlyMap.set(monthKey, 0);
+          monthOrder.push(monthKey);
+        }
+        monthlyMap.set(monthKey, monthlyMap.get(monthKey)! + commits);
+      }
+
+      return {
+        x: monthOrder.map(formatMonthLabel),
+        y: monthOrder.map((month) => monthlyMap.get(month) ?? 0),
+      };
+    }
+
     return {
-      x: weeks.map(([week]) => week),
+      x: weeks.map(([week]) => formatWeekLabel(week)),
       y: weeks.map(([, commits]) => commits),
     };
-  }, [contributors]);
+  }, [contributors, granularity]);
 
   if (chartData.x.length === 0) {
     return (

@@ -2,11 +2,25 @@
   padding: 16px;
 }
 
+/* Subtle opacity change when data is being updated in background */
+.contributors-panel.updating .commits-chart-container,
+.contributors-panel.updating .contributors-grid {
+  opacity: 0.7;
+  transition: opacity 0.1s ease-out;
+}
+
+.contributors-panel .commits-chart-container,
+.contributors-panel .contributors-grid {
+  transition: opacity 0.15s ease-in;
+}
+
 .panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .panel-header h2 {
@@ -14,6 +28,13 @@
   font-size: 18px;
   font-weight: 600;
   color: var(--vscode-foreground);
+}
+
+.panel-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 .commits-chart-container {

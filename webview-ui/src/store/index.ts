@@ -29,7 +29,12 @@ interface RepoStatsState {
   activeView: ViewType;
   timePeriod: TimePeriod;
   frequencyGranularity: FrequencyGranularity;
+  contributorGranularity: FrequencyGranularity;
   colorMode: ColorMode;
+
+  // Time range slider (indices into allWeeks array, null means full range)
+  timeRangeStart: number | null;
+  timeRangeEnd: number | null;
 
   // Treemap navigation
   treemapPath: string[];
@@ -42,7 +47,9 @@ interface RepoStatsState {
   setActiveView: (view: ViewType) => void;
   setTimePeriod: (period: TimePeriod) => void;
   setFrequencyGranularity: (granularity: FrequencyGranularity) => void;
+  setContributorGranularity: (granularity: FrequencyGranularity) => void;
   setColorMode: (mode: ColorMode) => void;
+  setTimeRange: (start: number | null, end: number | null) => void;
   navigateToTreemapPath: (path: string[]) => void;
   reset: () => void;
 }
@@ -62,7 +69,10 @@ const initialState = {
   activeView: 'contributors' as ViewType,
   timePeriod: 'all' as TimePeriod,
   frequencyGranularity: 'weekly' as FrequencyGranularity,
+  contributorGranularity: 'weekly' as FrequencyGranularity,
   colorMode: 'language' as ColorMode,
+  timeRangeStart: null as number | null,
+  timeRangeEnd: null as number | null,
   treemapPath: [] as string[],
   currentTreemapNode: null,
 };
@@ -109,8 +119,16 @@ export const useStore = create<RepoStatsState>((set, get) => ({
     set({ frequencyGranularity: granularity });
   },
 
+  setContributorGranularity: (granularity: FrequencyGranularity) => {
+    set({ contributorGranularity: granularity });
+  },
+
   setColorMode: (mode: ColorMode) => {
     set({ colorMode: mode });
+  },
+
+  setTimeRange: (start: number | null, end: number | null) => {
+    set({ timeRangeStart: start, timeRangeEnd: end });
   },
 
   navigateToTreemapPath: (path: string[]) => {
@@ -143,19 +161,55 @@ export const useStore = create<RepoStatsState>((set, get) => ({
 // Selectors
 // ============================================================================
 
+/**
+ * Returns ALL weeks from the data (for the slider background).
+ */
+export const selectAllWeeks = (state: RepoStatsState): string[] => {
+  if (!state.data) {return [];}
+
+  const allWeeks = new Set<string>();
+  for (const contributor of state.data.contributors) {
+    for (const week of contributor.weeklyActivity) {
+      allWeeks.add(week.week);
+    }
+  }
+
+  return Array.from(allWeeks).sort();
+};
+
+/**
+ * Returns aggregated commit counts per week (for slider background chart).
+ */
+export const selectWeeklyCommitTotals = (state: RepoStatsState): { week: string; commits: number }[] => {
+  if (!state.data) {return [];}
+
+  const weekMap = new Map<string, number>();
+  for (const contributor of state.data.contributors) {
+    for (const week of contributor.weeklyActivity) {
+      weekMap.set(week.week, (weekMap.get(week.week) || 0) + week.commits);
+    }
+  }
+
+  return Array.from(weekMap.entries())
+    .map(([week, commits]) => ({ week, commits }))
+    .sort((a, b) => a.week.localeCompare(b.week));
+};
+
 export const selectFilteredContributors = (state: RepoStatsState) => {
   if (!state.data) {return [];}
 
   const contributors = state.data.contributors;
-  const cutoffDate = getCutoffDate(state.timePeriod);
+  const allWeeks = selectAllWeeks(state);
 
-  if (!cutoffDate) {return contributors;}
+  // Use slider range if set, otherwise use full range
+  const startIdx = state.timeRangeStart ?? 0;
+  const endIdx = state.timeRangeEnd ?? allWeeks.length - 1;
+  const selectedWeeks = new Set(allWeeks.slice(startIdx, endIdx + 1));
 
   return contributors.map((contributor) => {
-    const filteredActivity = contributor.weeklyActivity.filter((week) => {
-      const weekDate = parseISOWeek(week.week);
-      return weekDate >= cutoffDate;
-    });
+    const filteredActivity = contributor.weeklyActivity.filter((week) =>
+      selectedWeeks.has(week.week)
+    );
 
     const filteredCommits = filteredActivity.reduce((sum, w) => sum + w.commits, 0);
     const filteredAdded = filteredActivity.reduce((sum, w) => sum + w.additions, 0);
@@ -169,6 +223,22 @@ export const selectFilteredContributors = (state: RepoStatsState) => {
       weeklyActivity: filteredActivity,
     };
   }).filter((c) => c.commits > 0).sort((a, b) => b.commits - a.commits);
+};
+
+/**
+ * Returns all weeks in the filtered time range.
+ * Used to ensure all contributor sparklines show the same time range.
+ */
+export const selectTimeRangeWeeks = (state: RepoStatsState): string[] => {
+  if (!state.data) {return [];}
+
+  const allWeeks = selectAllWeeks(state);
+
+  // Use slider range if set, otherwise use full range
+  const startIdx = state.timeRangeStart ?? 0;
+  const endIdx = state.timeRangeEnd ?? allWeeks.length - 1;
+
+  return allWeeks.slice(startIdx, endIdx + 1);
 };
 
 export const selectFilteredCodeFrequency = (state: RepoStatsState) => {
