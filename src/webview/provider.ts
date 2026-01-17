@@ -298,13 +298,14 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     );
 
     // Replace asset paths with webview URIs
+    // Vite outputs absolute paths like /assets/index.js with crossorigin attribute
     html = html.replace(
-      /href="\.\/assets\/index\.css"/g,
-      `href="${styleUri}"`
+      /<link rel="stylesheet" crossorigin href="[./]*assets\/index\.css">/g,
+      `<link rel="stylesheet" href="${styleUri}">`
     );
     html = html.replace(
-      /src="\.\/assets\/index\.js"/g,
-      `src="${scriptUri}"`
+      /<script type="module" crossorigin src="[./]*assets\/index\.js"><\/script>/g,
+      `<script type="module" src="${scriptUri}"></script>`
     );
 
     // Add CSP meta tag for security

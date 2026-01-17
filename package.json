@@ -18,7 +18,10 @@
     "visualization",
     "treemap"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onCommand:repoStats.showDashboard",
+    "onCommand:repoStats.refreshStats"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
