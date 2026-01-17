@@ -1,0 +1,109 @@
+{
+  "name": "vscode-repo-stats",
+  "displayName": "Repo Stats",
+  "description": "Visualize repository statistics with contributor dashboards, code frequency graphs, and treemap views",
+  "version": "0.0.1",
+  "publisher": "your-publisher-name",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "keywords": [
+    "git",
+    "statistics",
+    "contributors",
+    "visualization",
+    "treemap"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "repoStats.showDashboard",
+        "title": "Repo Stats: Show Dashboard"
+      },
+      {
+        "command": "repoStats.refreshStats",
+        "title": "Repo Stats: Refresh"
+      }
+    ],
+    "configuration": {
+      "title": "Repo Stats",
+      "properties": {
+        "repoStats.excludePatterns": {
+          "type": "array",
+          "default": [
+            "node_modules",
+            "vendor",
+            ".git",
+            "dist",
+            "build"
+          ],
+          "description": "Glob patterns to exclude from analysis"
+        },
+        "repoStats.maxCommitsToAnalyze": {
+          "type": "number",
+          "default": 10000,
+          "description": "Maximum commits to analyze (performance limit for large repos)"
+        },
+        "repoStats.defaultColorMode": {
+          "type": "string",
+          "enum": [
+            "language",
+            "age"
+          ],
+          "default": "language",
+          "description": "Default treemap color mode"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "npm run compile:extension && npm run compile:webview",
+    "compile:extension": "esbuild src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --sourcemap",
+    "compile:webview": "cd webview-ui && npm run build",
+    "watch": "npm-run-all -p watch:*",
+    "watch:extension": "esbuild src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --sourcemap --watch",
+    "watch:webview": "cd webview-ui && npm run dev",
+    "typecheck": "tsc --noEmit",
+    "typecheck:watch": "tsc --noEmit --watch",
+    "lint": "eslint src webview-ui/src --ext ts,tsx",
+    "lint:fix": "eslint src webview-ui/src --ext ts,tsx --fix",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest watch",
+    "test:integration": "vscode-test",
+    "test:coverage": "vitest run --coverage",
+    "validate": "npm run typecheck && npm run lint && npm run test && npm run package",
+    "package": "vsce package --no-dependencies",
+    "build": "npm run compile"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.x",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.19.0",
+    "@typescript-eslint/parser": "^6.19.0",
+    "@vscode/test-cli": "^0.0.6",
+    "@vscode/test-electron": "^2.3.9",
+    "@vscode/vsce": "^2.22.0",
+    "@testing-library/jest-dom": "^6.4.0",
+    "@testing-library/react": "^14.2.0",
+    "@vitejs/plugin-react": "^4.2.0",
+    "esbuild": "^0.20.0",
+    "eslint": "^8.56.0",
+    "jsdom": "^24.0.0",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.3.0",
+    "vitest": "^1.2.0",
+    "@vitest/coverage-v8": "^1.2.0"
+  },
+  "dependencies": {
+    "simple-git": "^3.22.0"
+  }
+}
