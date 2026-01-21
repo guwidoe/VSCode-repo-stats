@@ -27,6 +27,62 @@
   color: var(--vscode-descriptionForeground);
 }
 
+/* SCC Info Section */
+.settings-info-section {
+  margin-bottom: 24px;
+  padding: 16px;
+  background: var(--vscode-textBlockQuote-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 8px;
+}
+
+.settings-info-section h3 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+
+.scc-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.scc-info-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.scc-info-label {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.scc-info-value {
+  font-size: 12px;
+  font-family: var(--vscode-editor-font-family), monospace;
+  color: var(--vscode-foreground);
+  padding: 2px 6px;
+  background: var(--vscode-badge-background);
+  border-radius: 4px;
+}
+
+.scc-info-note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.scc-info-note code {
+  font-family: var(--vscode-editor-font-family), monospace;
+  background: var(--vscode-textCodeBlock-background);
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
 /* Settings Sections */
 .settings-sections {
   display: flex;

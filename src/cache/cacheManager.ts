@@ -74,6 +74,7 @@ export class CacheManager {
       analyzedCommitCount: 0, // Will be refreshed from current analysis
       maxCommitsLimit: 0, // Will be refreshed from current analysis
       limitReached: false, // Will be refreshed from current analysis
+      sccInfo: { version: '', source: 'none' }, // Not cached, determined at runtime
     };
   }
 

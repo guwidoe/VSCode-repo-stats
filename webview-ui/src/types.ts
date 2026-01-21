@@ -51,6 +51,11 @@ export interface RepositoryInfo {
   headSha: string;
 }
 
+export interface SccInfo {
+  version: string;
+  source: 'system' | 'downloaded' | 'none';
+}
+
 export interface AnalysisResult {
   repository: RepositoryInfo;
   contributors: ContributorStats[];
@@ -61,6 +66,8 @@ export interface AnalysisResult {
   analyzedCommitCount: number;
   maxCommitsLimit: number;
   limitReached: boolean;
+  // SCC tool info
+  sccInfo: SccInfo;
 }
 
 // ============================================================================

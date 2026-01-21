@@ -41,13 +41,16 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
   private panel: vscode.WebviewPanel | undefined;
   private extensionUri: vscode.Uri;
   private workspaceState: vscode.Memento;
+  private globalStoragePath: string;
 
   constructor(
     extensionUri: vscode.Uri,
-    workspaceState: vscode.Memento
+    workspaceState: vscode.Memento,
+    globalStoragePath: string
   ) {
     this.extensionUri = extensionUri;
     this.workspaceState = workspaceState;
+    this.globalStoragePath = globalStoragePath;
   }
 
   resolveWebviewView(
@@ -220,7 +223,8 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     const settings = this.getSettings();
     const storage = new WorkspaceStateStorage(this.workspaceState);
     const cacheManager = new CacheManager(storage, repoPath);
-    const coordinator = new AnalysisCoordinator(repoPath, settings);
+    const sccStoragePath = path.join(this.globalStoragePath, 'scc');
+    const coordinator = new AnalysisCoordinator(repoPath, settings, sccStoragePath);
 
     try {
       // Check if we have a valid cache
@@ -286,13 +290,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
   private getSettings(): ExtensionSettings {
     const config = vscode.workspace.getConfiguration('repoStats');
     return {
-      excludePatterns: config.get<string[]>('excludePatterns', [
-        'node_modules',
-        'vendor',
-        '.git',
-        'dist',
-        'build',
-      ]),
+      excludePatterns: config.get<string[]>('excludePatterns', []),
       maxCommitsToAnalyze: config.get<number>('maxCommitsToAnalyze', 10000),
       defaultColorMode: config.get<'language' | 'age'>('defaultColorMode', 'language'),
       generatedPatterns: config.get<string[]>('generatedPatterns', [

@@ -49,6 +49,7 @@ describe('CacheManager', () => {
     analyzedCommitCount: 100,
     maxCommitsLimit: 10000,
     limitReached: false,
+    sccInfo: { version: '3.5.0', source: 'system' },
   };
 
   beforeEach(() => {

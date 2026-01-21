@@ -63,6 +63,11 @@ export interface RepositoryInfo {
   headSha: string;
 }
 
+export interface SccInfo {
+  version: string;
+  source: 'system' | 'downloaded' | 'none';
+}
+
 export interface AnalysisResult {
   repository: RepositoryInfo;
   contributors: ContributorStats[];
@@ -73,6 +78,8 @@ export interface AnalysisResult {
   analyzedCommitCount: number;
   maxCommitsLimit: number;
   limitReached: boolean;
+  // SCC tool info
+  sccInfo: SccInfo;
 }
 
 // ============================================================================
@@ -158,7 +165,11 @@ export class GitNotFoundError extends RepoStatsError {
 
 export class SccNotFoundError extends RepoStatsError {
   constructor() {
-    super('scc binary not found. Using fallback line counting.', 'SCC_NOT_FOUND');
+    super(
+      'scc binary not found and auto-download failed. ' +
+        'Please install scc manually: https://github.com/boyter/scc#install',
+      'SCC_NOT_FOUND'
+    );
     this.name = 'SccNotFoundError';
   }
 }

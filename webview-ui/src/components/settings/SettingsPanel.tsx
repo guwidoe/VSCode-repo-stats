@@ -11,6 +11,7 @@ import './SettingsPanel.css';
 
 export function SettingsPanel() {
   const settings = useStore((state) => state.settings);
+  const data = useStore((state) => state.data);
   const { updateSettings, requestRefresh } = useVsCodeApi();
 
   if (!settings) {
@@ -26,17 +27,43 @@ export function SettingsPanel() {
       <div className="settings-header">
         <h2>Extension Settings</h2>
         <p className="settings-description">
-          Configure how Repo Stats analyzes your repository. Changes are saved automatically.
+          Configure how Repo Stats analyzes your repository. Changes are saved
+          automatically.
         </p>
       </div>
 
+      {/* SCC Info Section */}
+      {data?.sccInfo && (
+        <div className="settings-info-section">
+          <h3>Line Counter (scc)</h3>
+          <div className="scc-info">
+            <div className="scc-info-item">
+              <span className="scc-info-label">Version:</span>
+              <span className="scc-info-value">{data.sccInfo.version}</span>
+            </div>
+            <div className="scc-info-item">
+              <span className="scc-info-label">Source:</span>
+              <span className="scc-info-value">
+                {data.sccInfo.source === 'system'
+                  ? 'System installed'
+                  : 'Auto-downloaded'}
+              </span>
+            </div>
+          </div>
+          <p className="scc-info-note">
+            <strong>Note:</strong> Files listed in your{' '}
+            <code>.gitignore</code> are automatically excluded from analysis.
+          </p>
+        </div>
+      )}
+
       <div className="settings-sections">
         <PatternListSetting
-          title="Exclude Patterns"
-          description="Directories and files to exclude from analysis (glob patterns)"
+          title="Additional Exclude Patterns"
+          description="Extra directories to exclude beyond .gitignore (e.g., for untracked directories)"
           patterns={settings.excludePatterns}
           onChange={(patterns) => updateSettings({ excludePatterns: patterns })}
-          placeholder="e.g., node_modules, *.log"
+          placeholder="e.g., vendor, temp"
         />
 
         <PatternListSetting
@@ -65,7 +92,9 @@ export function SettingsPanel() {
             { value: 'language', label: 'By Language' },
             { value: 'age', label: 'By File Age' },
           ]}
-          onChange={(value) => updateSettings({ defaultColorMode: value as 'language' | 'age' })}
+          onChange={(value) =>
+            updateSettings({ defaultColorMode: value as 'language' | 'age' })
+          }
         />
       </div>
 

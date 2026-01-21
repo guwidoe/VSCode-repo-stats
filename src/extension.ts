@@ -9,10 +9,11 @@ import { RepoStatsProvider } from './webview/provider.js';
 let provider: RepoStatsProvider | undefined;
 
 export function activate(context: vscode.ExtensionContext): void {
-  // Create the webview provider
+  // Create the webview provider with globalStorageUri for scc binary storage
   provider = new RepoStatsProvider(
     context.extensionUri,
-    context.workspaceState
+    context.workspaceState,
+    context.globalStorageUri.fsPath
   );
 
   // Register the show dashboard command

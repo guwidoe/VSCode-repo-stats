@@ -39,14 +39,8 @@
       "properties": {
         "repoStats.excludePatterns": {
           "type": "array",
-          "default": [
-            "node_modules",
-            "vendor",
-            ".git",
-            "dist",
-            "build"
-          ],
-          "description": "Glob patterns to exclude from analysis"
+          "default": [],
+          "description": "Additional directories to exclude beyond .gitignore (e.g., for untracked directories)"
         },
         "repoStats.maxCommitsToAnalyze": {
           "type": "number",

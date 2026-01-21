@@ -39,9 +39,12 @@ describe('Error Types', () => {
   });
 
   describe('SccNotFoundError', () => {
-    it('should create error with fallback message', () => {
+    it('should create error with install instructions', () => {
       const error = new SccNotFoundError();
-      expect(error.message).toBe('scc binary not found. Using fallback line counting.');
+      expect(error.message).toBe(
+        'scc binary not found and auto-download failed. ' +
+          'Please install scc manually: https://github.com/boyter/scc#install'
+      );
       expect(error.code).toBe('SCC_NOT_FOUND');
       expect(error.name).toBe('SccNotFoundError');
     });
