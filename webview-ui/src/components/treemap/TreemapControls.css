@@ -1,0 +1,86 @@
+/* TreemapControls - Control panel styling */
+
+.treemap-controls {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 16px;
+}
+
+.controls-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.toggle-group {
+  display: flex;
+  border: 1px solid var(--vscode-button-border, var(--vscode-panel-border));
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.toggle-button {
+  padding: 4px 10px;
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+  border: none;
+  font-size: 12px;
+  font-family: var(--vscode-font-family);
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.toggle-button:not(:last-child) {
+  border-right: 1px solid var(--vscode-panel-border);
+}
+
+.toggle-button:hover:not(.active) {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+
+.toggle-button.active {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+
+.depth-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.depth-label {
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+}
+
+.depth-button {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.depth-button:hover:not(:disabled) {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+
+.depth-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.depth-value {
+  min-width: 20px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+}
