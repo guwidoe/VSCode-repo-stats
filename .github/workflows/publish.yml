@@ -36,7 +36,9 @@ jobs:
         run: cd webview-ui && npm ci
 
       - name: Run validation
-        run: npm run validate
+        run: xvfb-run -a npm run validate
+        env:
+          DISPLAY: ':99.0'
 
       - name: Publish (with version bump)
         if: inputs.version_bump != 'none' && inputs.version_bump != ''
