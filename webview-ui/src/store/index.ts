@@ -74,7 +74,7 @@ const initialState = {
     phase: '',
     progress: 0,
   },
-  activeView: 'contributors' as ViewType,
+  activeView: 'overview' as ViewType,
   timePeriod: 'all' as TimePeriod,
   frequencyGranularity: 'weekly' as FrequencyGranularity,
   contributorGranularity: 'weekly' as FrequencyGranularity,

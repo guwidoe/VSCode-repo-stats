@@ -1,0 +1,472 @@
+.overview-panel {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.overview-panel .empty-state {
+  text-align: center;
+  padding: 40px;
+  color: var(--vscode-descriptionForeground);
+}
+
+/* Stats Row - Big Numbers */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 8px;
+  transition: border-color 0.15s ease;
+}
+
+.stat-card:hover {
+  border-color: var(--vscode-focusBorder);
+}
+
+.stat-card-icon {
+  font-size: 28px;
+  opacity: 0.8;
+}
+
+.stat-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stat-card-value {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.stat-card-label {
+  font-size: 13px;
+  color: var(--vscode-descriptionForeground);
+  font-weight: 500;
+}
+
+.stat-card-subtitle {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.8;
+}
+
+/* Charts Row - Donut Charts */
+.charts-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 16px;
+}
+
+.chart-section {
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.donut-chart {
+  padding: 20px;
+}
+
+.donut-chart-title {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+
+.donut-chart-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.donut-chart-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+}
+
+.donut-center-value {
+  display: block;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+.donut-center-label {
+  display: block;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.donut-chart-legend {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 16px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  cursor: default;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: background-color 0.1s ease;
+}
+
+.legend-item:hover,
+.legend-item.active {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.legend-item.other {
+  opacity: 0.7;
+}
+
+.legend-color {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.legend-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vscode-foreground);
+}
+
+.legend-value {
+  font-variant-numeric: tabular-nums;
+  color: var(--vscode-descriptionForeground);
+}
+
+/* Expandable Details */
+.expandable-details {
+  border-top: 1px solid var(--vscode-panel-border);
+}
+
+.expand-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  color: var(--vscode-textLink-foreground);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+}
+
+.expand-toggle:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.expand-icon {
+  font-size: 10px;
+}
+
+.details-table {
+  padding: 0 16px 16px;
+}
+
+.details-header {
+  display: grid;
+  grid-template-columns: 1fr 100px 60px;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--vscode-descriptionForeground);
+  text-transform: uppercase;
+}
+
+.details-row {
+  display: grid;
+  grid-template-columns: 1fr 100px 60px;
+  gap: 12px;
+  padding: 6px 0;
+  font-size: 12px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.details-row:last-child {
+  border-bottom: none;
+}
+
+.details-col-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.details-color-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.details-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vscode-foreground);
+}
+
+.details-subtitle {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  margin-left: 4px;
+}
+
+.details-col-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--vscode-foreground);
+}
+
+.details-col-percent {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--vscode-descriptionForeground);
+}
+
+/* Info Row - Unknown & Binary */
+.info-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.info-section {
+  padding: 20px;
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 8px;
+}
+
+.section-title {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-count {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--vscode-badge-foreground);
+  background: var(--vscode-badge-background);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.section-subtitle {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--vscode-descriptionForeground);
+  margin-left: 8px;
+}
+
+.section-description {
+  margin: 0 0 12px 0;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+/* Tag List for Unknown Extensions */
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+  border-radius: 12px;
+  font-size: 12px;
+  font-family: var(--vscode-editor-font-family), monospace;
+}
+
+.tag-count {
+  opacity: 0.7;
+  font-size: 11px;
+}
+
+.tag.more {
+  background: transparent;
+  color: var(--vscode-descriptionForeground);
+  border: 1px dashed var(--vscode-panel-border);
+}
+
+/* Binary Categories */
+.binary-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.binary-category {
+  display: grid;
+  grid-template-columns: 100px 60px 1fr;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--vscode-input-background);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.category-name {
+  font-weight: 500;
+  color: var(--vscode-foreground);
+}
+
+.category-count {
+  font-variant-numeric: tabular-nums;
+  color: var(--vscode-foreground);
+  text-align: right;
+}
+
+.category-exts {
+  color: var(--vscode-descriptionForeground);
+  font-family: var(--vscode-editor-font-family), monospace;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Largest Files Section */
+.largest-files-section {
+  padding: 20px;
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 8px;
+}
+
+.largest-files-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.file-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: background-color 0.1s ease;
+}
+
+.file-row:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.file-rank {
+  width: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--vscode-descriptionForeground);
+  text-align: center;
+}
+
+.file-language-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.file-path {
+  flex: 1;
+  font-family: var(--vscode-editor-font-family), monospace;
+  font-size: 12px;
+  color: var(--vscode-textLink-foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-lines {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--vscode-descriptionForeground);
+  white-space: nowrap;
+}
+
+.empty-files {
+  padding: 20px;
+  text-align: center;
+  color: var(--vscode-descriptionForeground);
+}
+
+/* Responsive */
+@media (max-width: 700px) {
+  .stats-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .charts-row {
+    grid-template-columns: 1fr;
+  }
+
+  .info-row {
+    grid-template-columns: 1fr;
+  }
+
+  .donut-chart-legend {
+    grid-template-columns: 1fr;
+  }
+
+  .binary-category {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .category-count {
+    text-align: left;
+  }
+}

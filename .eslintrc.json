@@ -8,11 +8,16 @@
       "jsx": true
     }
   },
-  "plugins": ["@typescript-eslint"],
+  "plugins": ["@typescript-eslint", "react"],
   "extends": [
     "eslint:recommended",
     "plugin:@typescript-eslint/recommended"
   ],
+  "settings": {
+    "react": {
+      "version": "detect"
+    }
+  },
   "rules": {
     "@typescript-eslint/naming-convention": [
       "warn",
@@ -34,5 +39,14 @@
       }
     ]
   },
+  "overrides": [
+    {
+      "files": ["*.tsx"],
+      "rules": {
+        "max-lines": ["error", { "max": 400, "skipBlankLines": true, "skipComments": true }],
+        "react/no-multi-comp": ["error", { "ignoreStateless": false }]
+      }
+    }
+  ],
   "ignorePatterns": ["out", "dist", "**/*.d.ts", "node_modules"]
 }

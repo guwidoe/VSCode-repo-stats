@@ -57,6 +57,7 @@ Use E2E tests to verify the extension works as a user would experience it.
 **During development:** Fix obvious errors as you go, but don't run full validation after every edit.
 
 **After completing a feature or logical unit of work:**
+
 1. Run `npm run typecheck` - Fix TypeScript errors
 2. Run `npm run lint` - Fix lint errors
 3. Run `npm run test` - Ensure all tests pass
@@ -72,6 +73,8 @@ Use E2E tests to verify the extension works as a user would experience it.
 - Use Zustand for webview state (not Redux or Context)
 - IMPORTANT: Never block the extension host with synchronous operations
 - Consider Worker Threads for operations that may exceed 100ms
+- No files longer than 400 loc (enforced by eslint)
+- No files containing more than 1 react component (enforced by eslint)
 
 ## Architectural Principles (NOT rigid structure)
 

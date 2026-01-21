@@ -85,7 +85,7 @@ export type WebviewMessage =
 // UI State Types
 // ============================================================================
 
-export type ViewType = 'contributors' | 'frequency' | 'treemap';
+export type ViewType = 'overview' | 'contributors' | 'frequency' | 'treemap';
 
 export type TimePeriod = 'all' | 'year' | '6months' | '3months' | 'month';
 

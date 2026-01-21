@@ -7,6 +7,7 @@ import type { ViewType } from '../types';
 import './Navigation.css';
 
 const VIEWS: { id: ViewType; label: string; icon: string }[] = [
+  { id: 'overview', label: 'Overview', icon: '📋' },
   { id: 'contributors', label: 'Contributors', icon: '👥' },
   { id: 'frequency', label: 'Code Frequency', icon: '📊' },
   { id: 'treemap', label: 'Treemap', icon: '🗂️' },
