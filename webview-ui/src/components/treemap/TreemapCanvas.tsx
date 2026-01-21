@@ -78,7 +78,8 @@ export function TreemapCanvas({
     root,
     dimensions.width,
     dimensions.height,
-    config
+    config,
+    sizeMode
   );
   const { render } = useTreemapRender();
 

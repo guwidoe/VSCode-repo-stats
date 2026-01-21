@@ -2,7 +2,7 @@
 import { useMemo, useCallback } from 'react';
 import * as d3 from 'd3-hierarchy';
 import type { TreemapNode } from '../../../types';
-import type { TreemapConfig, LayoutNode } from '../types';
+import type { TreemapConfig, LayoutNode, SizeDisplayMode } from '../types';
 
 interface TreemapLayoutResult {
   layout: LayoutNode | null;
@@ -10,9 +10,27 @@ interface TreemapLayoutResult {
   findNodeAtPoint: (x: number, y: number) => LayoutNode | null;
 }
 
+/**
+ * Get the size value for a node based on the size mode.
+ */
+function getNodeSize(node: TreemapNode, sizeMode: SizeDisplayMode): number {
+  if (node.type === 'directory') {
+    return 0; // D3 will sum children
+  }
+  switch (sizeMode) {
+    case 'loc':
+      return node.lines || 1;
+    case 'bytes':
+      return node.bytes || (node.lines || 1) * 40; // Fallback to estimate
+    case 'files':
+      return 1;
+  }
+}
+
 function createLayoutNode(
   d3Node: d3.HierarchyRectangularNode<TreemapNode>,
   config: TreemapConfig,
+  sizeMode: SizeDisplayMode,
   depth: number = 0
 ): LayoutNode {
   const width = d3Node.x1 - d3Node.x0;
@@ -39,7 +57,7 @@ function createLayoutNode(
     if (childHeight > 0 && childWidth > 0) {
       // Re-layout children within the adjusted bounds
       const childRoot = d3.hierarchy(d3Node.data)
-        .sum(n => n.type === 'file' ? (n.lines || 1) : 0)
+        .sum(n => getNodeSize(n, sizeMode))
         .sort((a, b) => (b.value || 0) - (a.value || 0));
 
       const childTreemap = d3.treemap<TreemapNode>()
@@ -61,6 +79,7 @@ function createLayoutNode(
             y1: childY0 + child.y1,
           } as d3.HierarchyRectangularNode<TreemapNode>,
           config,
+          sizeMode,
           depth + 1
         );
         childNode.parent = node;
@@ -86,7 +105,8 @@ export function useTreemapLayout(
   root: TreemapNode | null,
   width: number,
   height: number,
-  config: TreemapConfig
+  config: TreemapConfig,
+  sizeMode: SizeDisplayMode = 'loc'
 ): TreemapLayoutResult {
   const layout = useMemo(() => {
     if (!root || width <= 0 || height <= 0) {
@@ -94,7 +114,7 @@ export function useTreemapLayout(
     }
 
     const hierarchy = d3.hierarchy(root)
-      .sum(n => n.type === 'file' ? (n.lines || 1) : 0)
+      .sum(n => getNodeSize(n, sizeMode))
       .sort((a, b) => (b.value || 0) - (a.value || 0));
 
     const treemap = d3.treemap<TreemapNode>()
@@ -103,8 +123,8 @@ export function useTreemapLayout(
       .round(true);
 
     const d3Layout = treemap(hierarchy);
-    return createLayoutNode(d3Layout, config, 0);
-  }, [root, width, height, config]);
+    return createLayoutNode(d3Layout, config, sizeMode, 0);
+  }, [root, width, height, config, sizeMode]);
 
   const allNodes = useMemo(() => {
     if (!layout) {

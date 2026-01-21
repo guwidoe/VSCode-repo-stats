@@ -18,6 +18,13 @@ function countFiles(node: TreemapNode): number {
   return (node.children || []).reduce((sum, child) => sum + countFiles(child), 0);
 }
 
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) {return `${bytes} B`;}
+  if (bytes < 1024 * 1024) {return `${(bytes / 1024).toFixed(1)} KB`;}
+  if (bytes < 1024 * 1024 * 1024) {return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;}
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+}
+
 const TOOLTIP_OFFSET = 15;
 const VIEWPORT_PADDING = 8;
 
@@ -63,7 +70,20 @@ export function TreemapTooltip({ visible, x, y, node, sizeMode }: TreemapTooltip
 
   const isFile = node.type === 'file';
   const lines = node.lines || 0;
+  const bytes = node.bytes || 0;
   const fileCount = countFiles(node);
+
+  // Determine primary size display based on mode
+  const getSizeDisplay = () => {
+    switch (sizeMode) {
+      case 'loc':
+        return `${formatNumber(lines)} lines`;
+      case 'bytes':
+        return formatBytes(bytes);
+      case 'files':
+        return `${formatNumber(fileCount)} files`;
+    }
+  };
 
   return (
     <div
@@ -79,12 +99,10 @@ export function TreemapTooltip({ visible, x, y, node, sizeMode }: TreemapTooltip
         <div className="tooltip-language">{node.language}</div>
       )}
       <div className="tooltip-size">
-        {sizeMode === 'loc' ? (
-          <>{formatNumber(lines)} lines</>
-        ) : (
-          <>{formatNumber(fileCount)} files</>
-        )}
-        {isFile && <> &middot; {formatNumber(Math.round(lines * 40))} bytes</>}
+        {getSizeDisplay()}
+        {/* Show secondary info based on mode */}
+        {sizeMode !== 'loc' && lines > 0 && <> &middot; {formatNumber(lines)} lines</>}
+        {sizeMode !== 'bytes' && bytes > 0 && <> &middot; {formatBytes(bytes)}</>}
       </div>
       {node.lastModified && (
         <div className="tooltip-modified">

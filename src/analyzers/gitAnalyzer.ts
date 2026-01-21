@@ -21,6 +21,7 @@ export interface GitClient {
   getRepoInfo(): Promise<RepositoryInfo>;
   getContributorStats(maxCommits: number): Promise<ContributorStats[]>;
   getCodeFrequency(maxCommits: number): Promise<CodeFrequency[]>;
+  getFileModificationDates(): Promise<Map<string, string>>;
 }
 
 // ============================================================================
@@ -253,6 +254,54 @@ export class GitAnalyzer implements GitClient {
     frequency.sort((a, b) => a.week.localeCompare(b.week));
 
     return frequency;
+  }
+
+  /**
+   * Get the last modification date from git history for all tracked files.
+   * Returns a Map of relative file path -> ISO date string of last commit.
+   */
+  async getFileModificationDates(): Promise<Map<string, string>> {
+    if (!(await this.isRepo())) {
+      throw new NotAGitRepoError(this.repoPath);
+    }
+
+    const fileModDates = new Map<string, string>();
+
+    try {
+      // Get the last commit date for each file using git log with name-only
+      // Format: date\n\nfile1\nfile2\n\ndate\n\nfile3\n...
+      const rawLog = await this.git.raw([
+        'log',
+        '--all',
+        '--format=%aI',
+        '--name-only',
+      ]);
+
+      const lines = rawLog.split('\n');
+      let currentDate: string | null = null;
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) {
+          continue;
+        }
+
+        // Check if this is a date line (ISO format)
+        if (trimmed.match(/^\d{4}-\d{2}-\d{2}T/)) {
+          currentDate = trimmed;
+        } else if (currentDate) {
+          // This is a file path - only set if not already set (we want most recent)
+          if (!fileModDates.has(trimmed)) {
+            fileModDates.set(trimmed, currentDate);
+          }
+        }
+      }
+    } catch (error) {
+      // If git log fails, return empty map - graceful degradation
+      console.error('Failed to get file modification dates:', error);
+    }
+
+    return fileModDates;
   }
 
   private parseStatLine(line: string): { additions: number; deletions: number } {

@@ -62,12 +62,21 @@ export function TreemapControls({
           <button
             className={`toggle-button ${sizeMode === 'loc' ? 'active' : ''}`}
             onClick={() => onSizeModeChange('loc')}
+            title="Size by lines of code"
           >
             LOC
           </button>
           <button
+            className={`toggle-button ${sizeMode === 'bytes' ? 'active' : ''}`}
+            onClick={() => onSizeModeChange('bytes')}
+            title="Size by file size in bytes"
+          >
+            Bytes
+          </button>
+          <button
             className={`toggle-button ${sizeMode === 'files' ? 'active' : ''}`}
             onClick={() => onSizeModeChange('files')}
+            title="Size by file count"
           >
             Files
           </button>

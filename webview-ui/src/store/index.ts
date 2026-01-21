@@ -15,6 +15,7 @@ import type {
   TreemapFilterState,
   ExtensionSettings,
 } from '../types';
+import type { SizeDisplayMode } from '../components/treemap/types';
 import { isBinaryFile, isCodeLanguage } from '../utils/fileTypes';
 
 // ============================================================================
@@ -51,7 +52,7 @@ interface RepoStatsState {
   treemapFilter: TreemapFilterState;
 
   // Treemap display options
-  sizeDisplayMode: 'loc' | 'files';
+  sizeDisplayMode: SizeDisplayMode;
   maxNestingDepth: number;
   hoveredNode: TreemapNode | null;
   selectedNode: TreemapNode | null;
@@ -70,7 +71,7 @@ interface RepoStatsState {
   navigateToTreemapPath: (path: string[]) => void;
   setTreemapFilterPreset: (preset: TreemapFilterPreset) => void;
   toggleTreemapLanguage: (language: string) => void;
-  setSizeDisplayMode: (mode: 'loc' | 'files') => void;
+  setSizeDisplayMode: (mode: SizeDisplayMode) => void;
   setMaxNestingDepth: (depth: number) => void;
   setHoveredNode: (node: TreemapNode | null) => void;
   setSelectedNode: (node: TreemapNode | null) => void;
@@ -105,7 +106,7 @@ const initialState = {
     selectedLanguages: new Set<string>(),
   },
   // Treemap display options
-  sizeDisplayMode: 'loc' as 'loc' | 'files',
+  sizeDisplayMode: 'loc' as SizeDisplayMode,
   maxNestingDepth: 3,
   hoveredNode: null as TreemapNode | null,
   selectedNode: null as TreemapNode | null,
@@ -210,7 +211,7 @@ export const useStore = create<RepoStatsState>((set, get) => ({
     });
   },
 
-  setSizeDisplayMode: (mode: 'loc' | 'files') => {
+  setSizeDisplayMode: (mode: SizeDisplayMode) => {
     set({ sizeDisplayMode: mode });
   },
 

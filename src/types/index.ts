@@ -46,8 +46,9 @@ export interface TreemapNode {
   path: string;
   type: 'file' | 'directory';
   lines?: number;
+  bytes?: number;
   language?: string;
-  lastModified?: string; // ISO date string
+  lastModified?: string; // ISO date string from git history
   children?: TreemapNode[];
 }
 
