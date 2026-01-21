@@ -12,8 +12,8 @@ describe('createVignetteGradient', () => {
 
     const gradient = createVignetteGradient(mockCtx, 0, 0, 100, 80, '#ff0000');
 
-    // Center should be at (50, 40), radius should be max(50, 40) = 50
-    expect(mockCtx.createRadialGradient).toHaveBeenCalledWith(50, 40, 0, 50, 40, 50);
+    // Center should be at (50, 40), radius should be max(50, 40) * 1.4 = 70
+    expect(mockCtx.createRadialGradient).toHaveBeenCalledWith(50, 40, 0, 50, 40, 70);
     expect(mockGradient.addColorStop).toHaveBeenCalledTimes(2);
     expect(gradient).toBe(mockGradient);
   });

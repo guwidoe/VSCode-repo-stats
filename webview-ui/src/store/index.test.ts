@@ -65,8 +65,8 @@ describe('useStore', () => {
       expect(useStore.getState().loading.isLoading).toBe(false);
     });
 
-    it('should default to contributors view', () => {
-      expect(useStore.getState().activeView).toBe('contributors');
+    it('should default to overview view', () => {
+      expect(useStore.getState().activeView).toBe('overview');
     });
   });
 
@@ -171,7 +171,7 @@ describe('useStore', () => {
       useStore.getState().reset();
 
       expect(useStore.getState().data).toBeNull();
-      expect(useStore.getState().activeView).toBe('contributors');
+      expect(useStore.getState().activeView).toBe('overview');
       expect(useStore.getState().timePeriod).toBe('all');
     });
   });
@@ -201,7 +201,7 @@ describe('selectFilteredTreemapNode', () => {
     children: [
       { name: 'app.tsx', path: 'app.tsx', type: 'file', lines: 500, language: 'TypeScript' },
       { name: 'config.json', path: 'config.json', type: 'file', lines: 100, language: 'JSON' },
-      { name: 'logo.png', path: 'logo.png', type: 'file', lines: 0, language: 'Unknown' },
+      { name: 'logo.png', path: 'logo.png', type: 'file', lines: 0, language: 'Unknown', binary: true },
       { name: 'README.md', path: 'README.md', type: 'file', lines: 200, language: 'Markdown' },
       {
         name: 'assets',
@@ -209,7 +209,7 @@ describe('selectFilteredTreemapNode', () => {
         type: 'directory',
         lines: 1000,
         children: [
-          { name: 'image.jpg', path: 'assets/image.jpg', type: 'file', lines: 0, language: 'Unknown' },
+          { name: 'image.jpg', path: 'assets/image.jpg', type: 'file', lines: 0, language: 'Unknown', binary: true },
           { name: 'styles.css', path: 'assets/styles.css', type: 'file', lines: 700, language: 'CSS' },
           { name: 'data.yaml', path: 'assets/data.yaml', type: 'file', lines: 300, language: 'YAML' },
         ],
@@ -226,10 +226,11 @@ describe('selectFilteredTreemapNode', () => {
     expect(result).toBeNull();
   });
 
-  it('should return unfiltered node when preset is "all"', () => {
+  it('should return unfiltered node when preset is "all" and sizeDisplayMode is not "loc"', () => {
     useStore.setState({
       currentTreemapNode: treeWithMixedFiles,
       treemapFilter: { preset: 'all', selectedLanguages: new Set() },
+      sizeDisplayMode: 'files', // In LOC mode, binaries are always hidden
     });
 
     const result = selectFilteredTreemapNode(useStore.getState());
@@ -240,6 +241,7 @@ describe('selectFilteredTreemapNode', () => {
     useStore.setState({
       currentTreemapNode: treeWithMixedFiles,
       treemapFilter: { preset: 'hide-binary', selectedLanguages: new Set() },
+      sizeDisplayMode: 'files', // Use files mode to test preset behavior
     });
 
     const result = selectFilteredTreemapNode(useStore.getState());
@@ -311,8 +313,8 @@ describe('selectFilteredTreemapNode', () => {
           type: 'directory',
           lines: 0,
           children: [
-            { name: 'logo.png', path: 'images/logo.png', type: 'file', lines: 0, language: 'Unknown' },
-            { name: 'icon.jpg', path: 'images/icon.jpg', type: 'file', lines: 0, language: 'Unknown' },
+            { name: 'logo.png', path: 'images/logo.png', type: 'file', lines: 0, language: 'Unknown', binary: true },
+            { name: 'icon.jpg', path: 'images/icon.jpg', type: 'file', lines: 0, language: 'Unknown', binary: true },
           ],
         },
       ],
@@ -321,6 +323,7 @@ describe('selectFilteredTreemapNode', () => {
     useStore.setState({
       currentTreemapNode: treeWithEmptyDir,
       treemapFilter: { preset: 'hide-binary', selectedLanguages: new Set() },
+      sizeDisplayMode: 'files', // Use files mode to test preset behavior
     });
 
     const result = selectFilteredTreemapNode(useStore.getState());

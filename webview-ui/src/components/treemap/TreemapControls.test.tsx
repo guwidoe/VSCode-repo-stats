@@ -14,8 +14,8 @@ describe('TreemapControls', () => {
 
   it('should render color mode toggle', () => {
     render(<TreemapControls {...defaultProps} />);
-    expect(screen.getByText('By Language')).toBeInTheDocument();
-    expect(screen.getByText('By Age')).toBeInTheDocument();
+    expect(screen.getByText('Language')).toBeInTheDocument();
+    expect(screen.getByText('Age')).toBeInTheDocument();
   });
 
   it('should render size mode toggle', () => {
@@ -26,14 +26,14 @@ describe('TreemapControls', () => {
 
   it('should render nesting depth control', () => {
     render(<TreemapControls {...defaultProps} />);
-    expect(screen.getByText('Depth:')).toBeInTheDocument();
+    expect(screen.getByText('Depth')).toBeInTheDocument();
     expect(screen.getByText('3')).toBeInTheDocument();
   });
 
   it('should call onColorModeChange when toggling', () => {
     const onColorModeChange = vi.fn();
     render(<TreemapControls {...defaultProps} onColorModeChange={onColorModeChange} />);
-    fireEvent.click(screen.getByText('By Age'));
+    fireEvent.click(screen.getByText('Age'));
     expect(onColorModeChange).toHaveBeenCalledWith('age');
   });
 
@@ -75,7 +75,7 @@ describe('TreemapControls', () => {
   it('should show active state for current color mode', () => {
     const { container } = render(<TreemapControls {...defaultProps} colorMode="language" />);
     const languageButton = container.querySelector('.toggle-button.active');
-    expect(languageButton).toHaveTextContent('By Language');
+    expect(languageButton).toHaveTextContent('Language');
   });
 
   it('should show active state for current size mode', () => {

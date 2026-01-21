@@ -6,9 +6,12 @@ describe('fileTypes', () => {
     it('should identify image files as binary', () => {
       expect(isBinaryFile('image.png')).toBe(true);
       expect(isBinaryFile('photo.jpg')).toBe(true);
-      expect(isBinaryFile('icon.svg')).toBe(true);
       expect(isBinaryFile('pic.webp')).toBe(true);
       expect(isBinaryFile('raw.arw')).toBe(true);
+    });
+
+    it('should NOT identify SVG files as binary (SVG is text-based XML)', () => {
+      expect(isBinaryFile('icon.svg')).toBe(false);
     });
 
     it('should identify font files as binary', () => {
