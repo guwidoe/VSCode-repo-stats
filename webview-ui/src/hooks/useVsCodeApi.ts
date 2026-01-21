@@ -51,6 +51,7 @@ export function useVsCodeApi() {
   useEffect(() => {
     const handleMessage = (event: MessageEvent<ExtensionMessage>) => {
       const message = event.data;
+      console.log('[RepoStats Webview] Received message:', message.type, message);
 
       switch (message.type) {
         case 'analysisStarted':
@@ -94,6 +95,7 @@ export function useVsCodeApi() {
     window.addEventListener('message', handleMessage);
 
     // Request settings on mount
+    console.log('[RepoStats Webview] Requesting settings...');
     getVsCodeApi().postMessage({ type: 'getSettings' });
 
     return () => window.removeEventListener('message', handleMessage);

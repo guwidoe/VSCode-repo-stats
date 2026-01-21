@@ -49,7 +49,9 @@ function createLayoutNode(
 
       childTreemap(childRoot);
 
-      node.children = (childRoot.children || []).map(child => {
+      // After treemap layout, children have x0/y0/x1/y1 properties
+      const layoutChildren = childRoot.children as d3.HierarchyRectangularNode<TreemapNode>[] | undefined;
+      node.children = (layoutChildren || []).map(child => {
         const childNode = createLayoutNode(
           {
             ...child,

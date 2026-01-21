@@ -99,8 +99,21 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       this.panel = undefined;
     });
 
+    // Send settings after a brief delay to ensure webview is ready
+    // Also send again after analysis in case the first one was missed
+    const settings = this.getSettings();
+    setTimeout(() => {
+      if (this.panel) {
+        console.log('[RepoStats] Sending initial settings:', settings);
+        this.sendMessage(this.panel.webview, { type: 'settingsLoaded', settings });
+      }
+    }, 100);
+
     // Start analysis automatically
     await this.runAnalysis(this.panel.webview);
+
+    // Send settings again after analysis completes (webview should definitely be ready now)
+    this.sendMessage(this.panel.webview, { type: 'settingsLoaded', settings });
   }
 
   /**
@@ -123,6 +136,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
   }
 
   private async handleWebviewMessage(message: WebviewMessage, webview: vscode.Webview): Promise<void> {
+    console.log('[RepoStats] Received message from webview:', message.type);
     switch (message.type) {
       case 'requestAnalysis':
         await this.runAnalysis(webview);
@@ -159,7 +173,9 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       }
 
       case 'getSettings': {
+        console.log('[RepoStats] Handling getSettings request');
         const settings = this.getSettings();
+        console.log('[RepoStats] Sending settings:', settings);
         this.sendMessage(webview, { type: 'settingsLoaded', settings });
         break;
       }
