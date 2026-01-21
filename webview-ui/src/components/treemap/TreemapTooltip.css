@@ -1,0 +1,36 @@
+/* webview-ui/src/components/treemap/TreemapTooltip.css */
+.treemap-tooltip {
+  position: fixed;
+  z-index: 1000;
+  padding: 8px 12px;
+  background: var(--vscode-editorWidget-background);
+  border: 1px solid var(--vscode-editorWidget-border);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  font-size: 12px;
+  font-family: var(--vscode-font-family);
+  max-width: 400px;
+  pointer-events: none;
+}
+
+.tooltip-path {
+  font-weight: 600;
+  color: var(--vscode-foreground);
+  word-break: break-all;
+  margin-bottom: 4px;
+}
+
+.tooltip-language {
+  color: var(--vscode-textLink-foreground);
+  margin-bottom: 4px;
+}
+
+.tooltip-size {
+  color: var(--vscode-descriptionForeground);
+}
+
+.tooltip-modified {
+  color: var(--vscode-descriptionForeground);
+  margin-top: 4px;
+  font-size: 11px;
+}
