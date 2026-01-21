@@ -6,44 +6,67 @@
 
 Visualize your repository statistics directly in VS Code with interactive dashboards, charts, and treemaps. Get insights into contributor activity, code frequency, and codebase structure at a glance.
 
+## Usage
+
+1. Open a folder containing a Git repository
+2. Run the command **Repo Stats: Show Dashboard** from the Command Palette (Ctrl+Shift+P / Cmd+Shift+P)
+3. Or click the **Repo Stats** button in the status bar
+
+Results are cached based on the current Git HEAD, so subsequent opens are instant.
+
+| Command                      | Description                   |
+| ---------------------------- | ----------------------------- |
+| `Repo Stats: Show Dashboard` | Open the statistics dashboard |
+| `Repo Stats: Refresh`        | Clear cache and re-analyze    |
+
+## Screenshots
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="media/screenshot-overview.png" alt="Overview Dashboard"/>
+      <br/><em>Overview Dashboard</em>
+    </td>
+    <td width="50%">
+      <img src="media/screenshot-contributors.png" alt="Contributors"/>
+      <br/><em>Contributors Panel</em>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="media/screenshot-frequency.png" alt="Code Frequency"/>
+      <br/><em>Code Frequency</em>
+    </td>
+    <td width="50%">
+      <img src="media/screenshot-treemap.png" alt="Treemap"/>
+      <br/><em>Repository Treemap</em>
+    </td>
+  </tr>
+</table>
+
 ## Features
 
 ### Overview Dashboard
 
-Get a quick summary of your repository with key statistics:
-
-- Total files and lines of code
-- Language distribution with donut chart
-- File type breakdown
-- Largest files in the codebase
-- Generated file detection
-
-![Overview Panel](media/screenshot-overview.png)
+- Total files, lines of code, and language distribution
+- Donut charts for LOC by language and files by type
+- Largest files in the codebase (excluding generated)
+- Generated file and binary file detection
 
 ### Contributors Dashboard
 
-Analyze contributor activity with GitHub Insights-style visualizations:
-
-- Commits over time (weekly/monthly granularity)
+- Commits over time chart (weekly/monthly granularity)
 - Lines added and deleted per contributor
-- Interactive time range slider
-- Sparkline charts for each contributor
-
-![Contributors Panel](media/screenshot-contributors.png)
+- Interactive time range slider with activity preview
+- Per-contributor sparkline charts
 
 ### Code Frequency
 
-Track additions and deletions over time:
-
-- Stacked bar chart showing weekly or monthly activity
+- Stacked bar chart showing additions/deletions over time
 - Summary cards with total additions, deletions, and net change
-- Adjustable time range filter
-
-![Code Frequency Panel](media/screenshot-frequency.png)
+- Weekly or monthly granularity toggle
 
 ### Repository Treemap
-
-Explore your codebase structure with an interactive treemap:
 
 - **WizTree-inspired design** with nested hierarchy and vignette shading
 - **Color modes**: By language (GitHub Linguist colors) or by file age (heat map)
@@ -53,17 +76,9 @@ Explore your codebase structure with an interactive treemap:
 - **Rich interactions**: Click to drill down, double-click to open files, right-click context menu
 - **Keyboard navigation**: Escape to clear selection, Backspace to go up
 
-![Treemap Panel](media/screenshot-treemap.png)
-
 ### Settings Panel
 
-Customize the extension behavior:
-
-- Exclude patterns (in addition to .gitignore)
-- Generated file patterns
-- Binary file extensions
-- Maximum commits to analyze
-- Default color mode
+Configure exclude patterns, generated file patterns, binary extensions, max commits to analyze, and default color mode.
 
 ## Installation
 
@@ -80,21 +95,6 @@ Customize the extension behavior:
 2. In VS Code, open the Command Palette (Ctrl+Shift+P / Cmd+Shift+P)
 3. Run `Extensions: Install from VSIX...`
 4. Select the downloaded file
-
-## Usage
-
-1. Open a folder containing a Git repository
-2. Run the command **Repo Stats: Show Dashboard** from the Command Palette (Ctrl+Shift+P / Cmd+Shift+P)
-3. Or click the **Repo Stats** button in the status bar
-
-The extension will analyze your repository and display the dashboard. Results are cached based on the current Git HEAD, so subsequent opens are instant.
-
-### Commands
-
-| Command                      | Description                   |
-| ---------------------------- | ----------------------------- |
-| `Repo Stats: Show Dashboard` | Open the statistics dashboard |
-| `Repo Stats: Refresh`        | Clear cache and re-analyze    |
 
 ## Requirements
 
@@ -120,23 +120,27 @@ This extension uses [scc](https://github.com/boyter/scc) for accurate lines-of-c
 | `repoStats.generatedPatterns`   | See below    | Glob patterns to identify generated files           |
 | `repoStats.binaryExtensions`    | See below    | File extensions considered as binary                |
 
-![Repo Stats Overview](media/screenshot-settings.png)
-
-### Default Generated Patterns
+<details>
+<summary>Default Generated Patterns</summary>
 
 ```json
 [
   "**/generated/**", "**/gen/**", "**/__generated__/**",
   "**/dist/**", "**/build/**", "**/*.generated.*",
-  "**/*.min.js", "**/*.min.css", "**/package-lock.json", ...
+  "**/*.min.js", "**/*.min.css", "**/package-lock.json", "..."
 ]
 ```
 
-### Default Binary Extensions
+</details>
+
+<details>
+<summary>Default Binary Extensions</summary>
 
 ```json
-[".png", ".jpg", ".gif", ".mp4", ".mp3", ".ttf", ".woff2", ".zip", ".exe", ".pdf", ...]
+[".png", ".jpg", ".gif", ".mp4", ".mp3", ".ttf", ".woff2", ".zip", ".exe", ".pdf", "..."]
 ```
+
+</details>
 
 ## Performance
 
@@ -147,10 +151,7 @@ Repo Stats is designed to handle large repositories efficiently:
 - **Commit limits**: Configurable maximum commits to analyze
 - **Canvas rendering**: Treemap uses HTML5 Canvas for smooth performance with 50K+ files
 
-For very large repositories, consider:
-
-- Reducing `maxCommitsToAnalyze` if contributor analysis is slow
-- Using exclude patterns for large vendored or generated directories
+For very large repositories, consider reducing `maxCommitsToAnalyze` or adding exclude patterns for large vendored directories.
 
 ## Known Issues
 
@@ -169,24 +170,15 @@ Contributions are welcome! Please see the [GitHub repository](https://github.com
 ### Development
 
 ```bash
-# Clone the repository
+# Clone and install
 git clone https://github.com/guwidoe/vscode-repo-stats.git
 cd vscode-repo-stats
+npm install && cd webview-ui && npm install && cd ..
 
-# Install dependencies
-npm install
-cd webview-ui && npm install && cd ..
-
-# Build
+# Build / Watch / Test / Package
 npm run build
-
-# Watch mode (for development)
 npm run watch
-
-# Run tests
 npm run test
-
-# Package extension
 npm run package
 ```
 
@@ -194,14 +186,7 @@ npm run package
 
 ### 0.0.1
 
-Initial release:
-
-- Overview dashboard with repository statistics
-- Contributors panel with commit charts and sparklines
-- Code frequency graph
-- Interactive treemap with multiple color/size modes
-- Settings panel for customization
-- Automatic scc binary download
+Initial release with Overview, Contributors, Code Frequency, Treemap, and Settings panels.
 
 ## License
 
