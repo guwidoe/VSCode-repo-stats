@@ -19,7 +19,9 @@
     "statistics",
     "contributors",
     "visualization",
-    "treemap"
+    "treemap",
+    "loc",
+    "code frequency"
   ],
   "repository": {
     "type": "git",
