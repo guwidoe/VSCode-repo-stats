@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useStore } from '../../store';
 import type { TreemapFilterPreset, TreemapNode } from '../../types';
+import { InfoTooltip } from '../common/InfoTooltip';
 import './TreemapFilter.css';
 
 const PRESETS: { id: TreemapFilterPreset; label: string; description: string }[] = [
@@ -64,6 +65,13 @@ export function TreemapFilter() {
   return (
     <div className="treemap-filter">
       <div className="filter-presets">
+        <span className="filter-label">
+          Filter
+          <InfoTooltip
+            content="All: Show everything. No Binary: Hide images, fonts, archives. Code Only: Show only programming languages. Custom: Pick specific languages to display."
+            position="bottom"
+          />
+        </span>
         {PRESETS.map((preset) => (
           <button
             key={preset.id}

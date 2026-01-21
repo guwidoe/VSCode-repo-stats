@@ -1,9 +1,20 @@
 .navigation {
   display: flex;
-  gap: 4px;
+  justify-content: space-between;
+  align-items: center;
   padding: 8px;
   border-bottom: 1px solid var(--vscode-panel-border);
   background: var(--vscode-editor-background);
+}
+
+.nav-main {
+  display: flex;
+  gap: 4px;
+}
+
+.nav-utility {
+  display: flex;
+  gap: 4px;
 }
 
 .nav-button {
@@ -36,4 +47,13 @@
 
 .nav-label {
   font-weight: 500;
+}
+
+/* Icon-only variant for utility buttons */
+.nav-button.nav-icon-only {
+  padding: 8px 10px;
+}
+
+.nav-button.nav-icon-only .nav-icon {
+  font-size: 18px;
 }

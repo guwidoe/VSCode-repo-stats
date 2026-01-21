@@ -207,6 +207,9 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     if (settings.generatedPatterns !== undefined) {
       await config.update('generatedPatterns', settings.generatedPatterns, vscode.ConfigurationTarget.Global);
     }
+    if (settings.binaryExtensions !== undefined) {
+      await config.update('binaryExtensions', settings.binaryExtensions, vscode.ConfigurationTarget.Global);
+    }
   }
 
   private async runAnalysis(webview: vscode.Webview): Promise<void> {
@@ -308,6 +311,18 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
         '**/package-lock.json',
         '**/yarn.lock',
         '**/*-lock.*',
+      ]),
+      binaryExtensions: config.get<string[]>('binaryExtensions', [
+        '.png', '.jpg', '.jpeg', '.gif', '.ico', '.webp', '.bmp', '.tiff', '.tif',
+        '.psd', '.ai', '.eps', '.raw', '.cr2', '.nef', '.heic', '.avif', '.arw', '.dng', '.raf',
+        '.mp4', '.webm', '.mov', '.avi', '.mkv', '.flv', '.wmv', '.m4v', '.mpeg', '.mpg',
+        '.mp3', '.wav', '.ogg', '.flac', '.aac', '.wma', '.m4a', '.opus',
+        '.ttf', '.otf', '.woff', '.woff2', '.eot',
+        '.zip', '.tar', '.gz', '.rar', '.7z', '.bz2', '.xz', '.tgz',
+        '.pyc', '.pyo', '.class', '.o', '.so', '.dll', '.exe', '.bin', '.wasm', '.a', '.lib', '.obj',
+        '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+        '.sqlite', '.db', '.mdb',
+        '.vhdx', '.vmdk', '.iso', '.dmg', '.deb', '.rpm', '.icns',
       ]),
     };
   }

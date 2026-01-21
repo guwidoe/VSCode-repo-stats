@@ -189,6 +189,25 @@ export function OverviewPanel() {
             </div>
           </div>
         )}
+
+        {stats.submodules && stats.submodules.count > 0 && (
+          <div className="info-section submodules-notice">
+            <h3 className="section-title">
+              Git Submodules
+              <span className="section-count">{stats.submodules.count}</span>
+            </h3>
+            <p className="section-description">
+              Submodules are excluded from analysis. To analyze them, open each submodule as a separate workspace.
+            </p>
+            <div className="submodule-list">
+              {stats.submodules.paths.map((path) => (
+                <div key={path} className="submodule-path">
+                  {path}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Largest Files Section */}

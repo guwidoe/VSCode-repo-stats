@@ -15,9 +15,33 @@
 
 .toggle-group {
   display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toggle-group .toggle-label {
+  display: flex;
+  align-items: center;
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+}
+
+.toggle-group .toggle-button:first-of-type {
+  border-radius: 4px 0 0 4px;
   border: 1px solid var(--vscode-button-border, var(--vscode-panel-border));
-  border-radius: 4px;
-  overflow: hidden;
+  border-right: none;
+}
+
+.toggle-group .toggle-button:last-of-type {
+  border-radius: 0 4px 4px 0;
+  border: 1px solid var(--vscode-button-border, var(--vscode-panel-border));
+}
+
+.toggle-group .toggle-button:not(:first-of-type):not(:last-of-type) {
+  border-radius: 0;
+  border: 1px solid var(--vscode-button-border, var(--vscode-panel-border));
+  border-left: none;
+  border-right: none;
 }
 
 .toggle-button {
@@ -31,9 +55,6 @@
   transition: background-color 0.15s;
 }
 
-.toggle-button:not(:last-child) {
-  border-right: 1px solid var(--vscode-panel-border);
-}
 
 .toggle-button:hover:not(.active) {
   background: var(--vscode-button-secondaryHoverBackground);
@@ -51,6 +72,8 @@
 }
 
 .depth-label {
+  display: flex;
+  align-items: center;
   color: var(--vscode-descriptionForeground);
   font-size: 12px;
 }

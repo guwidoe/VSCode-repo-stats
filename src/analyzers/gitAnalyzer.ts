@@ -23,6 +23,7 @@ export interface GitClient {
   getCodeFrequency(maxCommits: number): Promise<CodeFrequency[]>;
   getFileModificationDates(): Promise<Map<string, string>>;
   getTrackedFiles(): Promise<string[]>;
+  getSubmodulePaths(): Promise<string[]>;
 }
 
 // ============================================================================
@@ -322,6 +323,43 @@ export class GitAnalyzer implements GitClient {
         .filter(line => line.length > 0);
     } catch (error) {
       console.error('Failed to get tracked files:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get paths to all git submodules in the repository.
+   * Returns an array of relative paths to submodule directories.
+   */
+  async getSubmodulePaths(): Promise<string[]> {
+    if (!(await this.isRepo())) {
+      throw new NotAGitRepoError(this.repoPath);
+    }
+
+    try {
+      // git submodule status returns lines like:
+      // " abc123 path/to/submodule (v1.0.0)"
+      // or "-abc123 path/to/submodule" (not initialized)
+      // or "+abc123 path/to/submodule" (different commit)
+      const output = await this.git.raw(['submodule', 'status', '--recursive']);
+      const paths: string[] = [];
+
+      for (const line of output.split('\n')) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+
+        // Extract path from submodule status line
+        // Format: [+-]<sha> <path> [(<description>)]
+        const match = trimmed.match(/^[+-]?\s*[a-f0-9]+\s+(\S+)/);
+        if (match) {
+          paths.push(match[1]);
+        }
+      }
+
+      return paths;
+    } catch (error) {
+      // If git submodule fails (e.g., no submodules), return empty array
+      console.error('Failed to get submodule paths:', error);
       return [];
     }
   }

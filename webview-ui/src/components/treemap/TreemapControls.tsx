@@ -4,6 +4,7 @@
 
 import type { ColorMode } from '../../types'
 import type { SizeDisplayMode } from './types'
+import { InfoTooltip } from '../common/InfoTooltip'
 import './TreemapControls.css'
 
 interface TreemapControlsProps {
@@ -43,40 +44,51 @@ export function TreemapControls({
       <div className="controls-right">
         {/* Color mode toggle */}
         <div className="toggle-group">
+          <span className="toggle-label">
+            Color
+            <InfoTooltip
+              content="Language: Files colored by programming language. Age: Files colored by last modification date (green=recent, red=old)."
+              position="bottom"
+            />
+          </span>
           <button
             className={`toggle-button ${colorMode === 'language' ? 'active' : ''}`}
             onClick={() => onColorModeChange('language')}
           >
-            By Language
+            Language
           </button>
           <button
             className={`toggle-button ${colorMode === 'age' ? 'active' : ''}`}
             onClick={() => onColorModeChange('age')}
           >
-            By Age
+            Age
           </button>
         </div>
 
         {/* Size mode toggle */}
         <div className="toggle-group">
+          <span className="toggle-label">
+            Size
+            <InfoTooltip
+              content="LOC: Size by lines of code (binary files hidden). Bytes: Size by file size in bytes. Files: Equal size per file to see file count distribution."
+              position="bottom"
+            />
+          </span>
           <button
             className={`toggle-button ${sizeMode === 'loc' ? 'active' : ''}`}
             onClick={() => onSizeModeChange('loc')}
-            title="Size by lines of code"
           >
             LOC
           </button>
           <button
             className={`toggle-button ${sizeMode === 'bytes' ? 'active' : ''}`}
             onClick={() => onSizeModeChange('bytes')}
-            title="Size by file size in bytes"
           >
             Bytes
           </button>
           <button
             className={`toggle-button ${sizeMode === 'files' ? 'active' : ''}`}
             onClick={() => onSizeModeChange('files')}
-            title="Size by file count"
           >
             Files
           </button>
@@ -84,7 +96,13 @@ export function TreemapControls({
 
         {/* Nesting depth control */}
         <div className="depth-control">
-          <span className="depth-label">Depth:</span>
+          <span className="depth-label">
+            Depth
+            <InfoTooltip
+              content="How many directory levels to show. Lower values give a simpler overview, higher values show more detail. Click on a folder to navigate into it."
+              position="bottom"
+            />
+          </span>
           <button
             className="depth-button"
             onClick={handleDepthDecrease}

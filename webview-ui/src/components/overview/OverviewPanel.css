@@ -389,6 +389,28 @@
   white-space: nowrap;
 }
 
+/* Submodules Notice */
+.submodules-notice {
+  border-color: var(--vscode-editorWarning-foreground, #cca700);
+  background: color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 10%, var(--vscode-editor-background));
+}
+
+.submodule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.submodule-path {
+  padding: 6px 10px;
+  background: var(--vscode-input-background);
+  border-radius: 4px;
+  font-family: var(--vscode-editor-font-family), monospace;
+  font-size: 12px;
+  color: var(--vscode-foreground);
+}
+
 /* Largest Files Section */
 .largest-files-section {
   padding: 20px;

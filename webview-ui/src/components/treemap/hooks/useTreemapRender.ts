@@ -2,7 +2,7 @@
 import { useCallback } from 'react';
 import type { TreemapNode, ColorMode } from '../../../types';
 import type { LayoutNode, SizeDisplayMode } from '../types';
-import { drawVignetteTile } from '../utils/vignette';
+import { drawVignetteTile, type Bounds } from '../utils/vignette';
 import {
   getContrastColor,
   DIRECTORY_COLOR,
@@ -10,7 +10,7 @@ import {
   SELECTION_BORDER_COLOR,
   HOVER_BORDER_COLOR,
 } from '../utils/colors';
-import { getLanguageColor, getAgeColor, formatNumber } from '../../../utils/colors';
+import { getLanguageColor, getAgeColor, formatNumber, formatBytes } from '../../../utils/colors';
 
 interface RenderOptions {
   colorMode: ColorMode
@@ -84,10 +84,20 @@ export function useTreemapRender() {
       // Sort nodes by depth (back to front)
       const sortedNodes = [...allNodes].sort((a, b) => a.depth - b.depth);
 
-      // Pass 1: Draw all tiles with vignette
+      // Pass 1: Draw all tiles with vignette (center offset toward parent)
       for (const node of sortedNodes) {
         const color = getNodeColor(node.data, colorMode);
-        drawVignetteTile(ctx, node.x0, node.y0, node.x1, node.y1, color);
+        // Get parent bounds for WizTree-style vignette center offset
+        let parentBounds: Bounds | undefined;
+        if (node.parent) {
+          parentBounds = {
+            x0: node.parent.x0,
+            y0: node.parent.y0,
+            x1: node.parent.x1,
+            y1: node.parent.y1,
+          };
+        }
+        drawVignetteTile(ctx, node.x0, node.y0, node.x1, node.y1, color, parentBounds);
       }
 
       // Pass 2: Draw labels
@@ -104,10 +114,15 @@ export function useTreemapRender() {
           ctx.fillStyle = getContrastColor(color);
 
           const lines = node.data.lines || 0;
-          const sizeText =
-            sizeMode === 'loc'
-              ? `(${formatNumber(lines)})`
-              : `(${formatNumber(countFiles(node.data))} files)`;
+          const bytes = node.data.bytes || 0;
+          let sizeText: string;
+          if (sizeMode === 'loc') {
+            sizeText = `(${formatNumber(lines)})`;
+          } else if (sizeMode === 'bytes') {
+            sizeText = `(${formatBytes(bytes)})`;
+          } else {
+            sizeText = `(${formatNumber(countFiles(node.data))} files)`;
+          }
           const label = `${node.data.name}/ ${sizeText}`;
           const truncated = truncateText(ctx, label, width - 8);
 

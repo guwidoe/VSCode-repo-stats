@@ -16,6 +16,7 @@ coverage/
 # OS files
 .DS_Store
 Thumbs.db
+*:Zone.Identifier
 
 # Editor
 *.swp

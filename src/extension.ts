@@ -36,6 +36,17 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(showDashboardCommand);
   context.subscriptions.push(refreshCommand);
 
+  // Create status bar button for quick access to dashboard
+  const statusBarItem = vscode.window.createStatusBarItem(
+    vscode.StatusBarAlignment.Right,
+    100
+  );
+  statusBarItem.command = 'repoStats.showDashboard';
+  statusBarItem.text = '$(graph) Repo Stats';
+  statusBarItem.tooltip = 'Open Repo Stats Dashboard';
+  statusBarItem.show();
+  context.subscriptions.push(statusBarItem);
+
   // Log activation
   console.log('Repo Stats extension activated');
 }

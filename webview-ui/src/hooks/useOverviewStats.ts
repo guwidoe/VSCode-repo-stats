@@ -56,6 +56,10 @@ export interface OverviewStats {
     total: number;
     byCategory: BinaryStats[];
   };
+  submodules: {
+    count: number;
+    paths: string[];
+  } | null;
 }
 
 function getFileExtension(filename: string): string {
@@ -306,6 +310,9 @@ export function useOverviewStats(): OverviewStats | null {
         total: state.binaryFileCount,
         byCategory,
       },
+      submodules: data.submodules
+        ? { count: data.submodules.count, paths: data.submodules.paths }
+        : null,
     };
   }, [data, settings]);
 }

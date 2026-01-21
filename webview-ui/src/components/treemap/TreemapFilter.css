@@ -6,14 +6,20 @@
 
 .filter-presets {
   display: flex;
-  border: 1px solid var(--vscode-panel-border);
-  border-radius: 4px;
-  overflow: hidden;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-label {
+  display: flex;
+  align-items: center;
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
 }
 
 .preset-btn {
   padding: 6px 12px;
-  border: none;
+  border: 1px solid var(--vscode-panel-border);
   background: transparent;
   color: var(--vscode-foreground);
   font-size: 12px;
@@ -22,8 +28,16 @@
   transition: background-color 0.15s ease;
 }
 
-.preset-btn:not(:last-child) {
-  border-right: 1px solid var(--vscode-panel-border);
+.preset-btn:first-of-type {
+  border-radius: 4px 0 0 4px;
+}
+
+.preset-btn:last-of-type {
+  border-radius: 0 4px 4px 0;
+}
+
+.preset-btn:not(:first-of-type) {
+  border-left: none;
 }
 
 .preset-btn:hover {

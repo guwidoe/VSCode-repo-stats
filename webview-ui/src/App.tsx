@@ -11,6 +11,7 @@ import { ContributorsPanel } from './components/contributors/ContributorsPanel';
 import { CodeFrequencyPanel } from './components/frequency/CodeFrequencyPanel';
 import { TreemapPanel } from './components/treemap/TreemapPanel';
 import { SettingsPanel } from './components/settings/SettingsPanel';
+import { AboutPanel } from './components/about/AboutPanel';
 import './App.css';
 
 export function App() {
@@ -53,11 +54,12 @@ export function App() {
       )}
 
       <main className="app-content">
-        {/* Settings view works regardless of data/loading state */}
+        {/* Settings and About views work regardless of data/loading state */}
         {activeView === 'settings' && <SettingsPanel />}
+        {activeView === 'about' && <AboutPanel />}
 
         {/* Other views require data */}
-        {activeView !== 'settings' && (
+        {activeView !== 'settings' && activeView !== 'about' && (
           <>
             {loading.isLoading && <LoadingState phase={loading.phase} progress={loading.progress} />}
             {error && <ErrorState message={error} onRetry={requestRefresh} />}

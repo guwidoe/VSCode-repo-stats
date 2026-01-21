@@ -1,0 +1,103 @@
+.info-tooltip-container {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  cursor: help;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+.info-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.6;
+  transition: opacity 0.15s ease;
+}
+
+.info-icon:hover {
+  opacity: 1;
+}
+
+.info-tooltip {
+  position: absolute;
+  z-index: 1000;
+  width: max-content;
+  max-width: 380px;
+  min-width: 200px;
+  padding: 10px 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--vscode-editorWidget-foreground);
+  background: var(--vscode-editorWidget-background);
+  border: 1px solid var(--vscode-editorWidget-border);
+  border-radius: 6px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  white-space: normal;
+  pointer-events: none;
+}
+
+/* Position variants */
+.info-tooltip-top {
+  bottom: calc(100% + 8px);
+  left: 0;
+  transform: translateX(-8px);
+}
+
+.info-tooltip-bottom {
+  top: calc(100% + 8px);
+  left: 0;
+  transform: translateX(-8px);
+}
+
+.info-tooltip-left {
+  right: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.info-tooltip-right {
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Arrow indicators */
+.info-tooltip-top::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 14px;
+  border: 6px solid transparent;
+  border-top-color: var(--vscode-editorWidget-border);
+}
+
+.info-tooltip-bottom::after {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 14px;
+  border: 6px solid transparent;
+  border-bottom-color: var(--vscode-editorWidget-border);
+}
+
+.info-tooltip-left::after {
+  content: '';
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 6px solid transparent;
+  border-left-color: var(--vscode-editorWidget-border);
+}
+
+.info-tooltip-right::after {
+  content: '';
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 6px solid transparent;
+  border-right-color: var(--vscode-editorWidget-border);
+}

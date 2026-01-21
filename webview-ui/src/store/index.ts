@@ -107,7 +107,7 @@ const initialState = {
   },
   // Treemap display options
   sizeDisplayMode: 'loc' as SizeDisplayMode,
-  maxNestingDepth: 3,
+  maxNestingDepth: 5,
   hoveredNode: null as TreemapNode | null,
   selectedNode: null as TreemapNode | null,
 };

@@ -143,11 +143,14 @@ export class LOCCounter implements LOCClient {
     };
 
     for (const file of sccResult) {
-      const relativePath = file.Location.startsWith(this.repoPath)
+      let relativePath = file.Location.startsWith(this.repoPath)
         ? file.Location.slice(this.repoPath.length + 1)
         : file.Location;
 
-      const parts = relativePath.split(path.sep);
+      // Normalize path: remove leading ./, use forward slashes
+      relativePath = relativePath.replace(/^\.\//, '').replace(/\\/g, '/');
+
+      const parts = relativePath.split('/');
       let current = root;
 
       for (let i = 0; i < parts.length; i++) {

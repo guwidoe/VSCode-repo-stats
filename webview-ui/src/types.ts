@@ -58,6 +58,11 @@ export interface SccInfo {
   source: 'system' | 'downloaded' | 'none';
 }
 
+export interface SubmoduleInfo {
+  paths: string[];
+  count: number;
+}
+
 export interface AnalysisResult {
   repository: RepositoryInfo;
   contributors: ContributorStats[];
@@ -70,6 +75,8 @@ export interface AnalysisResult {
   limitReached: boolean;
   // SCC tool info
   sccInfo: SccInfo;
+  // Submodule info (excluded from analysis)
+  submodules?: SubmoduleInfo;
 }
 
 // ============================================================================
@@ -81,6 +88,7 @@ export interface ExtensionSettings {
   maxCommitsToAnalyze: number;
   defaultColorMode: 'language' | 'age';
   generatedPatterns: string[];
+  binaryExtensions: string[];
 }
 
 // ============================================================================
@@ -108,7 +116,7 @@ export type WebviewMessage =
 // UI State Types
 // ============================================================================
 
-export type ViewType = 'overview' | 'contributors' | 'frequency' | 'treemap' | 'settings';
+export type ViewType = 'overview' | 'contributors' | 'frequency' | 'treemap' | 'settings' | 'about';
 
 export type TimePeriod = 'all' | 'year' | '6months' | '3months' | 'month';
 

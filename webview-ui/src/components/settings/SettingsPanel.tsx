@@ -74,6 +74,14 @@ export function SettingsPanel() {
           placeholder="e.g., **/dist/**, *.min.js"
         />
 
+        <PatternListSetting
+          title="Binary File Extensions"
+          description="File extensions considered binary (images, fonts, compiled, etc.). These have 0 LOC but appear in Size mode."
+          patterns={settings.binaryExtensions || []}
+          onChange={(patterns) => updateSettings({ binaryExtensions: patterns })}
+          placeholder="e.g., .png, .woff2"
+        />
+
         <NumberSetting
           title="Max Commits to Analyze"
           description="Performance limit for large repositories. Higher values give more complete data but take longer."

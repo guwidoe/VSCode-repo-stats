@@ -1,0 +1,231 @@
+.about-panel {
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.about-hero {
+  text-align: center;
+  padding: 32px 20px;
+  margin-bottom: 24px;
+}
+
+.about-logo {
+  margin-bottom: 16px;
+}
+
+.logo-icon {
+  font-size: 48px;
+}
+
+.about-title {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+
+.about-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.about-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.about-section {
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.about-section h2 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+
+/* Feature list */
+.feature-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.feature-list li {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.feature-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  width: 32px;
+  text-align: center;
+}
+
+.feature-list li strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+  margin-bottom: 2px;
+}
+
+.feature-list li p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--vscode-descriptionForeground);
+  line-height: 1.4;
+}
+
+/* Info card (scc info) */
+.info-card {
+  background: var(--vscode-input-background);
+  border-radius: 6px;
+  padding: 16px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 13px;
+}
+
+.info-row:not(:last-of-type) {
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.info-label {
+  color: var(--vscode-descriptionForeground);
+}
+
+.info-value {
+  color: var(--vscode-foreground);
+  font-weight: 500;
+}
+
+.info-note {
+  margin: 12px 0 0 0;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  line-height: 1.5;
+}
+
+.info-note a {
+  color: var(--vscode-textLink-foreground);
+  text-decoration: none;
+}
+
+.info-note a:hover {
+  text-decoration: underline;
+}
+
+/* Link cards */
+.link-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.link-card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 16px;
+  background: var(--vscode-input-background);
+  border-radius: 6px;
+  text-decoration: none;
+  color: inherit;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  border: 1px solid transparent;
+}
+
+.link-card:hover {
+  background: var(--vscode-list-hoverBackground);
+  border-color: var(--vscode-focusBorder);
+}
+
+.link-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.link-card strong {
+  display: block;
+  font-size: 14px;
+  color: var(--vscode-textLink-foreground);
+  margin-bottom: 4px;
+}
+
+.link-card p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+/* Developer card */
+.developer-card {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.developer-info p {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: var(--vscode-foreground);
+}
+
+.developer-info p:last-child {
+  margin-bottom: 0;
+}
+
+.developer-note {
+  font-size: 13px;
+  color: var(--vscode-descriptionForeground);
+}
+
+/* Legal section */
+.about-legal {
+  background: transparent;
+  border: none;
+  padding: 20px 0;
+}
+
+.about-legal h2 {
+  font-size: 14px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.about-legal p {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  line-height: 1.5;
+}
+
+.about-legal a {
+  color: var(--vscode-textLink-foreground);
+  text-decoration: none;
+}
+
+.about-legal a:hover {
+  text-decoration: underline;
+}
+
+.disclaimer {
+  font-style: italic;
+  opacity: 0.8;
+}

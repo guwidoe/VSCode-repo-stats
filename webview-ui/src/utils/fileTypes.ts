@@ -3,9 +3,10 @@
  */
 
 // Binary file extensions - files that are not human-readable source code
+// Note: SVG is excluded because it's text-based XML that scc can process
 export const BINARY_EXTENSIONS = new Set([
-  // Images - common formats
-  '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.webp', '.bmp', '.tiff', '.tif',
+  // Images - common formats (excluding SVG which is text/XML)
+  '.png', '.jpg', '.jpeg', '.gif', '.ico', '.webp', '.bmp', '.tiff', '.tif',
   // Images - professional/raw
   '.psd', '.ai', '.eps', '.raw', '.cr2', '.nef', '.heic', '.avif', '.arw', '.dng', '.raf',
   // Videos

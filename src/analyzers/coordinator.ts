@@ -61,6 +61,11 @@ export class AnalysisCoordinator {
     const sccInfo = await this.locClient.getSccInfo();
     onProgress?.('scc ready', 12);
 
+    // Phase 2.5: Detect submodules to exclude from analysis
+    onProgress?.('Detecting submodules', 13);
+    const submodulePaths = await this.gitClient.getSubmodulePaths();
+    onProgress?.('Submodules detected', 14);
+
     // Phase 3: Contributor stats (can be slow for large repos)
     onProgress?.('Analyzing contributors', 15);
     const contributors = await this.gitClient.getContributorStats(
@@ -77,9 +82,12 @@ export class AnalysisCoordinator {
 
     // Phase 5: File tree with LOC
     onProgress?.('Counting lines of code', 65);
-    const fileTree = await this.locClient.countLines(
-      this.settings.excludePatterns
-    );
+    // Combine user exclude patterns with submodule paths
+    const allExcludePatterns = [
+      ...this.settings.excludePatterns,
+      ...submodulePaths,
+    ];
+    const fileTree = await this.locClient.countLines(allExcludePatterns);
     onProgress?.('Lines of code counted', 80);
 
     // Phase 6: Get git file modification dates
@@ -126,6 +134,9 @@ export class AnalysisCoordinator {
       maxCommitsLimit,
       limitReached,
       sccInfo,
+      submodules: submodulePaths.length > 0
+        ? { paths: submodulePaths, count: submodulePaths.length }
+        : undefined,
     };
   }
 
