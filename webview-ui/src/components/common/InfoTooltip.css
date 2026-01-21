@@ -101,3 +101,17 @@
   border: 6px solid transparent;
   border-right-color: var(--vscode-editorWidget-border);
 }
+
+/* Right-aligned variant (for elements near right edge of viewport) */
+.info-tooltip-align-right.info-tooltip-top,
+.info-tooltip-align-right.info-tooltip-bottom {
+  left: auto;
+  right: 0;
+  transform: translateX(8px);
+}
+
+.info-tooltip-align-right.info-tooltip-top::after,
+.info-tooltip-align-right.info-tooltip-bottom::after {
+  left: auto;
+  right: 14px;
+}

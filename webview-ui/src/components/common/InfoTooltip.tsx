@@ -14,6 +14,7 @@ interface InfoTooltipProps {
 export function InfoTooltip({ content, position = 'top' }: InfoTooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [adjustedPosition, setAdjustedPosition] = useState(position);
+  const [alignRight, setAlignRight] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLSpanElement>(null);
 
@@ -21,22 +22,40 @@ export function InfoTooltip({ content, position = 'top' }: InfoTooltipProps) {
   useEffect(() => {
     if (isVisible && tooltipRef.current && containerRef.current) {
       const tooltip = tooltipRef.current;
-      const rect = tooltip.getBoundingClientRect();
+      const container = containerRef.current;
+      const tooltipRect = tooltip.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
 
-      // Check for overflow and adjust
-      if (position === 'top' && rect.top < 0) {
+      // Check vertical overflow and adjust position
+      if (position === 'top' && tooltipRect.top < 0) {
         setAdjustedPosition('bottom');
-      } else if (position === 'bottom' && rect.bottom > window.innerHeight) {
+      } else if (position === 'bottom' && tooltipRect.bottom > window.innerHeight) {
         setAdjustedPosition('top');
-      } else if (position === 'left' && rect.left < 0) {
+      } else if (position === 'left' && tooltipRect.left < 0) {
         setAdjustedPosition('right');
-      } else if (position === 'right' && rect.right > window.innerWidth) {
+      } else if (position === 'right' && tooltipRect.right > window.innerWidth) {
         setAdjustedPosition('left');
       } else {
         setAdjustedPosition(position);
       }
+
+      // Check horizontal overflow for top/bottom positions
+      if (position === 'top' || position === 'bottom') {
+        // If tooltip would overflow on the right, align it to the right
+        if (containerRect.left + tooltipRect.width > window.innerWidth - 16) {
+          setAlignRight(true);
+        } else {
+          setAlignRight(false);
+        }
+      }
     }
   }, [isVisible, position]);
+
+  const tooltipClasses = [
+    'info-tooltip',
+    `info-tooltip-${adjustedPosition}`,
+    alignRight ? 'info-tooltip-align-right' : '',
+  ].filter(Boolean).join(' ');
 
   return (
     <span
@@ -57,7 +76,7 @@ export function InfoTooltip({ content, position = 'top' }: InfoTooltipProps) {
       {isVisible && (
         <div
           ref={tooltipRef}
-          className={`info-tooltip info-tooltip-${adjustedPosition}`}
+          className={tooltipClasses}
           role="tooltip"
         >
           {content}

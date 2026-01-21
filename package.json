@@ -19,6 +19,7 @@
     "treemap"
   ],
   "activationEvents": [
+    "workspaceContains:.git",
     "onCommand:repoStats.showDashboard",
     "onCommand:repoStats.refreshStats"
   ],
