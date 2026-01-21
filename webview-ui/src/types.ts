@@ -41,6 +41,7 @@ export interface TreemapNode {
   bytes?: number;
   language?: string;
   lastModified?: string; // ISO date string from git history
+  binary?: boolean; // True for non-code files (images, fonts, etc.)
   children?: TreemapNode[];
 }
 

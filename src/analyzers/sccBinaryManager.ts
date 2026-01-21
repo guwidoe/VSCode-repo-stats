@@ -19,18 +19,19 @@ const execAsync = promisify(exec);
 const SCC_VERSION = '3.5.0';
 const GITHUB_RELEASE_BASE = 'https://github.com/boyter/scc/releases/download';
 
-// Binary naming conventions from GitHub releases
+// Binary naming conventions from GitHub releases (version NOT in filename)
 const BINARY_NAMES: Record<string, Record<string, string>> = {
   linux: {
-    x64: `scc_${SCC_VERSION}_Linux_x86_64.tar.gz`,
-    arm64: `scc_${SCC_VERSION}_Linux_arm64.tar.gz`,
+    x64: 'scc_Linux_x86_64.tar.gz',
+    arm64: 'scc_Linux_arm64.tar.gz',
   },
   darwin: {
-    x64: `scc_${SCC_VERSION}_Darwin_x86_64.tar.gz`,
-    arm64: `scc_${SCC_VERSION}_Darwin_arm64.tar.gz`,
+    x64: 'scc_Darwin_x86_64.tar.gz',
+    arm64: 'scc_Darwin_arm64.tar.gz',
   },
   win32: {
-    x64: `scc_${SCC_VERSION}_Windows_x86_64.zip`,
+    x64: 'scc_Windows_x86_64.zip',
+    arm64: 'scc_Windows_arm64.zip',
   },
 };
 

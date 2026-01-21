@@ -39,12 +39,21 @@ export function TreemapPanel() {
   const setHoveredNode = useStore(state => state.setHoveredNode)
   const setSelectedNode = useStore(state => state.setSelectedNode)
 
+  // Get the raw unfiltered node to check if we have data at all
+  const data = useStore(state => state.data)
+  const treemapFilter = useStore(state => state.treemapFilter)
+  const hasData = !!data?.fileTree
+
   // Calculate language counts for legend
   const languageCounts = filteredTreemapNode
     ? collectLanguageCounts(filteredTreemapNode)
     : new Map<string, number>()
 
-  if (!filteredTreemapNode) {
+  // Determine empty state message
+  const isCustomFilterEmpty = hasData && !filteredTreemapNode && treemapFilter.preset === 'custom'
+  const isFilterEmpty = hasData && !filteredTreemapNode && treemapFilter.preset !== 'custom'
+
+  if (!hasData) {
     return (
       <div className="treemap-panel">
         <div className="treemap-empty">
@@ -75,21 +84,33 @@ export function TreemapPanel() {
       />
 
       <div className="treemap-content">
-        <TreemapCanvas
-          root={filteredTreemapNode}
-          colorMode={colorMode}
-          sizeMode={sizeDisplayMode}
-          maxNestingDepth={maxNestingDepth}
-          hoveredNode={hoveredNode}
-          selectedNode={selectedNode}
-          currentPath={treemapPath}
-          onHover={setHoveredNode}
-          onSelect={setSelectedNode}
-          onNavigate={navigateToTreemapPath}
-          onOpenFile={openFile}
-          onRevealInExplorer={revealInExplorer}
-          onCopyPath={copyPath}
-        />
+        {isCustomFilterEmpty ? (
+          <div className="treemap-empty">
+            <p>No files match selected languages</p>
+            <p className="treemap-empty-hint">Select languages above to see files</p>
+          </div>
+        ) : isFilterEmpty ? (
+          <div className="treemap-empty">
+            <p>No files match current filter</p>
+            <p className="treemap-empty-hint">Try a different filter preset</p>
+          </div>
+        ) : filteredTreemapNode ? (
+          <TreemapCanvas
+            root={filteredTreemapNode}
+            colorMode={colorMode}
+            sizeMode={sizeDisplayMode}
+            maxNestingDepth={maxNestingDepth}
+            hoveredNode={hoveredNode}
+            selectedNode={selectedNode}
+            currentPath={treemapPath}
+            onHover={setHoveredNode}
+            onSelect={setSelectedNode}
+            onNavigate={navigateToTreemapPath}
+            onOpenFile={openFile}
+            onRevealInExplorer={revealInExplorer}
+            onCopyPath={copyPath}
+          />
+        ) : null}
       </div>
 
       <TreemapLegend

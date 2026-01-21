@@ -11,9 +11,9 @@ import type { TreemapFilterPreset, TreemapNode } from '../../types';
 import './TreemapFilter.css';
 
 const PRESETS: { id: TreemapFilterPreset; label: string; description: string }[] = [
-  { id: 'all', label: 'All', description: 'Show all files' },
+  { id: 'all', label: 'All', description: 'Show all files including binaries' },
   { id: 'hide-binary', label: 'No Binary', description: 'Hide images, fonts, archives, etc.' },
-  { id: 'code-only', label: 'Code Only', description: 'Hide config, docs, and data files' },
+  { id: 'code-only', label: 'Code Only', description: 'Hide JSON, YAML, Markdown, and binaries' },
   { id: 'custom', label: 'Custom', description: 'Select specific languages' },
 ];
 

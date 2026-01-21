@@ -22,6 +22,7 @@ export interface GitClient {
   getContributorStats(maxCommits: number): Promise<ContributorStats[]>;
   getCodeFrequency(maxCommits: number): Promise<CodeFrequency[]>;
   getFileModificationDates(): Promise<Map<string, string>>;
+  getTrackedFiles(): Promise<string[]>;
 }
 
 // ============================================================================
@@ -302,6 +303,27 @@ export class GitAnalyzer implements GitClient {
     }
 
     return fileModDates;
+  }
+
+  /**
+   * Get all tracked files in the repository.
+   * Returns an array of relative file paths.
+   */
+  async getTrackedFiles(): Promise<string[]> {
+    if (!(await this.isRepo())) {
+      throw new NotAGitRepoError(this.repoPath);
+    }
+
+    try {
+      const output = await this.git.raw(['ls-files']);
+      return output
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
+    } catch (error) {
+      console.error('Failed to get tracked files:', error);
+      return [];
+    }
   }
 
   private parseStatLine(line: string): { additions: number; deletions: number } {

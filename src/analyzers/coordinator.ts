@@ -87,10 +87,22 @@ export class AnalysisCoordinator {
     const fileModDates = await this.gitClient.getFileModificationDates();
     onProgress?.('File history loaded', 88);
 
-    // Phase 7: Enrich tree with modification dates and file sizes
-    onProgress?.('Enriching file data', 90);
+    // Phase 7: Get all tracked files and add binary files to tree
+    onProgress?.('Scanning for binary files', 90);
+    const trackedFiles = await this.gitClient.getTrackedFiles();
+    const codeFilePaths = this.collectFilePaths(fileTree);
+    await this.addBinaryFilesToTree(
+      fileTree,
+      trackedFiles,
+      codeFilePaths,
+      fileModDates
+    );
+    onProgress?.('Binary files added', 93);
+
+    // Phase 8: Enrich tree with modification dates and file sizes
+    onProgress?.('Enriching file data', 95);
     await this.enrichTreeWithMetadata(fileTree, fileModDates);
-    onProgress?.('File data enriched', 95);
+    onProgress?.('File data enriched', 98);
 
     // Complete
     onProgress?.('Analysis complete', 100);
@@ -175,6 +187,124 @@ export class AnalysisCoordinator {
     }
 
     return totalBytes;
+  }
+
+  /**
+   * Collect all file paths from the tree.
+   */
+  private collectFilePaths(node: TreemapNode, paths: Set<string> = new Set()): Set<string> {
+    if (node.type === 'file') {
+      paths.add(node.path);
+    }
+    for (const child of node.children || []) {
+      this.collectFilePaths(child, paths);
+    }
+    return paths;
+  }
+
+  /**
+   * Add binary files (files not in scc output) to the tree.
+   */
+  private async addBinaryFilesToTree(
+    root: TreemapNode,
+    allTrackedFiles: string[],
+    codeFilePaths: Set<string>,
+    fileModDates: Map<string, string>
+  ): Promise<void> {
+    // Find binary files (tracked but not in scc output)
+    const binaryFiles = allTrackedFiles.filter(f => !codeFilePaths.has(f));
+
+    for (const filePath of binaryFiles) {
+      // Get file size
+      let bytes = 0;
+      try {
+        const fullPath = path.join(this.repoPath, filePath);
+        const stats = await fs.stat(fullPath);
+        bytes = stats.size;
+      } catch {
+        continue; // Skip files that don't exist
+      }
+
+      // Parse path into segments
+      const segments = filePath.split('/');
+      const fileName = segments[segments.length - 1];
+
+      // Determine language from extension (for display purposes)
+      const ext = path.extname(fileName).toLowerCase();
+      const language = this.getBinaryLanguage(ext);
+
+      // Navigate/create directory structure
+      let current = root;
+      for (let i = 0; i < segments.length - 1; i++) {
+        const dirName = segments[i];
+        const dirPath = segments.slice(0, i + 1).join('/');
+
+        current.children = current.children || [];
+        let dirNode = current.children.find(
+          c => c.name === dirName && c.type === 'directory'
+        );
+
+        if (!dirNode) {
+          dirNode = {
+            name: dirName,
+            path: dirPath,
+            type: 'directory',
+            lines: 0,
+            children: [],
+          };
+          current.children.push(dirNode);
+        }
+        current = dirNode;
+      }
+
+      // Add the binary file node
+      current.children = current.children || [];
+      current.children.push({
+        name: fileName,
+        path: filePath,
+        type: 'file',
+        lines: 0,
+        bytes,
+        language,
+        binary: true,
+        lastModified: fileModDates.get(filePath),
+      });
+    }
+  }
+
+  /**
+   * Get a display language for binary file extensions.
+   */
+  private getBinaryLanguage(ext: string): string {
+    const binaryLanguages: Record<string, string> = {
+      // Images
+      '.png': 'Image', '.jpg': 'Image', '.jpeg': 'Image', '.gif': 'Image',
+      '.svg': 'Image', '.ico': 'Image', '.webp': 'Image', '.bmp': 'Image',
+      '.tiff': 'Image', '.tif': 'Image', '.psd': 'Image', '.ai': 'Image',
+      '.heic': 'Image', '.avif': 'Image',
+      // Videos
+      '.mp4': 'Video', '.webm': 'Video', '.mov': 'Video', '.avi': 'Video',
+      '.mkv': 'Video', '.flv': 'Video',
+      // Audio
+      '.mp3': 'Audio', '.wav': 'Audio', '.ogg': 'Audio', '.flac': 'Audio',
+      '.aac': 'Audio', '.m4a': 'Audio',
+      // Fonts
+      '.ttf': 'Font', '.otf': 'Font', '.woff': 'Font', '.woff2': 'Font',
+      '.eot': 'Font',
+      // Archives
+      '.zip': 'Archive', '.tar': 'Archive', '.gz': 'Archive', '.rar': 'Archive',
+      '.7z': 'Archive',
+      // Documents
+      '.pdf': 'Document', '.doc': 'Document', '.docx': 'Document',
+      '.xls': 'Document', '.xlsx': 'Document', '.ppt': 'Document',
+      '.pptx': 'Document',
+      // Compiled/Binary
+      '.exe': 'Binary', '.dll': 'Binary', '.so': 'Binary', '.dylib': 'Binary',
+      '.wasm': 'Binary', '.class': 'Binary', '.pyc': 'Binary',
+      // Database
+      '.sqlite': 'Database', '.db': 'Database',
+    };
+    return binaryLanguages[ext] || 'Binary';
   }
 
   async getRepositoryInfo(): Promise<RepositoryInfo> {

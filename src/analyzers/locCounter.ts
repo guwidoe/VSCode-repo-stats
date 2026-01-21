@@ -42,6 +42,11 @@ interface SccFileEntry {
   Complexity: number;
 }
 
+interface SccLanguageGroup {
+  Name: string;
+  Files: SccFileEntry[];
+}
+
 // ============================================================================
 // LOC Counter Implementation
 // ============================================================================
@@ -106,8 +111,21 @@ export class LOCCounter implements LOCClient {
         { maxBuffer: 50 * 1024 * 1024 } // 50MB buffer for large repos
       );
 
-      const sccResult = JSON.parse(stdout) as SccFileEntry[];
-      return this.buildTreeFromScc(sccResult);
+      // scc outputs array of language groups, each containing a Files array
+      const languageGroups = JSON.parse(stdout) as SccLanguageGroup[];
+      const allFiles: SccFileEntry[] = [];
+      for (const group of languageGroups) {
+        if (group.Files) {
+          for (const file of group.Files) {
+            // Use group name if file doesn't have Language set
+            allFiles.push({
+              ...file,
+              Language: file.Language || group.Name,
+            });
+          }
+        }
+      }
+      return this.buildTreeFromScc(allFiles);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);

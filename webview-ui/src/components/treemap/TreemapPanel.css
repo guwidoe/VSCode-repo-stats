@@ -4,6 +4,7 @@
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  overflow: hidden; /* Treemap fills space, no scrolling */
   background: var(--vscode-editor-background);
 }
 

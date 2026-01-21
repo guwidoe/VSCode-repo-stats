@@ -77,6 +77,14 @@ body {
   min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+}
+
+/* Default panel styles - most panels should scroll their content */
+.app-content > div {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 /* Loading state */

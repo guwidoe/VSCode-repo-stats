@@ -16,7 +16,7 @@ import type {
   ExtensionSettings,
 } from '../types';
 import type { SizeDisplayMode } from '../components/treemap/types';
-import { isBinaryFile, isCodeLanguage } from '../utils/fileTypes';
+import { isCodeLanguage } from '../utils/fileTypes';
 
 // ============================================================================
 // Store State Interface
@@ -251,6 +251,7 @@ let cachedFilterParams: {
   node: TreemapNode | null;
   preset: TreemapFilterPreset;
   selectedLanguages: string[];
+  sizeMode: SizeDisplayMode;
 } | null = null;
 
 /**
@@ -464,16 +465,23 @@ function aggregateToMonthly(weekly: { week: string; additions: number; deletions
 /**
  * Returns the filtered treemap node based on current filter settings.
  * Memoized to prevent expensive tree traversal on every render.
+ *
+ * In LOC mode, binary files are automatically hidden since they have 0 lines.
+ * In Size mode, binary files are shown (unless explicitly filtered).
  */
 export const selectFilteredTreemapNode = (state: RepoStatsState): TreemapNode | null => {
-  const { currentTreemapNode, treemapFilter } = state;
+  const { currentTreemapNode, treemapFilter, sizeDisplayMode } = state;
 
   if (!currentTreemapNode) {
     return null;
   }
 
-  // 'all' preset returns the unfiltered node
-  if (treemapFilter.preset === 'all') {
+  // In LOC mode, always hide binaries (they have 0 lines)
+  // In Size mode with 'all' preset, show everything
+  const shouldHideBinaries = sizeDisplayMode === 'loc';
+  const noFilterNeeded = treemapFilter.preset === 'all' && !shouldHideBinaries;
+
+  if (noFilterNeeded) {
     return currentTreemapNode;
   }
 
@@ -483,13 +491,14 @@ export const selectFilteredTreemapNode = (state: RepoStatsState): TreemapNode | 
     cachedFilterParams &&
     cachedFilterParams.node === currentTreemapNode &&
     cachedFilterParams.preset === treemapFilter.preset &&
+    cachedFilterParams.sizeMode === sizeDisplayMode &&
     arraysEqual(cachedFilterParams.selectedLanguages, selectedLanguagesArray)
   ) {
     return cachedFilteredTreemapNode;
   }
 
-  // Build filter function based on preset
-  const filterFn = createTreemapFilterFunction(treemapFilter);
+  // Build filter function based on preset and size mode
+  const filterFn = createTreemapFilterFunction(treemapFilter, shouldHideBinaries);
 
   // Recursively filter the tree
   const filtered = filterTreeNode(currentTreemapNode, filterFn);
@@ -499,6 +508,7 @@ export const selectFilteredTreemapNode = (state: RepoStatsState): TreemapNode | 
     node: currentTreemapNode,
     preset: treemapFilter.preset,
     selectedLanguages: selectedLanguagesArray,
+    sizeMode: sizeDisplayMode,
   };
   cachedFilteredTreemapNode = filtered;
 
@@ -507,9 +517,12 @@ export const selectFilteredTreemapNode = (state: RepoStatsState): TreemapNode | 
 
 /**
  * Creates a filter function based on the current filter state.
+ * @param filter The current filter state
+ * @param forceHideBinaries If true, always hide binary files (used in LOC mode)
  */
 function createTreemapFilterFunction(
-  filter: TreemapFilterState
+  filter: TreemapFilterState,
+  forceHideBinaries: boolean = false
 ): (node: TreemapNode) => boolean {
   switch (filter.preset) {
     case 'hide-binary':
@@ -517,7 +530,7 @@ function createTreemapFilterFunction(
         if (node.type === 'directory') {
           return true;
         }
-        return !isBinaryFile(node.path);
+        return !node.binary;
       };
 
     case 'code-only':
@@ -525,7 +538,8 @@ function createTreemapFilterFunction(
         if (node.type === 'directory') {
           return true;
         }
-        return isCodeLanguage(node.language);
+        // Exclude binary files and non-code languages
+        return !node.binary && isCodeLanguage(node.language);
       };
 
     case 'custom':
@@ -537,6 +551,15 @@ function createTreemapFilterFunction(
       };
 
     default:
+      // 'all' preset - but may still hide binaries in LOC mode
+      if (forceHideBinaries) {
+        return (node) => {
+          if (node.type === 'directory') {
+            return true;
+          }
+          return !node.binary;
+        };
+      }
       return () => true;
   }
 }
