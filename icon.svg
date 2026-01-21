@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#4FC3F7"/>
+      <stop offset="40%" stop-color="#4FC3F7" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#4FC3F7" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Center at 64,64. Outer radius 50, inner radius 34 -->
+  <!-- G opens at the right side (3 o'clock position) -->
+
+  <!-- Blue segment: 135° to 225° (left arc) -->
+  <path d="M28.6 99.4 A50 50 0 0 1 28.6 28.6 L40 40 A34 34 0 0 0 40 88 Z" fill="#5B8CC9"/>
+
+  <!-- Teal segment: 225° to 270° (upper-left) -->
+  <path d="M28.6 28.6 A50 50 0 0 1 64 14 L64 30 A34 34 0 0 0 40 40 Z" fill="#26A69A"/>
+
+  <!-- Orange segment: 270° to 305° -->
+  <path d="M64 14 A50 50 0 0 1 92.7 22.7 L84.6 34.6 A34 34 0 0 0 64 30 Z" fill="#F5A623"/>
+
+  <!-- Purple segment: 305° to 340° -->
+  <path d="M92.7 22.7 A50 50 0 0 1 110.8 49.5 L98.3 54.4 A34 34 0 0 0 84.6 34.6 Z" fill="#9B59B6"/>
+
+  <!-- Teal segment: 340° to 360° (top-right) -->
+  <path d="M110.8 49.5 A50 50 0 0 1 114 64 L98 64 A34 34 0 0 0 98.3 54.4 Z" fill="#26A69A"/>
+
+  <!-- Coral/Red segment: 30° to 135° (bottom arc) -->
+  <path d="M107.3 89 A50 50 0 0 1 28.6 99.4 L40 88 A34 34 0 0 0 93.4 81 Z" fill="#E85D4C"/>
+
+  <!-- Blue G-arm (horizontal bar extending inward) -->
+  <rect x="60" y="56" width="40" height="16" rx="3" fill="#5B8CC9"/>
+
+  <!-- Magnifying glass at opening -->
+  <g stroke="#5B8CC9" stroke-width="3.5" stroke-linecap="round" fill="none">
+    <circle cx="108" cy="48" r="11"/>
+    <line x1="116" y1="56" x2="124" y2="64"/>
+  </g>
+
+  <!-- Glowing center dot -->
+  <circle cx="66" cy="64" r="12" fill="url(#glow)"/>
+  <circle cx="66" cy="64" r="5" fill="#4FC3F7"/>
+
+  <!-- Bar chart - moved more to center -->
+  <g transform="translate(44, 82)">
+    <rect x="0" y="-8" width="6" height="12" rx="1.5" fill="#26A69A"/>
+    <rect x="9" y="-16" width="6" height="20" rx="1.5" fill="#5B8CC9"/>
+    <rect x="18" y="-24" width="6" height="28" rx="1.5" fill="#4FC3F7"/>
+  </g>
+
+  <!-- Gear icon - moved inward -->
+  <g transform="translate(76, 76)" fill="#6B8299">
+    <circle cx="0" cy="0" r="4" fill="none" stroke="#6B8299" stroke-width="2"/>
+    <circle cx="0" cy="0" r="1.5" fill="#6B8299"/>
+    <!-- Gear teeth at cardinal directions -->
+    <rect x="-1.2" y="-7.5" width="2.4" height="3.5" rx="0.8"/>
+    <rect x="-1.2" y="4" width="2.4" height="3.5" rx="0.8"/>
+    <rect x="-7.5" y="-1.2" width="3.5" height="2.4" rx="0.8"/>
+    <rect x="4" y="-1.2" width="3.5" height="2.4" rx="0.8"/>
+    <!-- Diagonal teeth -->
+    <rect x="2.8" y="2.8" width="2.4" height="2.4" rx="0.8" transform="rotate(45, 4, 4)"/>
+    <rect x="-5.2" y="-5.2" width="2.4" height="2.4" rx="0.8" transform="rotate(45, -4, -4)"/>
+    <rect x="2.8" y="-5.2" width="2.4" height="2.4" rx="0.8" transform="rotate(-45, 4, -4)"/>
+    <rect x="-5.2" y="2.8" width="2.4" height="2.4" rx="0.8" transform="rotate(-45, -4, 4)"/>
+  </g>
+</svg>
