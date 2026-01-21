@@ -14,6 +14,14 @@ A VSCode extension for visualizing repository statistics with three views:
 - Webview: React + TypeScript, Vite, D3.js, Plotly.js, Zustand
 - Communication: postMessage API between extension and webview
 
+**Key modules:**
+- `src/analyzers/` - Core analysis logic (GitAnalyzer, LOCCounter, Coordinator)
+- `src/webview/provider.ts` - Webview lifecycle and messaging
+- `webview-ui/src/store/` - Zustand state management
+- `webview-ui/src/components/treemap/` - Canvas-based treemap with D3
+
+For detailed architecture, module guide, and data flows, see [docs/CODEBASE_MAP.md](docs/CODEBASE_MAP.md).
+
 ## Build & Test Commands
 
 ```bash
