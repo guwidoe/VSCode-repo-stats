@@ -39,17 +39,21 @@ node_modules/**
 tsconfig.json
 vitest.config.ts
 
-# Documentation (can be kept or excluded)
+# Documentation (excluded from package)
+docs/**
 Orchestration Setup Resources/**
 ARCHITECTURE.md
 ARCHITECTURE_DECISIONS.md
 TASK.md
 SPECIFICATIONS.md
+CLAUDE.md
 
 # Only include these in final package
 !out/**
 !webview-ui/dist/**
 !webview-ui/index.html
 !package.json
-!CLAUDE.md
 !LICENSE.txt
+!README.md
+!CHANGELOG.md
+!LICENSE

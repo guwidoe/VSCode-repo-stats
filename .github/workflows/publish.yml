@@ -1,0 +1,52 @@
+name: Publish Extension
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: 'Version bump type (if any)'
+        required: false
+        default: 'none'
+        type: choice
+        options:
+          - none
+          - patch
+          - minor
+          - major
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install webview dependencies
+        run: cd webview-ui && npm ci
+
+      - name: Run validation
+        run: npm run validate
+
+      - name: Publish (with version bump)
+        if: inputs.version_bump != 'none' && inputs.version_bump != ''
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+          VERSION_BUMP: ${{ inputs.version_bump }}
+        run: npx vsce publish "$VERSION_BUMP"
+
+      - name: Publish (no version bump)
+        if: inputs.version_bump == 'none' || inputs.version_bump == ''
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: npx vsce publish

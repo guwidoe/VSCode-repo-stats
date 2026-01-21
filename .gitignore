@@ -30,6 +30,7 @@ npm-debug.log*
 # Environment
 .env
 .env.local
+.venv/
 
 # Temporary files
 tmp/
