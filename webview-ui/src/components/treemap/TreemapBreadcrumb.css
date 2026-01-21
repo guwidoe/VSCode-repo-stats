@@ -1,0 +1,36 @@
+.treemap-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  background: var(--vscode-editor-background);
+  border-bottom: 1px solid var(--vscode-panel-border);
+  font-size: 13px;
+  font-family: var(--vscode-font-family);
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.breadcrumb-segment {
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.breadcrumb-segment.clickable {
+  cursor: pointer;
+  color: var(--vscode-textLink-foreground);
+}
+
+.breadcrumb-segment.clickable:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.breadcrumb-segment.current {
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+
+.breadcrumb-separator {
+  color: var(--vscode-descriptionForeground);
+  margin: 0 2px;
+}
