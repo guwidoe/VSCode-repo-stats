@@ -11,4 +11,4 @@
  * - Context menu: right-click menu
  * - Keyboard: Escape (clear selection), Backspace (navigate up)
  */
-export {}
+export {};

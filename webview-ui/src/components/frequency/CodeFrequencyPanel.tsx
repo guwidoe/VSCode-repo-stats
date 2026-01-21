@@ -6,13 +6,9 @@ import { useMemo } from 'react';
 import Plot from 'react-plotly.js';
 import { useStore, selectFilteredCodeFrequency } from '../../store';
 import { TimePeriodFilter } from '../contributors/TimePeriodFilter';
-import type { FrequencyGranularity } from '../../types';
+import { FrequencyGranularityToggle } from './FrequencyGranularityToggle';
+import { SummaryCard } from './SummaryCard';
 import './CodeFrequencyPanel.css';
-
-const GRANULARITY_OPTIONS: { id: FrequencyGranularity; label: string }[] = [
-  { id: 'weekly', label: 'Weekly' },
-  { id: 'monthly', label: 'Monthly' },
-];
 
 export function CodeFrequencyPanel() {
   const frequency = useStore(selectFilteredCodeFrequency);
@@ -44,7 +40,7 @@ export function CodeFrequencyPanel() {
       <div className="panel-header">
         <h2>Code Frequency</h2>
         <div className="controls">
-          <GranularityToggle
+          <FrequencyGranularityToggle
             value={frequencyGranularity}
             onChange={setFrequencyGranularity}
           />
@@ -142,64 +138,4 @@ export function CodeFrequencyPanel() {
       </div>
     </div>
   );
-}
-
-// ============================================================================
-// Granularity Toggle
-// ============================================================================
-
-interface GranularityToggleProps {
-  value: FrequencyGranularity;
-  onChange: (value: FrequencyGranularity) => void;
-}
-
-function GranularityToggle({ value, onChange }: GranularityToggleProps) {
-  return (
-    <div className="granularity-toggle">
-      {GRANULARITY_OPTIONS.map((option) => (
-        <button
-          key={option.id}
-          className={`toggle-button ${value === option.id ? 'active' : ''}`}
-          onClick={() => onChange(option.id)}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-// ============================================================================
-// Summary Card
-// ============================================================================
-
-interface SummaryCardProps {
-  label: string;
-  value: number;
-  color: string;
-  prefix?: string;
-}
-
-function SummaryCard({ label, value, color, prefix = '' }: SummaryCardProps) {
-  const formattedValue = value >= 0 ? `${prefix}${formatLargeNumber(value)}` : formatLargeNumber(value);
-
-  return (
-    <div className="summary-card">
-      <span className="summary-label">{label}</span>
-      <span className="summary-value" style={{ color }}>
-        {formattedValue}
-      </span>
-    </div>
-  );
-}
-
-function formatLargeNumber(num: number): string {
-  const absNum = Math.abs(num);
-  if (absNum >= 1000000) {
-    return (num / 1000000).toFixed(1) + 'M';
-  }
-  if (absNum >= 1000) {
-    return (num / 1000).toFixed(1) + 'K';
-  }
-  return num.toLocaleString();
 }

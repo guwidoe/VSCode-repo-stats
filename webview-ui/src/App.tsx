@@ -12,6 +12,10 @@ import { CodeFrequencyPanel } from './components/frequency/CodeFrequencyPanel';
 import { TreemapPanel } from './components/treemap/TreemapPanel';
 import { SettingsPanel } from './components/settings/SettingsPanel';
 import { AboutPanel } from './components/about/AboutPanel';
+import { LoadingState } from './components/common/LoadingState';
+import { ErrorState } from './components/common/ErrorState';
+import { EmptyState } from './components/common/EmptyState';
+import { LimitWarning } from './components/common/LimitWarning';
 import './App.css';
 
 export function App() {
@@ -77,98 +81,6 @@ export function App() {
           </>
         )}
       </main>
-    </div>
-  );
-}
-
-// ============================================================================
-// Loading State
-// ============================================================================
-
-interface LoadingStateProps {
-  phase: string;
-  progress: number;
-}
-
-function LoadingState({ phase, progress }: LoadingStateProps) {
-  return (
-    <div className="loading-state">
-      <div className="loading-spinner" />
-      <p className="loading-phase">{phase || 'Analyzing repository...'}</p>
-      <div className="progress-bar">
-        <div
-          className="progress-fill"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-      <p className="loading-hint">
-        This may take a moment for large repositories.
-      </p>
-    </div>
-  );
-}
-
-// ============================================================================
-// Error State
-// ============================================================================
-
-interface ErrorStateProps {
-  message: string;
-  onRetry: () => void;
-}
-
-function ErrorState({ message, onRetry }: ErrorStateProps) {
-  return (
-    <div className="error-state">
-      <div className="error-icon">!</div>
-      <h2>Analysis Failed</h2>
-      <p>{message}</p>
-      <button className="retry-button" onClick={onRetry}>
-        Try Again
-      </button>
-    </div>
-  );
-}
-
-// ============================================================================
-// Empty State
-// ============================================================================
-
-interface EmptyStateProps {
-  onRequest: () => void;
-}
-
-function EmptyState({ onRequest }: EmptyStateProps) {
-  return (
-    <div className="empty-state">
-      <h2>No Data</h2>
-      <p>No repository data is available.</p>
-      <button className="retry-button" onClick={onRequest}>
-        Analyze Repository
-      </button>
-    </div>
-  );
-}
-
-// ============================================================================
-// Limit Warning
-// ============================================================================
-
-interface LimitWarningProps {
-  totalCount: number;
-  limit: number;
-}
-
-function LimitWarning({ totalCount, limit }: LimitWarningProps) {
-  const formatNumber = (n: number) => n.toLocaleString();
-
-  return (
-    <div className="limit-warning">
-      <span className="warning-icon">&#9888;</span>
-      <span className="warning-text">
-        <strong>Partial data:</strong> Only {formatNumber(limit)} of {formatNumber(totalCount)} commits analyzed.
-        Increase <code>repoStats.maxCommitsToAnalyze</code> in settings for complete statistics.
-      </span>
     </div>
   );
 }

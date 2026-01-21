@@ -9,6 +9,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useStore } from '../../store';
 import type { TreemapFilterPreset, TreemapNode } from '../../types';
 import { InfoTooltip } from '../common/InfoTooltip';
+import { LanguagePicker } from './LanguagePicker';
 import './TreemapFilter.css';
 
 const PRESETS: { id: TreemapFilterPreset; label: string; description: string }[] = [
@@ -17,6 +18,18 @@ const PRESETS: { id: TreemapFilterPreset; label: string; description: string }[]
   { id: 'code-only', label: 'Code Only', description: 'Hide JSON, YAML, Markdown, and binaries' },
   { id: 'custom', label: 'Custom', description: 'Select specific languages' },
 ];
+
+/**
+ * Recursively collects all unique languages from a tree.
+ */
+function collectLanguages(node: TreemapNode, languages: Set<string>): void {
+  if (node.type === 'file' && node.language) {
+    languages.add(node.language);
+  }
+  for (const child of node.children || []) {
+    collectLanguages(child, languages);
+  }
+}
 
 export function TreemapFilter() {
   const treemapFilter = useStore((state) => state.treemapFilter);
@@ -93,86 +106,4 @@ export function TreemapFilter() {
       )}
     </div>
   );
-}
-
-interface LanguagePickerProps {
-  languages: string[];
-  selected: Set<string>;
-  onToggle: (language: string) => void;
-}
-
-function LanguagePicker({ languages, selected, onToggle }: LanguagePickerProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const filteredLanguages = useMemo(() => {
-    if (!searchQuery) {
-      return languages;
-    }
-    const query = searchQuery.toLowerCase();
-    return languages.filter((lang) => lang.toLowerCase().includes(query));
-  }, [languages, searchQuery]);
-
-  const handleSelectAll = useCallback(() => {
-    // If all are selected, clear all. Otherwise, select all.
-    const allSelected = languages.every((lang) => selected.has(lang));
-    for (const lang of languages) {
-      if (allSelected) {
-        // Only toggle if currently selected
-        if (selected.has(lang)) {
-          onToggle(lang);
-        }
-      } else {
-        // Only toggle if not selected
-        if (!selected.has(lang)) {
-          onToggle(lang);
-        }
-      }
-    }
-  }, [languages, selected, onToggle]);
-
-  const allSelected = languages.length > 0 && languages.every((lang) => selected.has(lang));
-
-  return (
-    <div className="language-picker">
-      <div className="picker-header">
-        <input
-          type="text"
-          placeholder="Filter languages..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="language-search"
-        />
-        <button className="select-all-btn" onClick={handleSelectAll}>
-          {allSelected ? 'Clear All' : 'Select All'}
-        </button>
-      </div>
-      <div className="language-list">
-        {filteredLanguages.map((language) => (
-          <label key={language} className="language-item">
-            <input
-              type="checkbox"
-              checked={selected.has(language)}
-              onChange={() => onToggle(language)}
-            />
-            <span className="language-name">{language}</span>
-          </label>
-        ))}
-        {filteredLanguages.length === 0 && (
-          <div className="no-languages">No languages match "{searchQuery}"</div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/**
- * Recursively collects all unique languages from a tree.
- */
-function collectLanguages(node: TreemapNode, languages: Set<string>): void {
-  if (node.type === 'file' && node.language) {
-    languages.add(node.language);
-  }
-  for (const child of node.children || []) {
-    collectLanguages(child, languages);
-  }
 }

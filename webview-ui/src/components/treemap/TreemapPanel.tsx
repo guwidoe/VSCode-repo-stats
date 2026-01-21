@@ -9,49 +9,49 @@
  * - TreemapLegend: Color legend based on mode
  */
 
-import { useStore, selectFilteredTreemapNode } from '../../store'
-import { useVsCodeApi } from '../../hooks/useVsCodeApi'
-import { TreemapCanvas } from './TreemapCanvas'
-import { TreemapFilter } from './TreemapFilter'
-import { TreemapControls } from './TreemapControls'
-import { TreemapBreadcrumb } from './TreemapBreadcrumb'
-import { TreemapLegend } from './TreemapLegend'
-import { collectLanguageCounts } from './utils/layout'
-import './TreemapPanel.css'
+import { useStore, selectFilteredTreemapNode } from '../../store';
+import { useVsCodeApi } from '../../hooks/useVsCodeApi';
+import { TreemapCanvas } from './TreemapCanvas';
+import { TreemapFilter } from './TreemapFilter';
+import { TreemapControls } from './TreemapControls';
+import { TreemapBreadcrumb } from './TreemapBreadcrumb';
+import { TreemapLegend } from './TreemapLegend';
+import { collectLanguageCounts } from './utils/layout';
+import './TreemapPanel.css';
 
 export function TreemapPanel() {
-  const { openFile, revealInExplorer, copyPath } = useVsCodeApi()
+  const { openFile, revealInExplorer, copyPath } = useVsCodeApi();
 
   // Store state - use the filtered treemap node from the selector
-  const filteredTreemapNode = useStore(selectFilteredTreemapNode)
-  const treemapPath = useStore(state => state.treemapPath)
-  const colorMode = useStore(state => state.colorMode)
-  const sizeDisplayMode = useStore(state => state.sizeDisplayMode)
-  const maxNestingDepth = useStore(state => state.maxNestingDepth)
-  const hoveredNode = useStore(state => state.hoveredNode)
-  const selectedNode = useStore(state => state.selectedNode)
+  const filteredTreemapNode = useStore(selectFilteredTreemapNode);
+  const treemapPath = useStore(state => state.treemapPath);
+  const colorMode = useStore(state => state.colorMode);
+  const sizeDisplayMode = useStore(state => state.sizeDisplayMode);
+  const maxNestingDepth = useStore(state => state.maxNestingDepth);
+  const hoveredNode = useStore(state => state.hoveredNode);
+  const selectedNode = useStore(state => state.selectedNode);
 
   // Store actions
-  const navigateToTreemapPath = useStore(state => state.navigateToTreemapPath)
-  const setColorMode = useStore(state => state.setColorMode)
-  const setSizeDisplayMode = useStore(state => state.setSizeDisplayMode)
-  const setMaxNestingDepth = useStore(state => state.setMaxNestingDepth)
-  const setHoveredNode = useStore(state => state.setHoveredNode)
-  const setSelectedNode = useStore(state => state.setSelectedNode)
+  const navigateToTreemapPath = useStore(state => state.navigateToTreemapPath);
+  const setColorMode = useStore(state => state.setColorMode);
+  const setSizeDisplayMode = useStore(state => state.setSizeDisplayMode);
+  const setMaxNestingDepth = useStore(state => state.setMaxNestingDepth);
+  const setHoveredNode = useStore(state => state.setHoveredNode);
+  const setSelectedNode = useStore(state => state.setSelectedNode);
 
   // Get the raw unfiltered node to check if we have data at all
-  const data = useStore(state => state.data)
-  const treemapFilter = useStore(state => state.treemapFilter)
-  const hasData = !!data?.fileTree
+  const data = useStore(state => state.data);
+  const treemapFilter = useStore(state => state.treemapFilter);
+  const hasData = !!data?.fileTree;
 
   // Calculate language counts for legend
   const languageCounts = filteredTreemapNode
     ? collectLanguageCounts(filteredTreemapNode)
-    : new Map<string, number>()
+    : new Map<string, number>();
 
   // Determine empty state message
-  const isCustomFilterEmpty = hasData && !filteredTreemapNode && treemapFilter.preset === 'custom'
-  const isFilterEmpty = hasData && !filteredTreemapNode && treemapFilter.preset !== 'custom'
+  const isCustomFilterEmpty = hasData && !filteredTreemapNode && treemapFilter.preset === 'custom';
+  const isFilterEmpty = hasData && !filteredTreemapNode && treemapFilter.preset !== 'custom';
 
   if (!hasData) {
     return (
@@ -61,7 +61,7 @@ export function TreemapPanel() {
           <p className="treemap-empty-hint">Run analysis to generate treemap</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -118,5 +118,5 @@ export function TreemapPanel() {
         languageCounts={languageCounts}
       />
     </div>
-  )
+  );
 }

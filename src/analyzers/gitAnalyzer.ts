@@ -346,7 +346,9 @@ export class GitAnalyzer implements GitClient {
 
       for (const line of output.split('\n')) {
         const trimmed = line.trim();
-        if (!trimmed) continue;
+        if (!trimmed) {
+          continue;
+        }
 
         // Extract path from submodule status line
         // Format: [+-]<sha> <path> [(<description>)]

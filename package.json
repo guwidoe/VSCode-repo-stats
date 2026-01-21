@@ -4,6 +4,7 @@
   "description": "Visualize repository statistics with contributor dashboards, code frequency graphs, and treemap views",
   "version": "0.0.1",
   "publisher": "guwidoe",
+  "license": "MIT",
   "icon": "images/icon.png",
   "engines": {
     "vscode": "^1.85.0"

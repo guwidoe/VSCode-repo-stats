@@ -2,10 +2,10 @@
  * TreemapControls - Control panel for treemap color mode, size mode, and nesting depth.
  */
 
-import type { ColorMode } from '../../types'
-import type { SizeDisplayMode } from './types'
-import { InfoTooltip } from '../common/InfoTooltip'
-import './TreemapControls.css'
+import type { ColorMode } from '../../types';
+import type { SizeDisplayMode } from './types';
+import { InfoTooltip } from '../common/InfoTooltip';
+import './TreemapControls.css';
 
 interface TreemapControlsProps {
   colorMode: ColorMode
@@ -16,8 +16,8 @@ interface TreemapControlsProps {
   onNestingDepthChange: (depth: number) => void
 }
 
-const MAX_NESTING_DEPTH = 10
-const MIN_NESTING_DEPTH = 1
+const MAX_NESTING_DEPTH = 10;
+const MIN_NESTING_DEPTH = 1;
 
 export function TreemapControls({
   colorMode,
@@ -29,15 +29,15 @@ export function TreemapControls({
 }: TreemapControlsProps) {
   const handleDepthDecrease = () => {
     if (nestingDepth > MIN_NESTING_DEPTH) {
-      onNestingDepthChange(nestingDepth - 1)
+      onNestingDepthChange(nestingDepth - 1);
     }
-  }
+  };
 
   const handleDepthIncrease = () => {
     if (nestingDepth < MAX_NESTING_DEPTH) {
-      onNestingDepthChange(nestingDepth + 1)
+      onNestingDepthChange(nestingDepth + 1);
     }
-  }
+  };
 
   return (
     <div className="treemap-controls">
@@ -121,5 +121,5 @@ export function TreemapControls({
         </div>
       </div>
     </div>
-  )
+  );
 }
