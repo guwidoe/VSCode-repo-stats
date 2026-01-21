@@ -71,6 +71,9 @@ export class CacheManager {
       codeFrequency: cache.codeFrequency,
       fileTree: cache.fileTree,
       analyzedAt: new Date(cache.lastAnalyzed).toISOString(),
+      analyzedCommitCount: 0, // Will be refreshed from current analysis
+      maxCommitsLimit: 0, // Will be refreshed from current analysis
+      limitReached: false, // Will be refreshed from current analysis
     };
   }
 

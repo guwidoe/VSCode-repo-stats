@@ -157,6 +157,36 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
         vscode.window.showInformationMessage('Path copied to clipboard');
         break;
       }
+
+      case 'getSettings': {
+        const settings = this.getSettings();
+        this.sendMessage(webview, { type: 'settingsLoaded', settings });
+        break;
+      }
+
+      case 'updateSettings': {
+        await this.updateSettings(message.settings);
+        const settings = this.getSettings();
+        this.sendMessage(webview, { type: 'settingsLoaded', settings });
+        break;
+      }
+    }
+  }
+
+  private async updateSettings(settings: Partial<ExtensionSettings>): Promise<void> {
+    const config = vscode.workspace.getConfiguration('repoStats');
+
+    if (settings.excludePatterns !== undefined) {
+      await config.update('excludePatterns', settings.excludePatterns, vscode.ConfigurationTarget.Global);
+    }
+    if (settings.maxCommitsToAnalyze !== undefined) {
+      await config.update('maxCommitsToAnalyze', settings.maxCommitsToAnalyze, vscode.ConfigurationTarget.Global);
+    }
+    if (settings.defaultColorMode !== undefined) {
+      await config.update('defaultColorMode', settings.defaultColorMode, vscode.ConfigurationTarget.Global);
+    }
+    if (settings.generatedPatterns !== undefined) {
+      await config.update('generatedPatterns', settings.generatedPatterns, vscode.ConfigurationTarget.Global);
     }
   }
 
@@ -249,6 +279,22 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       ]),
       maxCommitsToAnalyze: config.get<number>('maxCommitsToAnalyze', 10000),
       defaultColorMode: config.get<'language' | 'age'>('defaultColorMode', 'language'),
+      generatedPatterns: config.get<string[]>('generatedPatterns', [
+        '**/generated/**',
+        '**/gen/**',
+        '**/__generated__/**',
+        '**/dist/**',
+        '**/build/**',
+        '**/*.generated.*',
+        '**/*.g.ts',
+        '**/*.g.js',
+        '**/*.g.dart',
+        '**/*.min.js',
+        '**/*.min.css',
+        '**/package-lock.json',
+        '**/yarn.lock',
+        '**/*-lock.*',
+      ]),
     };
   }
 

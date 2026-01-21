@@ -61,6 +61,37 @@
           ],
           "default": "language",
           "description": "Default treemap color mode"
+        },
+        "repoStats.generatedPatterns": {
+          "type": "array",
+          "default": [
+            "**/generated/**",
+            "**/gen/**",
+            "**/__generated__/**",
+            "**/dist/**",
+            "**/build/**",
+            "**/*.generated.*",
+            "**/*.g.ts",
+            "**/*.g.js",
+            "**/*.g.dart",
+            "**/*.gen.ts",
+            "**/*.gen.js",
+            "**/*.pb.go",
+            "**/*.pb.ts",
+            "**/*.pb.js",
+            "**/*.graphql.ts",
+            "**/*.graphql.js",
+            "**/*_generated.*",
+            "**/*.min.js",
+            "**/*.min.css",
+            "**/*.bundle.js",
+            "**/*.bundle.css",
+            "**/package-lock.json",
+            "**/yarn.lock",
+            "**/pnpm-lock.yaml",
+            "**/*-lock.*"
+          ],
+          "description": "Glob patterns to identify generated files (excluded from 'Largest Files' and marked separately in stats)"
         }
       }
     }

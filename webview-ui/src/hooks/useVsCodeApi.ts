@@ -3,7 +3,7 @@
  */
 
 import { useCallback, useEffect } from 'react';
-import type { WebviewMessage, ExtensionMessage } from '../types';
+import type { WebviewMessage, ExtensionMessage, ExtensionSettings } from '../types';
 import { useStore } from '../store';
 
 // ============================================================================
@@ -45,7 +45,7 @@ function getVsCodeApi(): VsCodeApi {
 // ============================================================================
 
 export function useVsCodeApi() {
-  const { setData, setError, setLoading } = useStore();
+  const { setData, setError, setLoading, setSettings } = useStore();
 
   // Handle messages from extension
   useEffect(() => {
@@ -84,12 +84,20 @@ export function useVsCodeApi() {
           }
           break;
         }
+
+        case 'settingsLoaded':
+          setSettings(message.settings);
+          break;
       }
     };
 
     window.addEventListener('message', handleMessage);
+
+    // Request settings on mount
+    getVsCodeApi().postMessage({ type: 'getSettings' });
+
     return () => window.removeEventListener('message', handleMessage);
-  }, [setData, setError, setLoading]);
+  }, [setData, setError, setLoading, setSettings]);
 
   // Actions
   const requestAnalysis = useCallback(() => {
@@ -112,12 +120,17 @@ export function useVsCodeApi() {
     getVsCodeApi().postMessage({ type: 'copyPath', path });
   }, []);
 
+  const updateSettings = useCallback((settings: Partial<ExtensionSettings>) => {
+    getVsCodeApi().postMessage({ type: 'updateSettings', settings });
+  }, []);
+
   return {
     requestAnalysis,
     requestRefresh,
     openFile,
     revealInExplorer,
     copyPath,
+    updateSettings,
   };
 }
 

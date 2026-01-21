@@ -341,6 +341,17 @@
   border: 1px dashed var(--vscode-panel-border);
 }
 
+.tag.more.clickable {
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tag.more.clickable:hover {
+  background: var(--vscode-list-hoverBackground);
+  border-color: var(--vscode-focusBorder);
+  color: var(--vscode-foreground);
+}
+
 /* Binary Categories */
 .binary-categories {
   display: flex;

@@ -64,6 +64,17 @@ export interface AnalysisResult {
 }
 
 // ============================================================================
+// Settings Types
+// ============================================================================
+
+export interface ExtensionSettings {
+  excludePatterns: string[];
+  maxCommitsToAnalyze: number;
+  defaultColorMode: 'language' | 'age';
+  generatedPatterns: string[];
+}
+
+// ============================================================================
 // Message Types
 // ============================================================================
 
@@ -72,20 +83,23 @@ export type ExtensionMessage =
   | { type: 'analysisProgress'; phase: string; progress: number }
   | { type: 'analysisComplete'; data: AnalysisResult }
   | { type: 'analysisError'; error: string }
-  | { type: 'incrementalUpdate'; data: Partial<AnalysisResult> };
+  | { type: 'incrementalUpdate'; data: Partial<AnalysisResult> }
+  | { type: 'settingsLoaded'; settings: ExtensionSettings };
 
 export type WebviewMessage =
   | { type: 'requestAnalysis' }
   | { type: 'requestRefresh' }
   | { type: 'openFile'; path: string }
   | { type: 'revealInExplorer'; path: string }
-  | { type: 'copyPath'; path: string };
+  | { type: 'copyPath'; path: string }
+  | { type: 'getSettings' }
+  | { type: 'updateSettings'; settings: Partial<ExtensionSettings> };
 
 // ============================================================================
 // UI State Types
 // ============================================================================
 
-export type ViewType = 'overview' | 'contributors' | 'frequency' | 'treemap';
+export type ViewType = 'overview' | 'contributors' | 'frequency' | 'treemap' | 'settings';
 
 export type TimePeriod = 'all' | 'year' | '6months' | '3months' | 'month';
 

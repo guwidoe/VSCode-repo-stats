@@ -13,6 +13,7 @@ import type {
   TreemapNode,
   TreemapFilterPreset,
   TreemapFilterState,
+  ExtensionSettings,
 } from '../types';
 import { isBinaryFile, isCodeLanguage } from '../utils/fileTypes';
 
@@ -27,6 +28,9 @@ interface RepoStatsState {
 
   // Loading state
   loading: LoadingState;
+
+  // Settings
+  settings: ExtensionSettings | null;
 
   // UI State
   activeView: ViewType;
@@ -50,6 +54,7 @@ interface RepoStatsState {
   setData: (data: AnalysisResult) => void;
   setError: (error: string | null) => void;
   setLoading: (loading: Partial<LoadingState>) => void;
+  setSettings: (settings: ExtensionSettings) => void;
   setActiveView: (view: ViewType) => void;
   setTimePeriod: (period: TimePeriod) => void;
   setFrequencyGranularity: (granularity: FrequencyGranularity) => void;
@@ -74,6 +79,7 @@ const initialState = {
     phase: '',
     progress: 0,
   },
+  settings: null as ExtensionSettings | null,
   activeView: 'overview' as ViewType,
   timePeriod: 'all' as TimePeriod,
   frequencyGranularity: 'weekly' as FrequencyGranularity,
@@ -117,6 +123,10 @@ export const useStore = create<RepoStatsState>((set, get) => ({
     set((state) => ({
       loading: { ...state.loading, ...loading },
     }));
+  },
+
+  setSettings: (settings: ExtensionSettings) => {
+    set({ settings });
   },
 
   setActiveView: (view: ViewType) => {

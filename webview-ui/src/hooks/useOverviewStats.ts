@@ -66,28 +66,60 @@ function getFileExtension(filename: string): string {
   return filename.slice(lastDot).toLowerCase();
 }
 
-// Patterns that indicate generated files
-const GENERATED_PATTERNS = [
-  /\/generated\//i,
-  /\/gen\//i,
-  /\/__generated__\//i,
-  /\/dist\//i,
-  /\/build\//i,
-  /\.generated\./i,
-  /\.g\.(dart|ts|js)$/i,
-  /\.gen\.(ts|js)$/i,
-  /\.pb\.(go|ts|js)$/i,  // protobuf
-  /\.graphql\.(ts|js)$/i,
-  /_generated\./i,
-  /\.min\.(js|css)$/i,
-  /\.bundle\.(js|css)$/i,
-  /lock\.json$/i,
-  /lock\.yaml$/i,
-  /-lock\./i,
+// Default patterns (fallback if settings not loaded)
+const DEFAULT_GENERATED_PATTERNS = [
+  '**/generated/**',
+  '**/gen/**',
+  '**/__generated__/**',
+  '**/dist/**',
+  '**/build/**',
+  '**/*.generated.*',
+  '**/*.g.ts',
+  '**/*.g.js',
+  '**/*.g.dart',
+  '**/*.min.js',
+  '**/*.min.css',
+  '**/package-lock.json',
+  '**/yarn.lock',
+  '**/*-lock.*',
 ];
 
-function isGeneratedFile(path: string): boolean {
-  return GENERATED_PATTERNS.some(pattern => pattern.test(path));
+/**
+ * Convert a glob pattern to a regex pattern.
+ * Supports: ** (any path), * (any chars except /), ? (single char)
+ */
+function globToRegex(glob: string): RegExp {
+  let regex = glob
+    // Escape special regex chars except * and ?
+    .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+    // Convert ** to match any path segment
+    .replace(/\*\*/g, '.*')
+    // Convert * to match anything except /
+    .replace(/\*/g, '[^/]*')
+    // Convert ? to match single char
+    .replace(/\?/g, '.');
+
+  // If pattern doesn't start with **, match from start or after /
+  if (!glob.startsWith('**')) {
+    regex = '(^|/)' + regex;
+  }
+
+  // If pattern doesn't end with **, match to end or before /
+  if (!glob.endsWith('**')) {
+    regex = regex + '($|/)';
+  }
+
+  return new RegExp(regex, 'i');
+}
+
+/**
+ * Check if a path matches any of the generated file patterns.
+ */
+function isGeneratedFile(path: string, patterns: string[]): boolean {
+  return patterns.some(pattern => {
+    const regex = globToRegex(pattern);
+    return regex.test(path);
+  });
 }
 
 // Binary file categories
@@ -123,11 +155,11 @@ interface TraversalState {
   binaryFileCount: number;
 }
 
-function traverseTree(node: TreemapNode, state: TraversalState): void {
+function traverseTree(node: TreemapNode, state: TraversalState, generatedPatterns: string[]): void {
   if (node.type === 'file') {
     const ext = getFileExtension(node.name);
     const isBinary = isBinaryFile(node.path);
-    const isGenerated = isGeneratedFile(node.path);
+    const isGenerated = isGeneratedFile(node.path, generatedPatterns);
 
     // Count by extension (all files)
     state.extensionMap.set(ext, (state.extensionMap.get(ext) || 0) + 1);
@@ -178,18 +210,22 @@ function traverseTree(node: TreemapNode, state: TraversalState): void {
     }
   } else if (node.children) {
     for (const child of node.children) {
-      traverseTree(child, state);
+      traverseTree(child, state, generatedPatterns);
     }
   }
 }
 
 export function useOverviewStats(): OverviewStats | null {
   const data = useStore((state) => state.data);
+  const settings = useStore((state) => state.settings);
 
   return useMemo(() => {
     if (!data?.fileTree) {
       return null;
     }
+
+    // Use settings patterns or fall back to defaults
+    const generatedPatterns = settings?.generatedPatterns ?? DEFAULT_GENERATED_PATTERNS;
 
     const state: TraversalState = {
       extensionMap: new Map(),
@@ -203,7 +239,7 @@ export function useOverviewStats(): OverviewStats | null {
       binaryFileCount: 0,
     };
 
-    traverseTree(data.fileTree, state);
+    traverseTree(data.fileTree, state, generatedPatterns);
 
     // Sort extensions by count descending
     const byExtension = Array.from(state.extensionMap.entries())
@@ -271,5 +307,5 @@ export function useOverviewStats(): OverviewStats | null {
         byCategory,
       },
     };
-  }, [data]);
+  }, [data, settings]);
 }

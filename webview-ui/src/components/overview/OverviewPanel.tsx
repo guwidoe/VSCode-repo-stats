@@ -2,6 +2,7 @@
  * Overview Panel - Dashboard showing repository statistics at a glance.
  */
 
+import { useState } from 'react';
 import { useOverviewStats } from '../../hooks/useOverviewStats';
 import { StatCard } from './StatCard';
 import { DonutChart } from './DonutChart';
@@ -11,6 +12,7 @@ import './OverviewPanel.css';
 
 export function OverviewPanel() {
   const stats = useOverviewStats();
+  const [showAllUnknown, setShowAllUnknown] = useState(false);
 
   if (!stats) {
     return (
@@ -149,15 +151,20 @@ export function OverviewPanel() {
               Extensions not mapped to a language:
             </p>
             <div className="tag-list">
-              {stats.unknownExtensions.slice(0, 15).map((ext) => (
+              {(showAllUnknown ? stats.unknownExtensions : stats.unknownExtensions.slice(0, 15)).map((ext) => (
                 <span key={ext.ext} className="tag">
                   {ext.ext} <span className="tag-count">({ext.count})</span>
                 </span>
               ))}
               {stats.unknownExtensions.length > 15 && (
-                <span className="tag more">
-                  +{stats.unknownExtensions.length - 15} more
-                </span>
+                <button
+                  className="tag more clickable"
+                  onClick={() => setShowAllUnknown(!showAllUnknown)}
+                >
+                  {showAllUnknown
+                    ? 'Show less'
+                    : `+${stats.unknownExtensions.length - 15} more`}
+                </button>
               )}
             </div>
           </div>

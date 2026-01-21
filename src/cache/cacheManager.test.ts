@@ -46,6 +46,9 @@ describe('CacheManager', () => {
       children: [],
     },
     analyzedAt: '2024-12-01T00:00:00Z',
+    analyzedCommitCount: 100,
+    maxCommitsLimit: 10000,
+    limitReached: false,
   };
 
   beforeEach(() => {

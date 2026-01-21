@@ -10,6 +10,7 @@ import { OverviewPanel } from './components/overview/OverviewPanel';
 import { ContributorsPanel } from './components/contributors/ContributorsPanel';
 import { CodeFrequencyPanel } from './components/frequency/CodeFrequencyPanel';
 import { TreemapPanel } from './components/treemap/TreemapPanel';
+import { SettingsPanel } from './components/settings/SettingsPanel';
 import './App.css';
 
 export function App() {
@@ -52,18 +53,26 @@ export function App() {
       )}
 
       <main className="app-content">
-        {loading.isLoading && <LoadingState phase={loading.phase} progress={loading.progress} />}
-        {error && <ErrorState message={error} onRetry={requestRefresh} />}
-        {!loading.isLoading && !error && data && (
+        {/* Settings view works regardless of data/loading state */}
+        {activeView === 'settings' && <SettingsPanel />}
+
+        {/* Other views require data */}
+        {activeView !== 'settings' && (
           <>
-            {activeView === 'overview' && <OverviewPanel />}
-            {activeView === 'contributors' && <ContributorsPanel />}
-            {activeView === 'frequency' && <CodeFrequencyPanel />}
-            {activeView === 'treemap' && <TreemapPanel />}
+            {loading.isLoading && <LoadingState phase={loading.phase} progress={loading.progress} />}
+            {error && <ErrorState message={error} onRetry={requestRefresh} />}
+            {!loading.isLoading && !error && data && (
+              <>
+                {activeView === 'overview' && <OverviewPanel />}
+                {activeView === 'contributors' && <ContributorsPanel />}
+                {activeView === 'frequency' && <CodeFrequencyPanel />}
+                {activeView === 'treemap' && <TreemapPanel />}
+              </>
+            )}
+            {!loading.isLoading && !error && !data && (
+              <EmptyState onRequest={requestRefresh} />
+            )}
           </>
-        )}
-        {!loading.isLoading && !error && !data && (
-          <EmptyState onRequest={requestRefresh} />
         )}
       </main>
     </div>

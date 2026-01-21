@@ -11,6 +11,7 @@ const VIEWS: { id: ViewType; label: string; icon: string }[] = [
   { id: 'contributors', label: 'Contributors', icon: '👥' },
   { id: 'frequency', label: 'Code Frequency', icon: '📊' },
   { id: 'treemap', label: 'Treemap', icon: '🗂️' },
+  { id: 'settings', label: 'Settings', icon: '⚙️' },
 ];
 
 export function Navigation() {
