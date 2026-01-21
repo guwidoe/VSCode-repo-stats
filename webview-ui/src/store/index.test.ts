@@ -350,3 +350,53 @@ describe('selectFilteredTreemapNode', () => {
     expect(assetsDir!.children?.some(c => c.name === 'data.yaml')).toBe(false);
   });
 });
+
+describe('treemap new state', () => {
+  beforeEach(() => {
+    useStore.setState({
+      sizeDisplayMode: 'loc',
+      maxNestingDepth: 3,
+      hoveredNode: null,
+      selectedNode: null,
+    });
+  });
+
+  it('should have default sizeDisplayMode of loc', () => {
+    const state = useStore.getState();
+    expect(state.sizeDisplayMode).toBe('loc');
+  });
+
+  it('should have default maxNestingDepth of 3', () => {
+    const state = useStore.getState();
+    expect(state.maxNestingDepth).toBe(3);
+  });
+
+  it('should update sizeDisplayMode', () => {
+    useStore.getState().setSizeDisplayMode('files');
+    expect(useStore.getState().sizeDisplayMode).toBe('files');
+  });
+
+  it('should update maxNestingDepth', () => {
+    useStore.getState().setMaxNestingDepth(5);
+    expect(useStore.getState().maxNestingDepth).toBe(5);
+  });
+
+  it('should track hoveredNode', () => {
+    const mockNode = { name: 'test', path: 'test', type: 'file' as const, lines: 100 };
+    useStore.getState().setHoveredNode(mockNode);
+    expect(useStore.getState().hoveredNode).toEqual(mockNode);
+  });
+
+  it('should track selectedNode', () => {
+    const mockNode = { name: 'test', path: 'test', type: 'file' as const, lines: 100 };
+    useStore.getState().setSelectedNode(mockNode);
+    expect(useStore.getState().selectedNode).toEqual(mockNode);
+  });
+
+  it('should clear selection', () => {
+    const mockNode = { name: 'test', path: 'test', type: 'file' as const, lines: 100 };
+    useStore.getState().setSelectedNode(mockNode);
+    useStore.getState().clearSelection();
+    expect(useStore.getState().selectedNode).toBeNull();
+  });
+});

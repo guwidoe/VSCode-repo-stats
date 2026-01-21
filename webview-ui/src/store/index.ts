@@ -50,6 +50,12 @@ interface RepoStatsState {
   // Treemap filter
   treemapFilter: TreemapFilterState;
 
+  // Treemap display options
+  sizeDisplayMode: 'loc' | 'files';
+  maxNestingDepth: number;
+  hoveredNode: TreemapNode | null;
+  selectedNode: TreemapNode | null;
+
   // Actions
   setData: (data: AnalysisResult) => void;
   setError: (error: string | null) => void;
@@ -64,6 +70,11 @@ interface RepoStatsState {
   navigateToTreemapPath: (path: string[]) => void;
   setTreemapFilterPreset: (preset: TreemapFilterPreset) => void;
   toggleTreemapLanguage: (language: string) => void;
+  setSizeDisplayMode: (mode: 'loc' | 'files') => void;
+  setMaxNestingDepth: (depth: number) => void;
+  setHoveredNode: (node: TreemapNode | null) => void;
+  setSelectedNode: (node: TreemapNode | null) => void;
+  clearSelection: () => void;
   reset: () => void;
 }
 
@@ -93,6 +104,11 @@ const initialState = {
     preset: 'all' as TreemapFilterPreset,
     selectedLanguages: new Set<string>(),
   },
+  // Treemap display options
+  sizeDisplayMode: 'loc' as 'loc' | 'files',
+  maxNestingDepth: 3,
+  hoveredNode: null as TreemapNode | null,
+  selectedNode: null as TreemapNode | null,
 };
 
 // ============================================================================
@@ -192,6 +208,26 @@ export const useStore = create<RepoStatsState>((set, get) => ({
         treemapFilter: { ...state.treemapFilter, selectedLanguages: newSet },
       };
     });
+  },
+
+  setSizeDisplayMode: (mode: 'loc' | 'files') => {
+    set({ sizeDisplayMode: mode });
+  },
+
+  setMaxNestingDepth: (depth: number) => {
+    set({ maxNestingDepth: depth });
+  },
+
+  setHoveredNode: (node: TreemapNode | null) => {
+    set({ hoveredNode: node });
+  },
+
+  setSelectedNode: (node: TreemapNode | null) => {
+    set({ selectedNode: node });
+  },
+
+  clearSelection: () => {
+    set({ selectedNode: null });
   },
 
   reset: () => {
