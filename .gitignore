@@ -32,6 +32,9 @@ npm-debug.log*
 .env.local
 .venv/
 
+# Claude Code local settings (user-specific)
+.claude/settings.local.json
+
 # Temporary files
 tmp/
 temp/
