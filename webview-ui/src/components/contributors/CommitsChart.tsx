@@ -187,7 +187,8 @@ export function CommitsChart({ contributors, granularity }: Props) {
         responsive: true,
         displayModeBar: true,
         displaylogo: false,
-        modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+        modeBarButtonsToRemove: ['lasso2d', 'select2d', 'zoomOut2d'],
+        scrollZoom: false,
       }}
       style={{ width: '100%' }}
     />

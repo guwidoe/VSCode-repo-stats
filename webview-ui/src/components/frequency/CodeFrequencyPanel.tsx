@@ -133,8 +133,8 @@ export function CodeFrequencyPanel() {
             responsive: true,
             displayModeBar: true,
             displaylogo: false,
-            modeBarButtonsToRemove: ['lasso2d', 'select2d'],
-            scrollZoom: true,
+            modeBarButtonsToRemove: ['lasso2d', 'select2d', 'zoomOut2d'],
+            scrollZoom: false,
           }}
           style={{ width: '100%' }}
         />
