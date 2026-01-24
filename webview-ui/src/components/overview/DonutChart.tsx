@@ -15,6 +15,7 @@ interface DonutChartProps {
   size?: number;
   thickness?: number;
   title?: string;
+  onMoreClick?: () => void;
 }
 
 export function DonutChart({
@@ -22,8 +23,14 @@ export function DonutChart({
   size = 180,
   thickness = 35,
   title,
+  onMoreClick,
 }: DonutChartProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [displayMode, setDisplayMode] = useState<'percent' | 'count'>('percent');
+
+  const toggleDisplayMode = () => {
+    setDisplayMode((prev) => (prev === 'percent' ? 'count' : 'percent'));
+  };
 
   const { paths, total } = useMemo(() => {
     const total = segments.reduce((sum, s) => sum + s.value, 0);
@@ -96,11 +103,17 @@ export function DonutChart({
             />
           ))}
         </svg>
-        <div className="donut-chart-center">
+        <div
+          className="donut-chart-center clickable"
+          onClick={toggleDisplayMode}
+          title={`Click to show ${displayMode === 'percent' ? 'counts' : 'percentages'}`}
+        >
           {hoveredSegment ? (
             <>
               <span className="donut-center-value">
-                {(hoveredSegment.percentage * 100).toFixed(1)}%
+                {displayMode === 'percent'
+                  ? `${(hoveredSegment.percentage * 100).toFixed(1)}%`
+                  : hoveredSegment.value.toLocaleString()}
               </span>
               <span className="donut-center-label">{hoveredSegment.label}</span>
             </>
@@ -126,12 +139,18 @@ export function DonutChart({
             />
             <span className="legend-label">{path.label}</span>
             <span className="legend-value">
-              {(path.percentage * 100).toFixed(1)}%
+              {displayMode === 'percent'
+                ? `${(path.percentage * 100).toFixed(1)}%`
+                : path.value.toLocaleString()}
             </span>
           </div>
         ))}
         {paths.length > 6 && (
-          <div className="legend-item other">
+          <div
+            className={`legend-item other ${onMoreClick ? 'clickable' : ''}`}
+            onClick={onMoreClick}
+            style={onMoreClick ? { cursor: 'pointer' } : undefined}
+          >
             <span className="legend-color" style={{ backgroundColor: '#666' }} />
             <span className="legend-label">+{paths.length - 6} more</span>
           </div>

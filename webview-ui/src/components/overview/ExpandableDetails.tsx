@@ -15,10 +15,32 @@ interface ExpandableDetailsProps {
   rows: DetailRow[];
   total: number;
   valueLabel?: string;
+  expanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
 }
 
-export function ExpandableDetails({ rows, total, valueLabel = 'lines' }: ExpandableDetailsProps) {
-  const [expanded, setExpanded] = useState(false);
+export function ExpandableDetails({
+  rows,
+  total,
+  valueLabel = 'lines',
+  expanded: controlledExpanded,
+  onExpandedChange,
+}: ExpandableDetailsProps) {
+  const [internalExpanded, setInternalExpanded] = useState(false);
+
+  // Support both controlled and uncontrolled modes
+  const isControlled = controlledExpanded !== undefined;
+  const expanded = isControlled ? controlledExpanded : internalExpanded;
+
+  const handleToggle = () => {
+    const newValue = !expanded;
+    if (onExpandedChange) {
+      onExpandedChange(newValue);
+    }
+    if (!isControlled) {
+      setInternalExpanded(newValue);
+    }
+  };
 
   if (rows.length === 0) {
     return null;
@@ -28,7 +50,7 @@ export function ExpandableDetails({ rows, total, valueLabel = 'lines' }: Expanda
     <div className="expandable-details">
       <button
         className="expand-toggle"
-        onClick={() => setExpanded(!expanded)}
+        onClick={handleToggle}
         aria-expanded={expanded}
       >
         {expanded ? 'Hide details' : 'Show all details'}

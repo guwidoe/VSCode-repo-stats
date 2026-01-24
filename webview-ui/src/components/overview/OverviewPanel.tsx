@@ -4,7 +4,6 @@
 
 import { useState } from 'react';
 import { useOverviewStats } from '../../hooks/useOverviewStats';
-import { StatCard } from './StatCard';
 import { DonutChart } from './DonutChart';
 import { ExpandableDetails } from './ExpandableDetails';
 import { getLanguageColor } from '../../utils/colors';
@@ -13,6 +12,8 @@ import './OverviewPanel.css';
 export function OverviewPanel() {
   const stats = useOverviewStats();
   const [showAllUnknown, setShowAllUnknown] = useState(false);
+  const [languageDetailsExpanded, setLanguageDetailsExpanded] = useState(false);
+  const [fileTypeDetailsExpanded, setFileTypeDetailsExpanded] = useState(false);
 
   if (!stats) {
     return (
@@ -83,35 +84,6 @@ export function OverviewPanel() {
 
   return (
     <div className="overview-panel">
-      {/* Stat Cards Row */}
-      <div className="stats-row">
-        <StatCard
-          label="Total Files"
-          value={stats.files.total}
-          subtitle={`${stats.files.codeFiles.toLocaleString()} code files`}
-        />
-        <StatCard
-          label="Lines of Code"
-          value={stats.loc.total}
-          subtitle={stats.files.generatedFiles > 0
-            ? `${stats.loc.excludingGenerated.toLocaleString()} excl. generated`
-            : `${stats.loc.codeOnly.toLocaleString()} in code files`
-          }
-        />
-        <StatCard
-          label="Languages"
-          value={stats.languages.count}
-          subtitle={`${stats.languages.codeLanguages} programming`}
-        />
-        {stats.files.generatedFiles > 0 && (
-          <StatCard
-            label="Generated Files"
-            value={stats.files.generatedFiles}
-            subtitle="auto-detected"
-          />
-        )}
-      </div>
-
       {/* Charts Row */}
       <div className="charts-row">
         <div className="chart-section">
@@ -120,11 +92,14 @@ export function OverviewPanel() {
             title="Lines of Code by Language"
             size={200}
             thickness={40}
+            onMoreClick={() => setLanguageDetailsExpanded(true)}
           />
           <ExpandableDetails
             rows={languageDetails}
             total={stats.loc.total}
             valueLabel="Lines"
+            expanded={languageDetailsExpanded}
+            onExpandedChange={setLanguageDetailsExpanded}
           />
         </div>
         <div className="chart-section">
@@ -133,11 +108,14 @@ export function OverviewPanel() {
             title="Files by Type"
             size={200}
             thickness={40}
+            onMoreClick={() => setFileTypeDetailsExpanded(true)}
           />
           <ExpandableDetails
             rows={extensionDetails}
             total={stats.files.total}
             valueLabel="Files"
+            expanded={fileTypeDetailsExpanded}
+            onExpandedChange={setFileTypeDetailsExpanded}
           />
         </div>
       </div>

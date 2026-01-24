@@ -113,6 +113,55 @@ const initialState = {
 };
 
 // ============================================================================
+// Helper: Compute Default Granularity
+// ============================================================================
+
+/**
+ * Computes the default granularity based on settings and data.
+ * - 'auto' mode: weekly if repo has <= threshold weeks, monthly otherwise
+ * - 'weekly' mode: always weekly
+ * - 'monthly' mode: always monthly
+ */
+function computeDefaultGranularity(
+  data: AnalysisResult | null,
+  settings: ExtensionSettings | null
+): FrequencyGranularity {
+  if (!settings) {
+    return 'weekly';
+  }
+
+  const mode = settings.defaultGranularityMode || 'auto';
+
+  if (mode === 'weekly') {
+    return 'weekly';
+  }
+
+  if (mode === 'monthly') {
+    return 'monthly';
+  }
+
+  // Auto mode - compute based on data
+  if (!data) {
+    return 'weekly';
+  }
+
+  // Count unique weeks in the data
+  const allWeeks = new Set<string>();
+  for (const contributor of data.contributors) {
+    for (const week of contributor.weeklyActivity) {
+      if (/^\d{4}-W\d{2}$/.test(week.week)) {
+        allWeeks.add(week.week);
+      }
+    }
+  }
+
+  const weekCount = allWeeks.size;
+  const threshold = settings.autoGranularityThreshold || 20;
+
+  return weekCount <= threshold ? 'weekly' : 'monthly';
+}
+
+// ============================================================================
 // Store
 // ============================================================================
 
@@ -120,12 +169,19 @@ export const useStore = create<RepoStatsState>((set, get) => ({
   ...initialState,
 
   setData: (data: AnalysisResult) => {
+    const { settings } = get();
+
+    // Compute default granularity based on settings and data
+    const defaultGranularity = computeDefaultGranularity(data, settings);
+
     set({
       data,
       error: null,
       loading: { isLoading: false, phase: '', progress: 100 },
       currentTreemapNode: data.fileTree,
       treemapPath: [],
+      frequencyGranularity: defaultGranularity,
+      contributorGranularity: defaultGranularity,
     });
   },
 
@@ -143,7 +199,13 @@ export const useStore = create<RepoStatsState>((set, get) => ({
   },
 
   setSettings: (settings: ExtensionSettings) => {
-    set({ settings });
+    const { data } = get();
+    const defaultGranularity = computeDefaultGranularity(data, settings);
+    set({
+      settings,
+      frequencyGranularity: defaultGranularity,
+      contributorGranularity: defaultGranularity,
+    });
   },
 
   setActiveView: (view: ViewType) => {

@@ -40,14 +40,15 @@ function parseISOWeek(isoWeek: string): Date | null {
 }
 
 /**
- * Formats an ISO week to a readable label.
+ * Formats an ISO week to a readable label with year.
  * Returns null if the week is invalid.
  */
 function formatWeekLabel(isoWeek: string): string | null {
   const date = parseISOWeek(isoWeek);
   if (!date) {return null;}
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return `${monthNames[date.getMonth()]} ${date.getDate()}`;
+  const year = date.getFullYear().toString().slice(2);
+  return `${monthNames[date.getMonth()]} ${date.getDate()} '${year}`;
 }
 
 /**

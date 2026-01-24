@@ -90,6 +90,8 @@ export interface ExtensionSettings {
   generatedPatterns: string[];
   binaryExtensions: string[];
   showEmptyTimePeriods: boolean;
+  defaultGranularityMode: 'auto' | 'weekly' | 'monthly';
+  autoGranularityThreshold: number; // Weeks threshold for auto mode (default 20)
 }
 
 // ============================================================================

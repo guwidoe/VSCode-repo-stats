@@ -121,6 +121,23 @@
           "type": "boolean",
           "default": true,
           "description": "Show weeks/months with no activity in charts (displays true timeline gaps)"
+        },
+        "repoStats.defaultGranularityMode": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "weekly",
+            "monthly"
+          ],
+          "default": "auto",
+          "description": "Default time granularity for charts. 'auto' switches based on repo history length."
+        },
+        "repoStats.autoGranularityThreshold": {
+          "type": "number",
+          "default": 20,
+          "minimum": 1,
+          "maximum": 520,
+          "description": "In 'auto' mode, use weekly view if repo has this many weeks or fewer, otherwise use monthly."
         }
       }
     }

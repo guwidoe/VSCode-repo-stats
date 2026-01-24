@@ -8,8 +8,31 @@ import { useStore, selectFilteredCodeFrequency } from '../../store';
 import { TimePeriodFilter } from '../contributors/TimePeriodFilter';
 import { FrequencyGranularityToggle } from './FrequencyGranularityToggle';
 import { SummaryCard } from './SummaryCard';
-import { fillWeeklyGaps, fillMonthlyGaps } from '../../utils/fillTimeGaps';
+import { fillWeeklyGaps, fillMonthlyGaps, parseISOWeek } from '../../utils/fillTimeGaps';
 import './CodeFrequencyPanel.css';
+
+/**
+ * Formats an ISO week to a readable label with year.
+ */
+function formatWeekLabel(isoWeek: string): string {
+  const date = parseISOWeek(isoWeek);
+  if (!date) {return isoWeek;}
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const year = date.getFullYear().toString().slice(2);
+  return `${monthNames[date.getMonth()]} ${date.getDate()} '${year}`;
+}
+
+/**
+ * Formats a month key to a readable label.
+ */
+function formatMonthLabel(monthKey: string): string {
+  const match = monthKey.match(/^(\d{4})-(\d{2})$/);
+  if (!match) {return monthKey;}
+  const year = parseInt(match[1], 10);
+  const month = parseInt(match[2], 10) - 1;
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${monthNames[month]} ${year}`;
+}
 
 export function CodeFrequencyPanel() {
   const frequency = useStore(selectFilteredCodeFrequency);
@@ -18,6 +41,9 @@ export function CodeFrequencyPanel() {
 
   const chartData = useMemo(() => {
     let data = frequency;
+
+    // Check if data is monthly (YYYY-MM format) or weekly (YYYY-Www format)
+    const isMonthly = frequency.length > 0 && frequency[0].week.match(/^\d{4}-\d{2}$/) !== null;
 
     // Fill gaps if setting is enabled
     if (showEmptyTimePeriods && frequency.length > 0) {
@@ -28,9 +54,6 @@ export function CodeFrequencyPanel() {
         netChange: 0,
       });
 
-      // Check if data is monthly (YYYY-MM format) or weekly (YYYY-Www format)
-      const isMonthly = frequency[0].week.match(/^\d{4}-\d{2}$/) !== null;
-
       if (isMonthly) {
         data = fillMonthlyGaps(frequency, createEmptyEntry);
       } else {
@@ -38,8 +61,11 @@ export function CodeFrequencyPanel() {
       }
     }
 
+    // Format labels based on granularity
+    const formatLabel = isMonthly ? formatMonthLabel : formatWeekLabel;
+
     return {
-      x: data.map((f) => f.week),
+      x: data.map((f) => formatLabel(f.week)),
       additions: data.map((f) => f.additions),
       deletions: data.map((f) => -f.deletions), // Negative for downward bars
     };

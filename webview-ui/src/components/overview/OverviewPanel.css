@@ -105,6 +105,18 @@
   pointer-events: none;
 }
 
+.donut-chart-center.clickable {
+  pointer-events: auto;
+  cursor: pointer;
+  padding: 12px;
+  border-radius: 50%;
+  transition: background-color 0.15s ease;
+}
+
+.donut-chart-center.clickable:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
 .donut-center-value {
   display: block;
   font-size: 20px;
@@ -147,6 +159,16 @@
 
 .legend-item.other {
   opacity: 0.7;
+}
+
+.legend-item.other.clickable {
+  opacity: 1;
+  color: var(--vscode-textLink-foreground);
+}
+
+.legend-item.other.clickable:hover {
+  background: var(--vscode-list-hoverBackground);
+  text-decoration: underline;
 }
 
 .legend-color {

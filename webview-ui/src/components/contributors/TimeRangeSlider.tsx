@@ -18,7 +18,7 @@ function isValidISOWeek(value: unknown): value is string {
 }
 
 /**
- * Formats an ISO week string to a short date format.
+ * Formats an ISO week string to a short date format with day and year.
  */
 function formatWeekShort(isoWeek: string): string {
   if (!isValidISOWeek(isoWeek)) {return '';}
@@ -37,7 +37,8 @@ function formatWeekShort(isoWeek: string): string {
   weekStart.setDate(week1Monday.getDate() + (week - 1) * 7);
 
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return `${monthNames[weekStart.getMonth()]} ${weekStart.getFullYear().toString().slice(2)}`;
+  const yearShort = weekStart.getFullYear().toString().slice(2);
+  return `${monthNames[weekStart.getMonth()]} ${weekStart.getDate()} '${yearShort}`;
 }
 
 /**
