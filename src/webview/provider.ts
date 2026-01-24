@@ -210,6 +210,9 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     if (settings.binaryExtensions !== undefined) {
       await config.update('binaryExtensions', settings.binaryExtensions, vscode.ConfigurationTarget.Global);
     }
+    if (settings.showEmptyTimePeriods !== undefined) {
+      await config.update('showEmptyTimePeriods', settings.showEmptyTimePeriods, vscode.ConfigurationTarget.Global);
+    }
   }
 
   private async runAnalysis(webview: vscode.Webview): Promise<void> {
@@ -324,6 +327,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
         '.sqlite', '.db', '.mdb',
         '.vhdx', '.vmdk', '.iso', '.dmg', '.deb', '.rpm', '.icns',
       ]),
+      showEmptyTimePeriods: config.get<boolean>('showEmptyTimePeriods', true),
     };
   }
 

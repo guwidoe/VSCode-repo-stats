@@ -104,6 +104,19 @@ export function SettingsPanel() {
             updateSettings({ defaultColorMode: value as 'language' | 'age' })
           }
         />
+
+        <SelectSetting
+          title="Show Empty Time Periods"
+          description="Display weeks/months with no activity in charts (shows true timeline gaps)"
+          value={settings.showEmptyTimePeriods ? 'show' : 'hide'}
+          options={[
+            { value: 'show', label: 'Show' },
+            { value: 'hide', label: 'Hide' },
+          ]}
+          onChange={(value) =>
+            updateSettings({ showEmptyTimePeriods: value === 'show' })
+          }
+        />
       </div>
 
       <div className="settings-footer">

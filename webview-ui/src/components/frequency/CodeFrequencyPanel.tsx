@@ -8,19 +8,42 @@ import { useStore, selectFilteredCodeFrequency } from '../../store';
 import { TimePeriodFilter } from '../contributors/TimePeriodFilter';
 import { FrequencyGranularityToggle } from './FrequencyGranularityToggle';
 import { SummaryCard } from './SummaryCard';
+import { fillWeeklyGaps, fillMonthlyGaps } from '../../utils/fillTimeGaps';
 import './CodeFrequencyPanel.css';
 
 export function CodeFrequencyPanel() {
   const frequency = useStore(selectFilteredCodeFrequency);
   const { frequencyGranularity, setFrequencyGranularity } = useStore();
+  const showEmptyTimePeriods = useStore((state) => state.settings?.showEmptyTimePeriods ?? true);
 
   const chartData = useMemo(() => {
+    let data = frequency;
+
+    // Fill gaps if setting is enabled
+    if (showEmptyTimePeriods && frequency.length > 0) {
+      const createEmptyEntry = (week: string) => ({
+        week,
+        additions: 0,
+        deletions: 0,
+        netChange: 0,
+      });
+
+      // Check if data is monthly (YYYY-MM format) or weekly (YYYY-Www format)
+      const isMonthly = frequency[0].week.match(/^\d{4}-\d{2}$/) !== null;
+
+      if (isMonthly) {
+        data = fillMonthlyGaps(frequency, createEmptyEntry);
+      } else {
+        data = fillWeeklyGaps(frequency, createEmptyEntry);
+      }
+    }
+
     return {
-      x: frequency.map((f) => f.week),
-      additions: frequency.map((f) => f.additions),
-      deletions: frequency.map((f) => -f.deletions), // Negative for downward bars
+      x: data.map((f) => f.week),
+      additions: data.map((f) => f.additions),
+      deletions: data.map((f) => -f.deletions), // Negative for downward bars
     };
-  }, [frequency]);
+  }, [frequency, showEmptyTimePeriods]);
 
   if (frequency.length === 0) {
     return (

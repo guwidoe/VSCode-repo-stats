@@ -5,8 +5,9 @@
  * asynchronously to prevent blocking the UI during expensive re-renders.
  */
 
-import { useRef, useState, useCallback, useEffect } from 'react';
+import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import { useStore, selectAllWeeks, selectWeeklyCommitTotals } from '../../store';
+import { fillWeeklyGaps } from '../../utils/fillTimeGaps';
 import './TimeRangeSlider.css';
 
 /**
@@ -52,13 +53,50 @@ function clampIndex(value: number | null | undefined, max: number): number {
 export function TimeRangeSlider() {
   const allWeeks = useStore(selectAllWeeks);
   const weeklyTotals = useStore(selectWeeklyCommitTotals);
+  const showEmptyTimePeriods = useStore((state) => state.settings?.showEmptyTimePeriods ?? true);
   // Only subscribe to the setter, not the values (to avoid re-renders from store changes)
   const setTimeRange = useStore((state) => state.setTimeRange);
 
   const trackRef = useRef<HTMLDivElement>(null);
   const pendingUpdateRef = useRef<number | null>(null);
 
+  // Fill gaps in display data when setting is enabled
+  const displayData = useMemo(() => {
+    if (!showEmptyTimePeriods || weeklyTotals.length === 0) {
+      return weeklyTotals;
+    }
+    return fillWeeklyGaps(weeklyTotals, (week) => ({ week, commits: 0 }));
+  }, [weeklyTotals, showEmptyTimePeriods]);
+
+  // Create mapping from sparse index to filled index and vice versa
+  const { sparseToFilled, filledToSparse } = useMemo(() => {
+    if (!showEmptyTimePeriods || weeklyTotals.length === 0) {
+      // Identity mapping when not filling gaps
+      const identity = weeklyTotals.map((_, i) => i);
+      return { sparseToFilled: identity, filledToSparse: identity };
+    }
+
+    const weekToSparseIdx = new Map<string, number>();
+    weeklyTotals.forEach((w, i) => weekToSparseIdx.set(w.week, i));
+
+    const sparse: number[] = [];
+    const filled: number[] = [];
+
+    displayData.forEach((w, filledIdx) => {
+      const sparseIdx = weekToSparseIdx.get(w.week);
+      if (sparseIdx !== undefined) {
+        sparse[sparseIdx] = filledIdx;
+        filled[filledIdx] = sparseIdx;
+      } else {
+        filled[filledIdx] = -1; // Mark as gap
+      }
+    });
+
+    return { sparseToFilled: sparse, filledToSparse: filled };
+  }, [weeklyTotals, displayData, showEmptyTimePeriods]);
+
   const maxIdx = Math.max(0, allWeeks.length - 1);
+  const displayMaxIdx = Math.max(0, displayData.length - 1);
 
   // Fully local state for slider positions - initialized lazily
   const [localStart, setLocalStart] = useState<number>(0);
@@ -89,7 +127,7 @@ export function TimeRangeSlider() {
     }
   }, [allWeeks.length, isInitialized, localEnd, setTimeRange]);
 
-  const maxCommits = Math.max(...weeklyTotals.map((w) => w.commits), 1);
+  const maxCommits = Math.max(...displayData.map((w) => w.commits), 1);
 
   // Schedule async store update (debounced)
   const scheduleStoreUpdate = useCallback((start: number, end: number) => {
@@ -107,8 +145,26 @@ export function TimeRangeSlider() {
     const rect = trackRef.current.getBoundingClientRect();
     const x = clientX - rect.left;
     const ratio = Math.max(0, Math.min(1, x / rect.width));
-    return Math.round(ratio * Math.max(0, allWeeks.length - 1));
-  }, [allWeeks.length]);
+    // Get position in filled space
+    const filledIdx = Math.round(ratio * Math.max(0, displayData.length - 1));
+    // Map back to sparse index - find nearest sparse week
+    const sparseIdx = filledToSparse[filledIdx];
+    if (sparseIdx !== undefined && sparseIdx >= 0) {
+      return sparseIdx;
+    }
+    // If clicked on a gap, find the nearest sparse index
+    for (let offset = 1; offset < displayData.length; offset++) {
+      const beforeIdx = filledIdx - offset;
+      const afterIdx = filledIdx + offset;
+      if (beforeIdx >= 0 && filledToSparse[beforeIdx] >= 0) {
+        return filledToSparse[beforeIdx];
+      }
+      if (afterIdx < displayData.length && filledToSparse[afterIdx] >= 0) {
+        return filledToSparse[afterIdx];
+      }
+    }
+    return 0;
+  }, [allWeeks.length, displayData.length, filledToSparse]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent, handle: 'start' | 'end') => {
     e.preventDefault();
@@ -180,13 +236,16 @@ export function TimeRangeSlider() {
     return null;
   }
 
-  // Clamp indices for display calculations
-  const displayMaxIdx = Math.max(1, allWeeks.length - 1);
-  const safeStartIdx = clampIndex(localStart, displayMaxIdx);
-  const safeEndIdx = clampIndex(localEnd, displayMaxIdx);
+  // Clamp sparse indices for slider logic
+  const safeStartIdx = clampIndex(localStart, maxIdx);
+  const safeEndIdx = clampIndex(localEnd, maxIdx);
 
-  const startPercent = (safeStartIdx / displayMaxIdx) * 100;
-  const endPercent = (safeEndIdx / displayMaxIdx) * 100;
+  // Map sparse indices to filled indices for display
+  const filledStartIdx = sparseToFilled[safeStartIdx] ?? 0;
+  const filledEndIdx = sparseToFilled[safeEndIdx] ?? displayMaxIdx;
+
+  const startPercent = displayMaxIdx > 0 ? (filledStartIdx / displayMaxIdx) * 100 : 0;
+  const endPercent = displayMaxIdx > 0 ? (filledEndIdx / displayMaxIdx) * 100 : 100;
 
   // Get date labels with validation - fall back to first/last valid week if needed
   const startWeek = allWeeks[safeStartIdx];
@@ -210,10 +269,10 @@ export function TimeRangeSlider() {
 
       <div className="slider-track" ref={trackRef} onClick={handleTrackClick}>
         {/* Background activity chart */}
-        <svg className="slider-chart" viewBox={`0 0 ${allWeeks.length} 20`} preserveAspectRatio="none">
-          {weeklyTotals.map((week, i) => {
+        <svg className="slider-chart" viewBox={`0 0 ${displayData.length} 20`} preserveAspectRatio="none">
+          {displayData.map((week, i) => {
             const barHeight = (week.commits / maxCommits) * 20;
-            const isSelected = i >= safeStartIdx && i <= safeEndIdx;
+            const isSelected = i >= filledStartIdx && i <= filledEndIdx;
             return (
               <rect
                 key={week.week}

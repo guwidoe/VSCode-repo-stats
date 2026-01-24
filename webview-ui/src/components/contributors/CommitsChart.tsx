@@ -5,6 +5,8 @@
 import { useMemo } from 'react';
 import Plot from 'react-plotly.js';
 import type { ContributorStats, FrequencyGranularity } from '../../types';
+import { useStore } from '../../store';
+import { fillWeeklyGaps, fillMonthlyGaps } from '../../utils/fillTimeGaps';
 
 interface Props {
   contributors: ContributorStats[];
@@ -61,6 +63,8 @@ function formatMonthLabel(monthKey: string): string {
 }
 
 export function CommitsChart({ contributors, granularity }: Props) {
+  const showEmptyTimePeriods = useStore((state) => state.settings?.showEmptyTimePeriods ?? true);
+
   const chartData = useMemo(() => {
     // Aggregate all weekly commits across contributors, filtering invalid weeks
     const weeklyMap = new Map<string, number>();
@@ -98,20 +102,39 @@ export function CommitsChart({ contributors, granularity }: Props) {
       // Filter out any invalid month labels (like 1970-01)
       const validMonths = monthOrder.filter(m => !m.startsWith('1970-'));
 
+      // Convert to array format for gap filling
+      let monthlyData = validMonths.map((month) => ({
+        week: month,
+        commits: monthlyMap.get(month) ?? 0,
+      }));
+
+      // Fill gaps if setting is enabled
+      if (showEmptyTimePeriods) {
+        monthlyData = fillMonthlyGaps(monthlyData, (month) => ({ week: month, commits: 0 }));
+      }
+
       return {
-        x: validMonths.map(formatMonthLabel),
-        y: validMonths.map((month) => monthlyMap.get(month) ?? 0),
+        x: monthlyData.map((d) => formatMonthLabel(d.week)),
+        y: monthlyData.map((d) => d.commits),
       };
     }
 
     // Filter out weeks that can't be formatted (invalid)
     const validWeeks = weeks.filter(([week]) => formatWeekLabel(week) !== null);
 
+    // Convert to array format for gap filling
+    let weeklyData = validWeeks.map(([week, commits]) => ({ week, commits }));
+
+    // Fill gaps if setting is enabled
+    if (showEmptyTimePeriods) {
+      weeklyData = fillWeeklyGaps(weeklyData, (week) => ({ week, commits: 0 }));
+    }
+
     return {
-      x: validWeeks.map(([week]) => formatWeekLabel(week)!),
-      y: validWeeks.map(([, commits]) => commits),
+      x: weeklyData.map((d) => formatWeekLabel(d.week)!),
+      y: weeklyData.map((d) => d.commits),
     };
-  }, [contributors, granularity]);
+  }, [contributors, granularity, showEmptyTimePeriods]);
 
   if (chartData.x.length === 0) {
     return (

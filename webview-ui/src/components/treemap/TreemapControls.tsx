@@ -99,7 +99,7 @@ export function TreemapControls({
           <span className="depth-label">
             Depth
             <InfoTooltip
-              content="How many directory levels to show. Lower values give a simpler overview, higher values show more detail. Click on a folder to navigate into it."
+              content="How many directory levels to show. Lower values give a simpler overview, higher values show more detail. Double click on a folder to navigate into it. Double click on a file to open it."
               position="bottom"
             />
           </span>

@@ -89,6 +89,7 @@ export interface ExtensionSettings {
   defaultColorMode: 'language' | 'age';
   generatedPatterns: string[];
   binaryExtensions: string[];
+  showEmptyTimePeriods: boolean;
 }
 
 // ============================================================================

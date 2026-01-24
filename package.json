@@ -116,6 +116,11 @@
             ".vhdx", ".vmdk", ".iso", ".dmg", ".deb", ".rpm", ".icns"
           ],
           "description": "File extensions considered as binary files (images, fonts, compiled, etc.). These have 0 LOC but are shown in treemap Size mode."
+        },
+        "repoStats.showEmptyTimePeriods": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show weeks/months with no activity in charts (displays true timeline gaps)"
         }
       }
     }
