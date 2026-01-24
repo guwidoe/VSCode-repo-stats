@@ -1,6 +1,11 @@
 name: Publish Extension
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'package.json'  # Only trigger when package.json changes
   release:
     types: [published]
   workflow_dispatch:
@@ -22,33 +27,64 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Need previous commit to check version change
+
+      - name: Check if version changed (for push events)
+        if: github.event_name == 'push'
+        id: version_check
+        run: |
+          # Get current and previous version
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          git checkout HEAD~1 -- package.json 2>/dev/null || true
+          PREVIOUS_VERSION=$(node -p "require('./package.json').version" 2>/dev/null || echo "0.0.0")
+          git checkout HEAD -- package.json
+
+          echo "current=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "previous=$PREVIOUS_VERSION" >> $GITHUB_OUTPUT
+
+          if [ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Version changed from $PREVIOUS_VERSION to $CURRENT_VERSION"
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "Version unchanged at $CURRENT_VERSION"
+          fi
 
       - name: Setup Node.js
+        if: github.event_name != 'push' || steps.version_check.outputs.changed == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
 
       - name: Install dependencies
+        if: github.event_name != 'push' || steps.version_check.outputs.changed == 'true'
         run: npm ci
 
       - name: Install webview dependencies
+        if: github.event_name != 'push' || steps.version_check.outputs.changed == 'true'
         run: cd webview-ui && npm ci
 
       - name: Run validation
+        if: github.event_name != 'push' || steps.version_check.outputs.changed == 'true'
         run: xvfb-run -a npm run validate
         env:
           DISPLAY: ':99.0'
 
-      - name: Publish (with version bump)
-        if: inputs.version_bump != 'none' && inputs.version_bump != ''
+      - name: Publish (with version bump - manual)
+        if: github.event_name == 'workflow_dispatch' && inputs.version_bump != 'none' && inputs.version_bump != ''
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
           VERSION_BUMP: ${{ inputs.version_bump }}
         run: npx vsce publish "$VERSION_BUMP"
 
-      - name: Publish (no version bump)
-        if: inputs.version_bump == 'none' || inputs.version_bump == ''
+      - name: Publish (auto on push or release)
+        if: (github.event_name == 'push' && steps.version_check.outputs.changed == 'true') || github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && (inputs.version_bump == 'none' || inputs.version_bump == ''))
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: npx vsce publish
+
+      - name: Skip publish (version unchanged)
+        if: github.event_name == 'push' && steps.version_check.outputs.changed != 'true'
+        run: echo "Skipping publish - version unchanged"

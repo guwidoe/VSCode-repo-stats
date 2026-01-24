@@ -112,13 +112,14 @@ This extension uses [scc](https://github.com/boyter/scc) for accurate lines-of-c
 
 ## Extension Settings
 
-| Setting                         | Default      | Description                                         |
-| ------------------------------- | ------------ | --------------------------------------------------- |
-| `repoStats.excludePatterns`     | `[]`         | Additional directories to exclude beyond .gitignore |
-| `repoStats.maxCommitsToAnalyze` | `10000`      | Maximum commits to analyze (for performance)        |
-| `repoStats.defaultColorMode`    | `"language"` | Default treemap color mode (`language` or `age`)    |
-| `repoStats.generatedPatterns`   | See below    | Glob patterns to identify generated files           |
-| `repoStats.binaryExtensions`    | See below    | File extensions considered as binary                |
+| Setting                          | Default      | Description                                         |
+| -------------------------------- | ------------ | --------------------------------------------------- |
+| `repoStats.excludePatterns`      | `[]`         | Additional directories to exclude beyond .gitignore |
+| `repoStats.maxCommitsToAnalyze`  | `10000`      | Maximum commits to analyze (for performance)        |
+| `repoStats.defaultColorMode`     | `"language"` | Default treemap color mode (`language` or `age`)    |
+| `repoStats.showEmptyTimePeriods` | `true`       | Show weeks/months with no activity in charts        |
+| `repoStats.generatedPatterns`    | See below    | Glob patterns to identify generated files           |
+| `repoStats.binaryExtensions`     | See below    | File extensions considered as binary                |
 
 <details>
 <summary>Default Generated Patterns</summary>
@@ -183,6 +184,16 @@ npm run package
 ```
 
 ## Release Notes
+
+### 1.0.0
+
+**First stable release!**
+
+- **Show Empty Time Periods**: Charts now display weeks/months with no activity by default, showing the true timeline with gaps. Toggle in Settings to hide empty periods.
+- **Improved Chart Zoom**: Removed ability to zoom out beyond 100% for better UX
+- **Full feature set**: Overview, Contributors, Code Frequency, Treemap, and Settings panels
+- **Auto-download scc**: Binary automatically downloaded if not in PATH
+- **Smart caching**: Results cached by Git HEAD SHA
 
 ### 0.0.1
 
