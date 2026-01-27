@@ -7,6 +7,7 @@ import { useStore } from '../../store';
 import { useVsCodeApi } from '../../hooks/useVsCodeApi';
 import { SettingsTabs, type SettingsTab } from './SettingsTabs';
 import { GeneralSettings } from './GeneralSettings';
+import { OverviewSettings } from './OverviewSettings';
 import { ChartsSettings } from './ChartsSettings';
 import { TreemapSettings } from './TreemapSettings';
 import './SettingsPanel.css';
@@ -45,6 +46,10 @@ export function SettingsPanel() {
             updateSettings={updateSettings}
             requestRefresh={requestRefresh}
           />
+        )}
+
+        {activeTab === 'overview' && (
+          <OverviewSettings settings={settings} updateSettings={updateSettings} />
         )}
 
         {activeTab === 'charts' && (

@@ -4,7 +4,7 @@
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  overflow: hidden; /* Treemap fills space, no scrolling */
+  overflow: auto; /* Enable scrollbars when treemap exceeds available space */
   background: var(--vscode-editor-background);
 }
 
@@ -16,17 +16,21 @@
   gap: 8px;
   padding: 8px 12px;
   border-bottom: 1px solid var(--vscode-panel-border);
+  flex-shrink: 0; /* Don't shrink header */
 }
 
 .treemap-content {
   flex: 1;
-  min-height: 0;
+  min-height: 500px; /* Minimum height for usability */
+  min-width: 600px; /* Minimum width for usability */
   position: relative;
 }
 
 .treemap-canvas-container {
   width: 100%;
   height: 100%;
+  min-height: 500px;
+  min-width: 600px;
 }
 
 .treemap-canvas-container canvas {

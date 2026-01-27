@@ -219,6 +219,9 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     if (settings.autoGranularityThreshold !== undefined) {
       await config.update('autoGranularityThreshold', settings.autoGranularityThreshold, vscode.ConfigurationTarget.Global);
     }
+    if (settings.overviewDisplayMode !== undefined) {
+      await config.update('overviewDisplayMode', settings.overviewDisplayMode, vscode.ConfigurationTarget.Global);
+    }
   }
 
   private async runAnalysis(webview: vscode.Webview): Promise<void> {
@@ -336,6 +339,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       showEmptyTimePeriods: config.get<boolean>('showEmptyTimePeriods', true),
       defaultGranularityMode: config.get<'auto' | 'weekly' | 'monthly'>('defaultGranularityMode', 'auto'),
       autoGranularityThreshold: config.get<number>('autoGranularityThreshold', 20),
+      overviewDisplayMode: config.get<'percent' | 'count'>('overviewDisplayMode', 'percent'),
     };
   }
 

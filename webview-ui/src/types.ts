@@ -92,6 +92,8 @@ export interface ExtensionSettings {
   showEmptyTimePeriods: boolean;
   defaultGranularityMode: 'auto' | 'weekly' | 'monthly';
   autoGranularityThreshold: number; // Weeks threshold for auto mode (default 20)
+  // Overview settings
+  overviewDisplayMode: 'percent' | 'count'; // Default display mode for donut charts
 }
 
 // ============================================================================

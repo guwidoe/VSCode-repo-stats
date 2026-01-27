@@ -1,5 +1,7 @@
 /**
  * SVG-based donut chart for displaying proportional data.
+ * Groups segments into top N + "Other" for visualization,
+ * but allows expanding to see all items in both donut and legend.
  */
 
 import { useMemo, useState } from 'react';
@@ -15,54 +17,101 @@ interface DonutChartProps {
   size?: number;
   thickness?: number;
   title?: string;
-  onMoreClick?: () => void;
+  maxDonutSegments?: number;
+  defaultLegendItems?: number;
+  defaultDisplayMode?: 'percent' | 'count';
 }
+
+const OTHER_COLOR = '#666666';
 
 export function DonutChart({
   segments,
   size = 180,
   thickness = 35,
   title,
-  onMoreClick,
+  maxDonutSegments = 8,
+  defaultLegendItems = 6,
+  defaultDisplayMode = 'percent',
 }: DonutChartProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const [displayMode, setDisplayMode] = useState<'percent' | 'count'>('percent');
+  const [displayMode, setDisplayMode] = useState<'percent' | 'count'>(defaultDisplayMode);
+  const [expanded, setExpanded] = useState(false);
 
-  const toggleDisplayMode = () => {
-    setDisplayMode((prev) => (prev === 'percent' ? 'count' : 'percent'));
-  };
-
-  const { paths, total } = useMemo(() => {
+  // Sort and process all segments
+  const { allSegments, total } = useMemo(() => {
     const total = segments.reduce((sum, s) => sum + s.value, 0);
     if (total === 0) {
-      return { paths: [], total: 0 };
+      return { allSegments: [], total: 0 };
+    }
+
+    // Sort by value descending
+    const sorted = [...segments].sort((a, b) => b.value - a.value);
+    const allSegments = sorted.map((seg) => ({
+      ...seg,
+      percentage: seg.value / total,
+    }));
+
+    return { allSegments, total };
+  }, [segments]);
+
+  // Determine which segments to show in donut based on expanded state
+  const donutSegments = useMemo(() => {
+    if (allSegments.length === 0) {
+      return [];
+    }
+
+    if (expanded) {
+      // Show all segments when expanded
+      return allSegments;
+    }
+
+    // Show top N + "Other" when collapsed
+    const topSegments = allSegments.slice(0, maxDonutSegments);
+    const otherSegments = allSegments.slice(maxDonutSegments);
+    const otherValue = otherSegments.reduce((sum, s) => sum + s.value, 0);
+
+    if (otherValue > 0) {
+      return [
+        ...topSegments,
+        {
+          label: 'Other',
+          value: otherValue,
+          color: OTHER_COLOR,
+          percentage: otherValue / total,
+        },
+      ];
+    }
+
+    return topSegments;
+  }, [allSegments, expanded, maxDonutSegments, total]);
+
+  // Calculate paths for the donut visualization
+  const paths = useMemo(() => {
+    if (total === 0) {
+      return [];
     }
 
     const radius = (size - thickness) / 2;
     const center = size / 2;
     let currentAngle = -90; // Start from top
 
-    const paths = segments.map((segment, index) => {
+    return donutSegments.map((segment, index) => {
       const percentage = segment.value / total;
       const angle = percentage * 360;
       const startAngle = currentAngle;
       const endAngle = currentAngle + angle;
       currentAngle = endAngle;
 
-      // Convert angles to radians
       const startRad = (startAngle * Math.PI) / 180;
       const endRad = (endAngle * Math.PI) / 180;
 
-      // Calculate arc points
       const x1 = center + radius * Math.cos(startRad);
       const y1 = center + radius * Math.sin(startRad);
       const x2 = center + radius * Math.cos(endRad);
       const y2 = center + radius * Math.sin(endRad);
 
-      // Large arc flag: 1 if angle > 180
       const largeArcFlag = angle > 180 ? 1 : 0;
 
-      // SVG arc path
       const d = [
         `M ${x1} ${y1}`,
         `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
@@ -77,20 +126,42 @@ export function DonutChart({
         index,
       };
     });
-
-    return { paths, total };
-  }, [segments, size, thickness]);
+  }, [donutSegments, total, size, thickness]);
 
   const hoveredSegment = hoveredIndex !== null ? paths[hoveredIndex] : null;
 
+  // Legend items to display
+  const legendItems = expanded
+    ? allSegments
+    : allSegments.slice(0, defaultLegendItems);
+  const hiddenCount = allSegments.length - defaultLegendItems;
+
   return (
     <div className="donut-chart">
-      {title && <h3 className="donut-chart-title">{title}</h3>}
+      <div className="donut-chart-header">
+        {title && <h3 className="donut-chart-title">{title}</h3>}
+        <div className="donut-display-toggle">
+          <button
+            className={`toggle-btn ${displayMode === 'percent' ? 'active' : ''}`}
+            onClick={() => setDisplayMode('percent')}
+            title="Show percentages"
+          >
+            %
+          </button>
+          <button
+            className={`toggle-btn ${displayMode === 'count' ? 'active' : ''}`}
+            onClick={() => setDisplayMode('count')}
+            title="Show counts"
+          >
+            #
+          </button>
+        </div>
+      </div>
       <div className="donut-chart-container">
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
           {paths.map((path) => (
             <path
-              key={path.index}
+              key={`${path.label}-${path.index}`}
               d={path.d}
               fill="none"
               stroke={path.color}
@@ -103,11 +174,7 @@ export function DonutChart({
             />
           ))}
         </svg>
-        <div
-          className="donut-chart-center clickable"
-          onClick={toggleDisplayMode}
-          title={`Click to show ${displayMode === 'percent' ? 'counts' : 'percentages'}`}
-        >
+        <div className="donut-chart-center">
           {hoveredSegment ? (
             <>
               <span className="donut-center-value">
@@ -125,34 +192,41 @@ export function DonutChart({
           )}
         </div>
       </div>
-      <div className="donut-chart-legend">
-        {paths.slice(0, 6).map((path) => (
+      <div className={`donut-chart-legend ${expanded ? 'expanded' : ''}`}>
+        {legendItems.map((item) => (
           <div
-            key={path.index}
-            className={`legend-item ${hoveredIndex === path.index ? 'active' : ''}`}
-            onMouseEnter={() => setHoveredIndex(path.index)}
+            key={item.label}
+            className={`legend-item ${hoveredIndex !== null && paths[hoveredIndex]?.label === item.label ? 'active' : ''}`}
+            onMouseEnter={() => {
+              const pathIdx = paths.findIndex((p) => p.label === item.label);
+              if (pathIdx >= 0) {
+                setHoveredIndex(pathIdx);
+              }
+            }}
             onMouseLeave={() => setHoveredIndex(null)}
           >
             <span
               className="legend-color"
-              style={{ backgroundColor: path.color }}
+              style={{ backgroundColor: item.color }}
             />
-            <span className="legend-label">{path.label}</span>
+            <span className="legend-label">{item.label}</span>
             <span className="legend-value">
               {displayMode === 'percent'
-                ? `${(path.percentage * 100).toFixed(1)}%`
-                : path.value.toLocaleString()}
+                ? `${(item.percentage * 100).toFixed(1)}%`
+                : item.value.toLocaleString()}
             </span>
           </div>
         ))}
-        {paths.length > 6 && (
+        {hiddenCount > 0 && (
           <div
-            className={`legend-item other ${onMoreClick ? 'clickable' : ''}`}
-            onClick={onMoreClick}
-            style={onMoreClick ? { cursor: 'pointer' } : undefined}
+            className="legend-item other clickable"
+            onClick={() => setExpanded(!expanded)}
+            style={{ cursor: 'pointer' }}
           >
-            <span className="legend-color" style={{ backgroundColor: '#666' }} />
-            <span className="legend-label">+{paths.length - 6} more</span>
+            <span className="legend-color" style={{ backgroundColor: OTHER_COLOR }} />
+            <span className="legend-label">
+              {expanded ? 'Show less' : `+${hiddenCount} more`}
+            </span>
           </div>
         )}
       </div>

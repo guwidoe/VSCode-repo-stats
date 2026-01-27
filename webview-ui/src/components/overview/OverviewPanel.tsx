@@ -3,17 +3,18 @@
  */
 
 import { useState } from 'react';
+import { useStore } from '../../store';
 import { useOverviewStats } from '../../hooks/useOverviewStats';
 import { DonutChart } from './DonutChart';
-import { ExpandableDetails } from './ExpandableDetails';
 import { getLanguageColor } from '../../utils/colors';
 import './OverviewPanel.css';
 
 export function OverviewPanel() {
   const stats = useOverviewStats();
+  const settings = useStore((state) => state.settings);
   const [showAllUnknown, setShowAllUnknown] = useState(false);
-  const [languageDetailsExpanded, setLanguageDetailsExpanded] = useState(false);
-  const [fileTypeDetailsExpanded, setFileTypeDetailsExpanded] = useState(false);
+
+  const defaultDisplayMode = settings?.overviewDisplayMode ?? 'percent';
 
   if (!stats) {
     return (
@@ -23,60 +24,19 @@ export function OverviewPanel() {
     );
   }
 
-  // Prepare donut chart data for languages (top languages by LOC)
-  const languageSegments = stats.loc.byLanguage
-    .slice(0, 8)
-    .map((lang) => ({
-      label: lang.language,
-      value: lang.lines,
-      color: lang.color,
-    }));
+  // Prepare donut chart data for languages (all languages by LOC)
+  const languageSegments = stats.loc.byLanguage.map((lang) => ({
+    label: lang.language,
+    value: lang.lines,
+    color: lang.color,
+  }));
 
-  const otherLoc = stats.loc.byLanguage
-    .slice(8)
-    .reduce((sum, lang) => sum + lang.lines, 0);
-  if (otherLoc > 0) {
-    languageSegments.push({
-      label: 'Other',
-      value: otherLoc,
-      color: '#666666',
-    });
-  }
-
-  // Prepare donut chart data for file types (top extensions)
+  // Prepare donut chart data for file types (all extensions)
   const extensionColors = [
     '#3178c6', '#f1e05a', '#ff3e00', '#41b883', '#e34c26',
     '#563d7c', '#3572A5', '#00ADD8', '#dea584', '#b07219',
   ];
-  const fileTypeSegments = stats.files.byExtension
-    .slice(0, 8)
-    .map((ext, i) => ({
-      label: ext.ext,
-      value: ext.count,
-      color: extensionColors[i % extensionColors.length],
-    }));
-
-  const otherFiles = stats.files.byExtension
-    .slice(8)
-    .reduce((sum, ext) => sum + ext.count, 0);
-  if (otherFiles > 0) {
-    fileTypeSegments.push({
-      label: 'Other',
-      value: otherFiles,
-      color: '#666666',
-    });
-  }
-
-  // Prepare full language details for expandable section
-  const languageDetails = stats.loc.byLanguage.map((lang) => ({
-    label: lang.language,
-    value: lang.lines,
-    color: lang.color,
-    subtitle: `${lang.fileCount} files`,
-  }));
-
-  // Prepare full extension details
-  const extensionDetails = stats.files.byExtension.map((ext, i) => ({
+  const fileTypeSegments = stats.files.byExtension.map((ext, i) => ({
     label: ext.ext,
     value: ext.count,
     color: extensionColors[i % extensionColors.length],
@@ -92,14 +52,7 @@ export function OverviewPanel() {
             title="Lines of Code by Language"
             size={200}
             thickness={40}
-            onMoreClick={() => setLanguageDetailsExpanded(true)}
-          />
-          <ExpandableDetails
-            rows={languageDetails}
-            total={stats.loc.total}
-            valueLabel="Lines"
-            expanded={languageDetailsExpanded}
-            onExpandedChange={setLanguageDetailsExpanded}
+            defaultDisplayMode={defaultDisplayMode}
           />
         </div>
         <div className="chart-section">
@@ -108,14 +61,7 @@ export function OverviewPanel() {
             title="Files by Type"
             size={200}
             thickness={40}
-            onMoreClick={() => setFileTypeDetailsExpanded(true)}
-          />
-          <ExpandableDetails
-            rows={extensionDetails}
-            total={stats.files.total}
-            valueLabel="Files"
-            expanded={fileTypeDetailsExpanded}
-            onExpandedChange={setFileTypeDetailsExpanded}
+            defaultDisplayMode={defaultDisplayMode}
           />
         </div>
       </div>

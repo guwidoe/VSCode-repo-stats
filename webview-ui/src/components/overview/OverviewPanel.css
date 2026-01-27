@@ -82,11 +82,51 @@
   padding: 20px;
 }
 
+.donut-chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 12px;
+}
+
 .donut-chart-title {
-  margin: 0 0 16px 0;
+  margin: 0;
   font-size: 14px;
   font-weight: 600;
   color: var(--vscode-foreground);
+}
+
+.donut-display-toggle {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.donut-display-toggle .toggle-btn {
+  padding: 4px 10px;
+  background: transparent;
+  border: none;
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.donut-display-toggle .toggle-btn:first-child {
+  border-right: 1px solid var(--vscode-panel-border);
+}
+
+.donut-display-toggle .toggle-btn:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.donut-display-toggle .toggle-btn.active {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
 }
 
 .donut-chart-container {
@@ -103,18 +143,6 @@
   transform: translate(-50%, -50%);
   text-align: center;
   pointer-events: none;
-}
-
-.donut-chart-center.clickable {
-  pointer-events: auto;
-  cursor: pointer;
-  padding: 12px;
-  border-radius: 50%;
-  transition: background-color 0.15s ease;
-}
-
-.donut-chart-center.clickable:hover {
-  background: var(--vscode-list-hoverBackground);
 }
 
 .donut-center-value {

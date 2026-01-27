@@ -1,7 +1,12 @@
 .settings-panel {
   padding: 20px;
-  max-width: 800px;
+  width: min(800px, 100%);
   margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.settings-content {
+  min-height: 400px;
 }
 
 .settings-loading {
