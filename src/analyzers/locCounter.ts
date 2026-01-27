@@ -165,6 +165,9 @@ export class LOCCounter implements LOCClient {
             type: 'file',
             lines: file.Code,
             language: file.Language,
+            complexity: file.Complexity,
+            commentLines: file.Comment,
+            blankLines: file.Blank,
           };
           current.children = current.children || [];
           current.children.push(fileNode);
@@ -188,24 +191,78 @@ export class LOCCounter implements LOCClient {
       }
     }
 
-    // Calculate directory sizes
-    this.calculateDirectorySizes(root);
+    // Calculate directory metrics (lines, complexity, etc.)
+    this.calculateDirectoryMetrics(root);
 
     return root;
   }
 
-  private calculateDirectorySizes(node: TreemapNode): number {
+  /**
+   * Calculate directory metrics recursively.
+   * Returns aggregated metrics for the subtree.
+   */
+  private calculateDirectoryMetrics(node: TreemapNode): DirectoryMetrics {
     if (node.type === 'file') {
-      return node.lines || 0;
+      return {
+        lines: node.lines || 0,
+        complexity: node.complexity || 0,
+        commentLines: node.commentLines || 0,
+        blankLines: node.blankLines || 0,
+        fileCount: 1,
+        maxComplexity: node.complexity || 0,
+      };
     }
 
-    let total = 0;
+    // Aggregate metrics from children
+    let totalLines = 0;
+    let totalComplexity = 0;
+    let totalCommentLines = 0;
+    let totalBlankLines = 0;
+    let totalFileCount = 0;
+    let maxComplexity = 0;
+
     for (const child of node.children || []) {
-      total += this.calculateDirectorySizes(child);
+      const childMetrics = this.calculateDirectoryMetrics(child);
+      totalLines += childMetrics.lines;
+      totalComplexity += childMetrics.complexity;
+      totalCommentLines += childMetrics.commentLines;
+      totalBlankLines += childMetrics.blankLines;
+      totalFileCount += childMetrics.fileCount;
+      maxComplexity = Math.max(maxComplexity, childMetrics.maxComplexity);
     }
-    node.lines = total;
-    return total;
+
+    // Set directory node metrics
+    node.lines = totalLines;
+    node.complexity = totalComplexity;
+    node.commentLines = totalCommentLines;
+    node.blankLines = totalBlankLines;
+    node.fileCount = totalFileCount;
+    node.complexityMax = maxComplexity;
+    node.complexityAvg =
+      totalFileCount > 0 ? Math.round(totalComplexity / totalFileCount) : 0;
+
+    return {
+      lines: totalLines,
+      complexity: totalComplexity,
+      commentLines: totalCommentLines,
+      blankLines: totalBlankLines,
+      fileCount: totalFileCount,
+      maxComplexity,
+    };
   }
+}
+
+// ============================================================================
+// Internal Types
+// ============================================================================
+
+interface DirectoryMetrics {
+  lines: number;
+  complexity: number;
+  commentLines: number;
+  blankLines: number;
+  fileCount: number;
+  maxComplexity: number;
 }
 
 // ============================================================================

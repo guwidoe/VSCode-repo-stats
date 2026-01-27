@@ -51,6 +51,16 @@ export interface TreemapNode {
   lastModified?: string; // ISO date string from git history
   binary?: boolean; // True for non-code files (images, fonts, etc.)
   children?: TreemapNode[];
+
+  // Extended scc metrics
+  complexity?: number; // Cyclomatic complexity (file: total, folder: sum)
+  commentLines?: number; // Comment line count
+  blankLines?: number; // Blank line count
+
+  // Folder-only aggregates (undefined for files)
+  complexityAvg?: number; // Average complexity per file in subtree
+  complexityMax?: number; // Maximum file complexity in subtree
+  fileCount?: number; // Number of files in subtree
 }
 
 // ============================================================================
