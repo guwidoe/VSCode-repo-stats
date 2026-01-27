@@ -1,0 +1,167 @@
+/* TreeViewPanel - Collapsible tree view above treemap */
+
+.tree-view-panel {
+  border-bottom: 1px solid var(--vscode-panel-border);
+  background: var(--vscode-editor-background);
+  max-height: 300px;
+  display: flex;
+  flex-direction: column;
+  transition: max-height 0.2s ease;
+}
+
+.tree-view-panel.collapsed {
+  max-height: 36px;
+}
+
+.tree-view-header {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  background: var(--vscode-sideBarSectionHeader-background);
+}
+
+.tree-view-collapse-btn {
+  background: transparent;
+  border: none;
+  color: var(--vscode-foreground);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tree-view-collapse-btn:hover {
+  color: var(--vscode-textLink-foreground);
+}
+
+.tree-view-content {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+}
+
+/* Header row */
+.tree-header-row {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  background: var(--vscode-editorWidget-background);
+  border-bottom: 1px solid var(--vscode-panel-border);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--vscode-descriptionForeground);
+}
+
+.tree-header-row .tree-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Tree body */
+.tree-body {
+  font-size: 12px;
+}
+
+/* Tree row */
+.tree-row {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  cursor: pointer;
+  border-bottom: 1px solid transparent;
+  transition: background-color 0.1s ease;
+}
+
+.tree-row:hover,
+.tree-row.hovered {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.tree-row.selected {
+  background: var(--vscode-list-activeSelectionBackground);
+  color: var(--vscode-list-activeSelectionForeground);
+}
+
+/* Tree cells */
+.tree-cell {
+  flex-shrink: 0;
+}
+
+.tree-cell.tree-name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.tree-cell.tree-loc,
+.tree-cell.tree-complexity,
+.tree-cell.tree-comments,
+.tree-cell.tree-files {
+  width: 80px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Toggle button */
+.tree-toggle {
+  background: transparent;
+  border: none;
+  color: var(--vscode-foreground);
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.tree-toggle:hover {
+  opacity: 1;
+}
+
+.tree-toggle-spacer {
+  width: 16px;
+  flex-shrink: 0;
+}
+
+/* Icon */
+.tree-icon {
+  flex-shrink: 0;
+  font-size: 14px;
+}
+
+/* Label */
+.tree-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Selected row text color override */
+.tree-row.selected .tree-toggle,
+.tree-row.selected .tree-label {
+  color: var(--vscode-list-activeSelectionForeground);
+}
+
+/* Responsive - hide some columns on small screens */
+@media (max-width: 600px) {
+  .tree-cell.tree-comments,
+  .tree-cell.tree-files {
+    display: none;
+  }
+}

@@ -16,6 +16,7 @@ import { TreemapFilter } from './TreemapFilter';
 import { TreemapControls } from './TreemapControls';
 import { TreemapBreadcrumb } from './TreemapBreadcrumb';
 import { TreemapLegend } from './TreemapLegend';
+import { TreeViewPanel } from './TreeViewPanel';
 import { collectLanguageCounts, calculateMaxDepth } from './utils/layout';
 import './TreemapPanel.css';
 
@@ -84,6 +85,16 @@ export function TreemapPanel() {
 
       <TreemapBreadcrumb
         path={treemapPath}
+        onNavigate={navigateToTreemapPath}
+      />
+
+      <TreeViewPanel
+        root={filteredTreemapNode}
+        colorMode={colorMode}
+        selectedPath={selectedNode?.path || null}
+        hoveredPath={hoveredNode?.path || null}
+        onSelect={setSelectedNode}
+        onHover={setHoveredNode}
         onNavigate={navigateToTreemapPath}
       />
 
