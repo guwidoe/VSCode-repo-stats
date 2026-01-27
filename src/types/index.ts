@@ -163,7 +163,7 @@ export interface TooltipSettings {
 export interface ExtensionSettings {
   excludePatterns: string[];
   maxCommitsToAnalyze: number;
-  defaultColorMode: 'language' | 'age';
+  defaultColorMode: 'language' | 'age' | 'complexity' | 'density';
   generatedPatterns: string[];
   binaryExtensions: string[];
   showEmptyTimePeriods: boolean;

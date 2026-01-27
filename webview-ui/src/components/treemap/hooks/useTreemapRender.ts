@@ -10,7 +10,14 @@ import {
   SELECTION_BORDER_COLOR,
   HOVER_BORDER_COLOR,
 } from '../utils/colors';
-import { getLanguageColor, getAgeColor, formatNumber, formatBytes } from '../../../utils/colors';
+import {
+  getLanguageColor,
+  getAgeColor,
+  getComplexityColor,
+  getCodeDensityColor,
+  formatNumber,
+  formatBytes,
+} from '../../../utils/colors';
 
 interface RenderOptions {
   colorMode: ColorMode
@@ -28,10 +35,22 @@ function getNodeColor(node: TreemapNode, colorMode: ColorMode): string {
   if (node.type === 'directory') {
     return DIRECTORY_COLOR;
   }
-  if (colorMode === 'age' && node.lastModified) {
-    return getAgeColor(node.lastModified);
+
+  switch (colorMode) {
+    case 'age':
+      return getAgeColor(node.lastModified);
+    case 'complexity':
+      return getComplexityColor(node.complexity);
+    case 'density':
+      return getCodeDensityColor(
+        node.lines || 0,
+        node.commentLines || 0,
+        node.blankLines || 0
+      );
+    case 'language':
+    default:
+      return getLanguageColor(node.language || 'Unknown');
   }
-  return getLanguageColor(node.language || 'Unknown');
 }
 
 function truncateText(
@@ -115,11 +134,14 @@ export function useTreemapRender() {
 
           const lines = node.data.lines || 0;
           const bytes = node.data.bytes || 0;
+          const complexity = node.data.complexity || 0;
           let sizeText: string;
           if (sizeMode === 'loc') {
             sizeText = `(${formatNumber(lines)})`;
           } else if (sizeMode === 'bytes') {
             sizeText = `(${formatBytes(bytes)})`;
+          } else if (sizeMode === 'complexity') {
+            sizeText = `(${formatNumber(complexity)} cx)`;
           } else {
             sizeText = `(${formatNumber(countFiles(node.data))} files)`;
           }

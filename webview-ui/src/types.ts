@@ -109,7 +109,7 @@ export interface TooltipSettings {
 export interface ExtensionSettings {
   excludePatterns: string[];
   maxCommitsToAnalyze: number;
-  defaultColorMode: 'language' | 'age';
+  defaultColorMode: 'language' | 'age' | 'complexity' | 'density';
   generatedPatterns: string[];
   binaryExtensions: string[];
   showEmptyTimePeriods: boolean;
@@ -152,7 +152,7 @@ export type TimePeriod = 'all' | 'year' | '6months' | '3months' | 'month';
 
 export type FrequencyGranularity = 'weekly' | 'monthly';
 
-export type ColorMode = 'language' | 'age';
+export type ColorMode = 'language' | 'age' | 'complexity' | 'density';
 
 export type TreemapFilterPreset = 'all' | 'hide-binary' | 'code-only' | 'custom';
 

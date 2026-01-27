@@ -11,18 +11,19 @@ interface TreemapControlsProps {
   colorMode: ColorMode
   sizeMode: SizeDisplayMode
   nestingDepth: number
+  maxDepth: number
   onColorModeChange: (mode: ColorMode) => void
   onSizeModeChange: (mode: SizeDisplayMode) => void
   onNestingDepthChange: (depth: number) => void
 }
 
-const MAX_NESTING_DEPTH = 10;
 const MIN_NESTING_DEPTH = 1;
 
 export function TreemapControls({
   colorMode,
   sizeMode,
   nestingDepth,
+  maxDepth,
   onColorModeChange,
   onSizeModeChange,
   onNestingDepthChange,
@@ -34,7 +35,7 @@ export function TreemapControls({
   };
 
   const handleDepthIncrease = () => {
-    if (nestingDepth < MAX_NESTING_DEPTH) {
+    if (nestingDepth < maxDepth) {
       onNestingDepthChange(nestingDepth + 1);
     }
   };
@@ -47,7 +48,7 @@ export function TreemapControls({
           <span className="toggle-label">
             Color
             <InfoTooltip
-              content="Language: Files colored by programming language. Age: Files colored by last modification date (green=recent, red=old)."
+              content="Language: by programming language. Age: by last modified (green=recent, red=old). Complexity: by cyclomatic complexity (green=simple, red=complex). Density: by code density (green=dense code, red=sparse)."
               position="bottom"
             />
           </span>
@@ -63,6 +64,18 @@ export function TreemapControls({
           >
             Age
           </button>
+          <button
+            className={`toggle-button ${colorMode === 'complexity' ? 'active' : ''}`}
+            onClick={() => onColorModeChange('complexity')}
+          >
+            Complexity
+          </button>
+          <button
+            className={`toggle-button ${colorMode === 'density' ? 'active' : ''}`}
+            onClick={() => onColorModeChange('density')}
+          >
+            Density
+          </button>
         </div>
 
         {/* Size mode toggle */}
@@ -70,7 +83,7 @@ export function TreemapControls({
           <span className="toggle-label">
             Size
             <InfoTooltip
-              content="LOC: Size by lines of code (binary files hidden). Bytes: Size by file size in bytes. Files: Equal size per file to see file count distribution."
+              content="LOC: by lines of code. Bytes: by file size. Files: equal size per file. Complexity: by cyclomatic complexity (shows complex hotspots)."
               position="bottom"
             />
           </span>
@@ -91,6 +104,12 @@ export function TreemapControls({
             onClick={() => onSizeModeChange('files')}
           >
             Files
+          </button>
+          <button
+            className={`toggle-button ${sizeMode === 'complexity' ? 'active' : ''}`}
+            onClick={() => onSizeModeChange('complexity')}
+          >
+            Complexity
           </button>
         </div>
 
@@ -114,7 +133,7 @@ export function TreemapControls({
           <button
             className="depth-button"
             onClick={handleDepthIncrease}
-            disabled={nestingDepth >= MAX_NESTING_DEPTH}
+            disabled={nestingDepth >= maxDepth}
           >
             +
           </button>

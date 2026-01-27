@@ -16,7 +16,7 @@ import { TreemapFilter } from './TreemapFilter';
 import { TreemapControls } from './TreemapControls';
 import { TreemapBreadcrumb } from './TreemapBreadcrumb';
 import { TreemapLegend } from './TreemapLegend';
-import { collectLanguageCounts } from './utils/layout';
+import { collectLanguageCounts, calculateMaxDepth } from './utils/layout';
 import './TreemapPanel.css';
 
 export function TreemapPanel() {
@@ -49,6 +49,9 @@ export function TreemapPanel() {
     ? collectLanguageCounts(filteredTreemapNode)
     : new Map<string, number>();
 
+  // Calculate max depth from raw file tree (not filtered)
+  const treeMaxDepth = data?.fileTree ? calculateMaxDepth(data.fileTree) : 5;
+
   // Determine empty state message
   const isCustomFilterEmpty = hasData && !filteredTreemapNode && treemapFilter.preset === 'custom';
   const isFilterEmpty = hasData && !filteredTreemapNode && treemapFilter.preset !== 'custom';
@@ -72,6 +75,7 @@ export function TreemapPanel() {
           colorMode={colorMode}
           sizeMode={sizeDisplayMode}
           nestingDepth={maxNestingDepth}
+          maxDepth={treeMaxDepth}
           onColorModeChange={setColorMode}
           onSizeModeChange={setSizeDisplayMode}
           onNestingDepthChange={setMaxNestingDepth}

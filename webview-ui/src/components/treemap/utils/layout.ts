@@ -2,6 +2,17 @@
 import type { TreemapNode } from '../../../types';
 
 /**
+ * Calculate the maximum depth of a treemap node tree.
+ * Root is depth 1, its children are depth 2, etc.
+ */
+export function calculateMaxDepth(node: TreemapNode): number {
+  if (!node.children || node.children.length === 0) {
+    return 1;
+  }
+  return 1 + Math.max(...node.children.map(calculateMaxDepth));
+}
+
+/**
  * Collect language counts from a treemap node.
  * Returns a Map of language -> total lines of code.
  */

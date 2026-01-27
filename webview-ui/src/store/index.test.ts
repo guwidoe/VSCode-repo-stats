@@ -358,7 +358,7 @@ describe('treemap new state', () => {
   beforeEach(() => {
     useStore.setState({
       sizeDisplayMode: 'loc',
-      maxNestingDepth: 3,
+      maxNestingDepth: 5,
       hoveredNode: null,
       selectedNode: null,
     });
@@ -369,9 +369,9 @@ describe('treemap new state', () => {
     expect(state.sizeDisplayMode).toBe('loc');
   });
 
-  it('should have default maxNestingDepth of 3', () => {
+  it('should have default maxNestingDepth of 5', () => {
     const state = useStore.getState();
-    expect(state.maxNestingDepth).toBe(3);
+    expect(state.maxNestingDepth).toBe(5);
   });
 
   it('should update sizeDisplayMode', () => {
@@ -380,8 +380,8 @@ describe('treemap new state', () => {
   });
 
   it('should update maxNestingDepth', () => {
-    useStore.getState().setMaxNestingDepth(5);
-    expect(useStore.getState().maxNestingDepth).toBe(5);
+    useStore.getState().setMaxNestingDepth(7);
+    expect(useStore.getState().maxNestingDepth).toBe(7);
   });
 
   it('should track hoveredNode', () => {

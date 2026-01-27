@@ -1,5 +1,5 @@
 // webview-ui/src/components/treemap/TreemapTooltip.test.tsx
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { TreemapTooltip } from './TreemapTooltip';
 import type { TreemapNode } from '../../types';

@@ -7,6 +7,7 @@ describe('TreemapControls', () => {
     colorMode: 'language' as const,
     sizeMode: 'loc' as const,
     nestingDepth: 3,
+    maxDepth: 10,
     onColorModeChange: vi.fn(),
     onSizeModeChange: vi.fn(),
     onNestingDepthChange: vi.fn(),
@@ -65,9 +66,9 @@ describe('TreemapControls', () => {
     expect(onNestingDepthChange).not.toHaveBeenCalled();
   });
 
-  it('should not allow depth above 10', () => {
+  it('should not allow depth above maxDepth', () => {
     const onNestingDepthChange = vi.fn();
-    render(<TreemapControls {...defaultProps} nestingDepth={10} onNestingDepthChange={onNestingDepthChange} />);
+    render(<TreemapControls {...defaultProps} nestingDepth={10} maxDepth={10} onNestingDepthChange={onNestingDepthChange} />);
     fireEvent.click(screen.getByText('+'));
     expect(onNestingDepthChange).not.toHaveBeenCalled();
   });
@@ -92,7 +93,7 @@ describe('TreemapControls', () => {
   });
 
   it('should disable plus button at maximum depth', () => {
-    render(<TreemapControls {...defaultProps} nestingDepth={10} />);
+    render(<TreemapControls {...defaultProps} nestingDepth={10} maxDepth={10} />);
     const plusButton = screen.getByText('+');
     expect(plusButton).toBeDisabled();
   });

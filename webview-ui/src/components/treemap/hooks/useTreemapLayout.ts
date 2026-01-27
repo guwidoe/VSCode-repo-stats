@@ -24,6 +24,8 @@ function getNodeSize(node: TreemapNode, sizeMode: SizeDisplayMode): number {
       return node.bytes || (node.lines || 1) * 40; // Fallback to estimate
     case 'files':
       return 1;
+    case 'complexity':
+      return node.complexity || 1; // Default to 1 if no complexity
   }
 }
 

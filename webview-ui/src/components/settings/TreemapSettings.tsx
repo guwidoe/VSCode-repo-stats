@@ -48,9 +48,13 @@ export function TreemapSettings({ settings, updateSettings }: Props) {
         options={[
           { value: 'language', label: 'By Language' },
           { value: 'age', label: 'By File Age' },
+          { value: 'complexity', label: 'By Complexity' },
+          { value: 'density', label: 'By Code Density' },
         ]}
         onChange={(value) =>
-          updateSettings({ defaultColorMode: value as 'language' | 'age' })
+          updateSettings({
+            defaultColorMode: value as 'language' | 'age' | 'complexity' | 'density',
+          })
         }
       />
 

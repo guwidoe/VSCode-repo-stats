@@ -13,7 +13,7 @@ export const DEFAULT_TREEMAP_CONFIG: TreemapConfig = {
   labelHeight: 18,
 };
 
-export type SizeDisplayMode = 'loc' | 'bytes' | 'files';
+export type SizeDisplayMode = 'loc' | 'bytes' | 'files' | 'complexity';
 
 export interface LayoutNode {
   data: TreemapNode

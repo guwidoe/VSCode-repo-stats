@@ -310,7 +310,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     return {
       excludePatterns: config.get<string[]>('excludePatterns', []),
       maxCommitsToAnalyze: config.get<number>('maxCommitsToAnalyze', 10000),
-      defaultColorMode: config.get<'language' | 'age'>('defaultColorMode', 'language'),
+      defaultColorMode: config.get<'language' | 'age' | 'complexity' | 'density'>('defaultColorMode', 'language'),
       generatedPatterns: config.get<string[]>('generatedPatterns', [
         '**/generated/**',
         '**/gen/**',
