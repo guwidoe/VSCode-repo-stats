@@ -1,7 +1,8 @@
 // webview-ui/src/components/treemap/TreemapTooltip.tsx
 import { useRef, useLayoutEffect, useState } from 'react';
-import type { TreemapNode } from '../../types';
+import type { TreemapNode, TooltipSettings } from '../../types';
 import type { SizeDisplayMode } from './types';
+import { useStore } from '../../store';
 import { formatNumber, formatRelativeTime } from '../../utils/colors';
 import './TreemapTooltip.css';
 
@@ -25,12 +26,28 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 }
 
+// Default tooltip settings if not loaded yet
+const DEFAULT_TOOLTIP_SETTINGS: TooltipSettings = {
+  showLinesOfCode: true,
+  showFileSize: true,
+  showLanguage: true,
+  showLastModified: true,
+  showComplexity: false,
+  showCommentLines: false,
+  showCommentRatio: false,
+  showBlankLines: false,
+  showCodeDensity: false,
+  showFileCount: true,
+};
+
 const TOOLTIP_OFFSET = 15;
 const VIEWPORT_PADDING = 8;
 
 export function TreemapTooltip({ visible, x, y, node, sizeMode }: TreemapTooltipProps) {
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({ left: 0, top: 0 });
+  const settings = useStore((state) => state.settings);
+  const tooltipSettings = settings?.tooltipSettings ?? DEFAULT_TOOLTIP_SETTINGS;
 
   useLayoutEffect(() => {
     if (!visible || !tooltipRef.current) {return;}
@@ -69,9 +86,15 @@ export function TreemapTooltip({ visible, x, y, node, sizeMode }: TreemapTooltip
   if (!visible || !node) {return null;}
 
   const isFile = node.type === 'file';
+  const isDirectory = node.type === 'directory';
   const lines = node.lines || 0;
   const bytes = node.bytes || 0;
-  const fileCount = countFiles(node);
+  const fileCount = node.fileCount ?? countFiles(node);
+
+  // Compute derived metrics
+  const totalLines = lines + (node.commentLines || 0) + (node.blankLines || 0);
+  const commentRatio = totalLines > 0 ? ((node.commentLines || 0) / totalLines) * 100 : 0;
+  const codeDensity = totalLines > 0 ? (lines / totalLines) * 100 : 0;
 
   // Determine primary size display based on mode
   const getSizeDisplay = () => {
@@ -95,16 +118,68 @@ export function TreemapTooltip({ visible, x, y, node, sizeMode }: TreemapTooltip
       }}
     >
       <div className="tooltip-path">{node.path}</div>
-      {isFile && node.language && (
+
+      {/* Language */}
+      {tooltipSettings.showLanguage && isFile && node.language && (
         <div className="tooltip-language">{node.language}</div>
       )}
+
+      {/* Size info */}
       <div className="tooltip-size">
         {getSizeDisplay()}
         {/* Show secondary info based on mode */}
-        {sizeMode !== 'loc' && lines > 0 && <> &middot; {formatNumber(lines)} lines</>}
-        {sizeMode !== 'bytes' && bytes > 0 && <> &middot; {formatBytes(bytes)}</>}
+        {tooltipSettings.showLinesOfCode && sizeMode !== 'loc' && lines > 0 && (
+          <> &middot; {formatNumber(lines)} lines</>
+        )}
+        {tooltipSettings.showFileSize && sizeMode !== 'bytes' && bytes > 0 && (
+          <> &middot; {formatBytes(bytes)}</>
+        )}
       </div>
-      {node.lastModified && (
+
+      {/* Extended metrics */}
+      {tooltipSettings.showComplexity && node.complexity !== undefined && (
+        <div className="tooltip-metric">
+          Complexity: {formatNumber(node.complexity)}
+          {isDirectory && node.complexityAvg !== undefined && (
+            <span className="tooltip-metric-secondary">
+              {' '}(avg: {node.complexityAvg}, max: {node.complexityMax})
+            </span>
+          )}
+        </div>
+      )}
+
+      {tooltipSettings.showCommentLines && node.commentLines !== undefined && (
+        <div className="tooltip-metric">
+          Comments: {formatNumber(node.commentLines)} lines
+        </div>
+      )}
+
+      {tooltipSettings.showCommentRatio && node.commentLines !== undefined && (
+        <div className="tooltip-metric">
+          Comment ratio: {commentRatio.toFixed(1)}%
+        </div>
+      )}
+
+      {tooltipSettings.showBlankLines && node.blankLines !== undefined && (
+        <div className="tooltip-metric">
+          Blank lines: {formatNumber(node.blankLines)}
+        </div>
+      )}
+
+      {tooltipSettings.showCodeDensity && totalLines > 0 && (
+        <div className="tooltip-metric">
+          Code density: {codeDensity.toFixed(1)}%
+        </div>
+      )}
+
+      {tooltipSettings.showFileCount && isDirectory && (
+        <div className="tooltip-metric">
+          Files: {formatNumber(fileCount)}
+        </div>
+      )}
+
+      {/* Last modified */}
+      {tooltipSettings.showLastModified && node.lastModified && (
         <div className="tooltip-modified">
           Modified: {formatRelativeTime(node.lastModified)}
         </div>

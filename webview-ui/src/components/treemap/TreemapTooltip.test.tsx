@@ -1,8 +1,28 @@
 // webview-ui/src/components/treemap/TreemapTooltip.test.tsx
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { TreemapTooltip } from './TreemapTooltip';
 import type { TreemapNode } from '../../types';
+
+// Mock the store
+vi.mock('../../store', () => ({
+  useStore: () => ({
+    settings: {
+      tooltipSettings: {
+        showLinesOfCode: true,
+        showFileSize: true,
+        showLanguage: true,
+        showLastModified: true,
+        showComplexity: false,
+        showCommentLines: false,
+        showCommentRatio: false,
+        showBlankLines: false,
+        showCodeDensity: false,
+        showFileCount: true,
+      },
+    },
+  }),
+}));
 
 const mockFileNode: TreemapNode = {
   name: 'index.ts',

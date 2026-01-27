@@ -29,6 +29,16 @@
   color: var(--vscode-descriptionForeground);
 }
 
+.tooltip-metric {
+  color: var(--vscode-descriptionForeground);
+  margin-top: 2px;
+}
+
+.tooltip-metric-secondary {
+  opacity: 0.7;
+  font-size: 11px;
+}
+
 .tooltip-modified {
   color: var(--vscode-descriptionForeground);
   margin-top: 4px;

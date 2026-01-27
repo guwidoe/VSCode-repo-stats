@@ -269,6 +269,43 @@
   color: var(--vscode-button-foreground);
 }
 
+/* Checkbox Group */
+.checkbox-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.checkbox-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+  border-radius: 4px;
+  cursor: pointer;
+  transition: border-color 0.1s ease;
+}
+
+.checkbox-option:hover {
+  border-color: var(--vscode-focusBorder);
+}
+
+.checkbox-option input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--vscode-button-background);
+  cursor: pointer;
+}
+
+.checkbox-label {
+  font-size: 13px;
+  color: var(--vscode-foreground);
+  user-select: none;
+}
+
 /* Footer */
 .settings-footer {
   margin-top: 32px;

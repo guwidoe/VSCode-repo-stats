@@ -222,6 +222,9 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     if (settings.overviewDisplayMode !== undefined) {
       await config.update('overviewDisplayMode', settings.overviewDisplayMode, vscode.ConfigurationTarget.Global);
     }
+    if (settings.tooltipSettings !== undefined) {
+      await config.update('tooltipSettings', settings.tooltipSettings, vscode.ConfigurationTarget.Global);
+    }
   }
 
   private async runAnalysis(webview: vscode.Webview): Promise<void> {
@@ -340,6 +343,18 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       defaultGranularityMode: config.get<'auto' | 'weekly' | 'monthly'>('defaultGranularityMode', 'auto'),
       autoGranularityThreshold: config.get<number>('autoGranularityThreshold', 20),
       overviewDisplayMode: config.get<'percent' | 'count'>('overviewDisplayMode', 'percent'),
+      tooltipSettings: config.get('tooltipSettings', {
+        showLinesOfCode: true,
+        showFileSize: true,
+        showLanguage: true,
+        showLastModified: true,
+        showComplexity: false,
+        showCommentLines: false,
+        showCommentRatio: false,
+        showBlankLines: false,
+        showCodeDensity: false,
+        showFileCount: true,
+      }),
     };
   }
 

@@ -147,6 +147,19 @@ export type WebviewMessage =
 // Settings Types
 // ============================================================================
 
+export interface TooltipSettings {
+  showLinesOfCode: boolean;
+  showFileSize: boolean;
+  showLanguage: boolean;
+  showLastModified: boolean;
+  showComplexity: boolean;
+  showCommentLines: boolean;
+  showCommentRatio: boolean;
+  showBlankLines: boolean;
+  showCodeDensity: boolean;
+  showFileCount: boolean;
+}
+
 export interface ExtensionSettings {
   excludePatterns: string[];
   maxCommitsToAnalyze: number;
@@ -158,6 +171,8 @@ export interface ExtensionSettings {
   autoGranularityThreshold: number; // Weeks threshold for auto mode (default 20)
   // Overview settings
   overviewDisplayMode: 'percent' | 'count'; // Default display mode for donut charts
+  // Treemap tooltip settings
+  tooltipSettings: TooltipSettings;
 }
 
 // ============================================================================
