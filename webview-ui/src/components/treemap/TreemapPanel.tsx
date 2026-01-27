@@ -9,6 +9,7 @@
  * - TreemapLegend: Color legend based on mode
  */
 
+import { useState } from 'react';
 import { useStore, selectFilteredTreemapNode } from '../../store';
 import { useVsCodeApi } from '../../hooks/useVsCodeApi';
 import { TreemapCanvas } from './TreemapCanvas';
@@ -17,11 +18,13 @@ import { TreemapControls } from './TreemapControls';
 import { TreemapBreadcrumb } from './TreemapBreadcrumb';
 import { TreemapLegend } from './TreemapLegend';
 import { TreeViewPanel } from './TreeViewPanel';
+import { HelpModal } from '../help/HelpModal';
 import { collectLanguageCounts, calculateMaxDepth } from './utils/layout';
 import './TreemapPanel.css';
 
 export function TreemapPanel() {
   const { openFile, revealInExplorer, copyPath } = useVsCodeApi();
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   // Store state - use the filtered treemap node from the selector
   const filteredTreemapNode = useStore(selectFilteredTreemapNode);
@@ -81,6 +84,13 @@ export function TreemapPanel() {
           onSizeModeChange={setSizeDisplayMode}
           onNestingDepthChange={setMaxNestingDepth}
         />
+        <button
+          className="treemap-help-btn"
+          onClick={() => setIsHelpOpen(true)}
+          title="Help"
+        >
+          ?
+        </button>
       </div>
 
       <TreemapBreadcrumb
@@ -132,6 +142,8 @@ export function TreemapPanel() {
         colorMode={colorMode}
         languageCounts={languageCounts}
       />
+
+      <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
     </div>
   );
 }
