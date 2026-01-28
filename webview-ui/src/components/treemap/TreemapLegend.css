@@ -12,6 +12,7 @@
   flex-shrink: 0; /* Don't shrink - let page scroll instead */
 }
 
+/* Language legend */
 .language-legend {
   gap: 16px;
   flex-wrap: wrap;
@@ -40,18 +41,39 @@
   font-size: 11px;
 }
 
-.age-legend {
+/* Gradient legends (age, complexity, density) */
+.gradient-legend {
   gap: 8px;
 }
 
-.age-gradient {
+.gradient-title {
+  color: var(--vscode-foreground);
+  font-weight: 500;
+  margin-right: 4px;
+}
+
+.gradient-label {
+  color: var(--vscode-descriptionForeground);
+  font-size: 11px;
+}
+
+.gradient-bar {
   width: 120px;
   height: 12px;
   border-radius: 2px;
+}
+
+/* Age: green (recent) -> yellow -> red (old) */
+.age-gradient {
   background: linear-gradient(to right, #22c55e, #eab308, #ef4444);
 }
 
-.age-label {
-  color: var(--vscode-descriptionForeground);
-  font-size: 11px;
+/* Complexity: green (simple) -> yellow -> orange -> red (complex) */
+.complexity-gradient {
+  background: linear-gradient(to right, #4caf50, #8bc34a, #ff9800, #f44336);
+}
+
+/* Density: red (sparse) -> yellow -> green (dense) */
+.density-gradient {
+  background: linear-gradient(to right, #f44336, #ff9800, #8bc34a, #4caf50);
 }

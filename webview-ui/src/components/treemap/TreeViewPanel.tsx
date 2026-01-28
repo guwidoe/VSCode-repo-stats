@@ -1,9 +1,10 @@
 /**
  * TreeViewPanel - Collapsible hierarchical tree view above the treemap.
  * Shows folder/file metrics: LOC, Complexity, Comment %, Files.
+ * Features a draggable resize handle at the bottom.
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import type { TreemapNode, ColorMode } from '../../types';
 import { TreeViewRow } from './TreeViewRow';
 import { InfoTooltip } from '../common/InfoTooltip';
@@ -19,6 +20,10 @@ interface TreeViewPanelProps {
   onNavigate: (path: string[]) => void;
 }
 
+const MIN_HEIGHT = 100;
+const MAX_HEIGHT = 500;
+const DEFAULT_HEIGHT = 200;
+
 export function TreeViewPanel({
   root,
   selectedPath,
@@ -28,10 +33,46 @@ export function TreeViewPanel({
   onNavigate,
 }: TreeViewPanelProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [height, setHeight] = useState(DEFAULT_HEIGHT);
+  const [isResizing, setIsResizing] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const startY = useRef(0);
+  const startHeight = useRef(0);
+
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(() => {
     // Start with root expanded
     return new Set(['']);
   });
+
+  // Handle resize mouse events
+  useEffect(() => {
+    if (!isResizing) {return;}
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const delta = e.clientY - startY.current;
+      const newHeight = Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, startHeight.current + delta));
+      setHeight(newHeight);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing]);
+
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    startY.current = e.clientY;
+    startHeight.current = height;
+    setIsResizing(true);
+  }, [height]);
 
   const handleToggle = useCallback((path: string) => {
     setExpandedPaths((prev) => {
@@ -89,7 +130,11 @@ export function TreeViewPanel({
   }
 
   return (
-    <div className={`tree-view-panel ${isCollapsed ? 'collapsed' : ''}`}>
+    <div
+      ref={panelRef}
+      className={`tree-view-panel ${isCollapsed ? 'collapsed' : ''} ${isResizing ? 'resizing' : ''}`}
+      style={!isCollapsed ? { height: `${height}px` } : undefined}
+    >
       <div className="tree-view-header">
         <button
           className="tree-view-collapse-btn"
@@ -101,44 +146,50 @@ export function TreeViewPanel({
       </div>
 
       {!isCollapsed && (
-        <div className="tree-view-content">
-          <div className="tree-header-row">
-            <div className="tree-cell tree-name">Name</div>
-            <div className="tree-cell tree-loc">
-              LOC
-              <InfoTooltip content="Lines of code (excluding comments and blanks)" position="bottom" />
+        <>
+          <div className="tree-view-content">
+            <div className="tree-header-row">
+              <div className="tree-cell tree-name">Name</div>
+              <div className="tree-cell tree-loc">
+                LOC
+                <InfoTooltip content="Lines of code (excluding comments and blanks)" position="bottom" />
+              </div>
+              <div className="tree-cell tree-complexity">
+                Complexity
+                <InfoTooltip content="Cyclomatic complexity. For folders: avg (max). Higher = more branching." position="bottom" />
+              </div>
+              <div className="tree-cell tree-comments">
+                Comments
+                <InfoTooltip content="Percentage of lines that are comments" position="bottom" />
+              </div>
+              <div className="tree-cell tree-files">
+                Files
+                <InfoTooltip content="Number of files in this folder" position="bottom" />
+              </div>
             </div>
-            <div className="tree-cell tree-complexity">
-              Complexity
-              <InfoTooltip content="Cyclomatic complexity. For folders: avg (max). Higher = more branching." position="bottom" />
-            </div>
-            <div className="tree-cell tree-comments">
-              Comments
-              <InfoTooltip content="Percentage of lines that are comments" position="bottom" />
-            </div>
-            <div className="tree-cell tree-files">
-              Files
-              <InfoTooltip content="Number of files in this folder" position="bottom" />
+
+            <div className="tree-body">
+              {sortedRoot && sortedRoot.children?.map((child) => (
+                <TreeViewRow
+                  key={child.path}
+                  node={child}
+                  depth={0}
+                  expandedPaths={expandedPaths}
+                  selectedPath={selectedPath}
+                  hoveredPath={hoveredPath}
+                  onToggle={handleToggle}
+                  onSelect={handleSelect}
+                  onHover={onHover}
+                  onDoubleClick={handleDoubleClick}
+                />
+              ))}
             </div>
           </div>
 
-          <div className="tree-body">
-            {sortedRoot && sortedRoot.children?.map((child) => (
-              <TreeViewRow
-                key={child.path}
-                node={child}
-                depth={0}
-                expandedPaths={expandedPaths}
-                selectedPath={selectedPath}
-                hoveredPath={hoveredPath}
-                onToggle={handleToggle}
-                onSelect={handleSelect}
-                onHover={onHover}
-                onDoubleClick={handleDoubleClick}
-              />
-            ))}
+          <div className="tree-view-resize-handle" onMouseDown={handleResizeStart}>
+            <div className="resize-handle-bar" />
           </div>
-        </div>
+        </>
       )}
     </div>
   );

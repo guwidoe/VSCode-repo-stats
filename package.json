@@ -65,7 +65,9 @@
           "type": "string",
           "enum": [
             "language",
-            "age"
+            "age",
+            "complexity",
+            "density"
           ],
           "default": "language",
           "description": "Default treemap color mode"
@@ -138,6 +140,31 @@
           "minimum": 1,
           "maximum": 520,
           "description": "In 'auto' mode, use weekly view if repo has this many weeks or fewer, otherwise use monthly."
+        },
+        "repoStats.overviewDisplayMode": {
+          "type": "string",
+          "enum": [
+            "percent",
+            "count"
+          ],
+          "default": "percent",
+          "description": "How to display values in the overview panel"
+        },
+        "repoStats.tooltipSettings": {
+          "type": "object",
+          "default": {
+            "showLinesOfCode": true,
+            "showFileSize": true,
+            "showLanguage": true,
+            "showLastModified": true,
+            "showComplexity": false,
+            "showCommentLines": false,
+            "showCommentRatio": false,
+            "showBlankLines": false,
+            "showCodeDensity": false,
+            "showFileCount": true
+          },
+          "description": "Configure which metrics to show in the treemap tooltip"
         }
       }
     }

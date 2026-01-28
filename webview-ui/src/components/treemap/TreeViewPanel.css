@@ -3,14 +3,17 @@
 .tree-view-panel {
   border-bottom: 1px solid var(--vscode-panel-border);
   background: var(--vscode-editor-background);
-  max-height: 300px;
   display: flex;
   flex-direction: column;
-  transition: max-height 0.2s ease;
+  flex-shrink: 0;
 }
 
 .tree-view-panel.collapsed {
-  max-height: 36px;
+  height: auto !important;
+}
+
+.tree-view-panel.resizing {
+  user-select: none;
 }
 
 .tree-view-header {
@@ -19,6 +22,7 @@
   padding: 8px 12px;
   border-bottom: 1px solid var(--vscode-panel-border);
   background: var(--vscode-sideBarSectionHeader-background);
+  flex-shrink: 0;
 }
 
 .tree-view-collapse-btn {
@@ -42,6 +46,38 @@
   flex: 1;
   overflow: auto;
   min-height: 0;
+}
+
+/* Resize handle */
+.tree-view-resize-handle {
+  height: 6px;
+  background: transparent;
+  cursor: ns-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.tree-view-resize-handle:hover,
+.tree-view-panel.resizing .tree-view-resize-handle {
+  background: var(--vscode-sash-hoverBorder, rgba(0, 127, 212, 0.3));
+}
+
+.resize-handle-bar {
+  width: 40px;
+  height: 3px;
+  background: var(--vscode-panel-border);
+  border-radius: 2px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.tree-view-resize-handle:hover .resize-handle-bar,
+.tree-view-panel.resizing .resize-handle-bar {
+  opacity: 1;
+  background: var(--vscode-focusBorder);
 }
 
 /* Header row */

@@ -271,6 +271,7 @@ export function TreemapCanvas({
         y={tooltipState.y}
         node={tooltipState.node}
         sizeMode={sizeMode}
+        colorMode={colorMode}
       />
       <TreemapContextMenu
         visible={contextMenuState.visible}

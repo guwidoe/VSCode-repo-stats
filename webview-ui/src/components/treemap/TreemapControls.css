@@ -13,58 +13,42 @@
   gap: 16px;
 }
 
-.toggle-group {
+/* Control group for dropdowns */
+.control-group {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.toggle-group .toggle-label {
+.control-label {
   display: flex;
   align-items: center;
   color: var(--vscode-descriptionForeground);
   font-size: 12px;
 }
 
-.toggle-group .toggle-button:first-of-type {
-  border-radius: 4px 0 0 4px;
-  border: 1px solid var(--vscode-button-border, var(--vscode-panel-border));
-  border-right: none;
-}
-
-.toggle-group .toggle-button:last-of-type {
-  border-radius: 0 4px 4px 0;
-  border: 1px solid var(--vscode-button-border, var(--vscode-panel-border));
-}
-
-.toggle-group .toggle-button:not(:first-of-type):not(:last-of-type) {
-  border-radius: 0;
-  border: 1px solid var(--vscode-button-border, var(--vscode-panel-border));
-  border-left: none;
-  border-right: none;
-}
-
-.toggle-button {
-  padding: 4px 10px;
-  background: var(--vscode-button-secondaryBackground);
-  color: var(--vscode-button-secondaryForeground);
-  border: none;
+.control-select {
+  padding: 4px 8px;
+  background: var(--vscode-dropdown-background);
+  color: var(--vscode-dropdown-foreground);
+  border: 1px solid var(--vscode-dropdown-border, var(--vscode-panel-border));
+  border-radius: 4px;
   font-size: 12px;
   font-family: var(--vscode-font-family);
   cursor: pointer;
-  transition: background-color 0.15s;
+  min-width: 90px;
 }
 
-
-.toggle-button:hover:not(.active) {
-  background: var(--vscode-button-secondaryHoverBackground);
+.control-select:hover {
+  border-color: var(--vscode-focusBorder);
 }
 
-.toggle-button.active {
-  background: var(--vscode-button-background);
-  color: var(--vscode-button-foreground);
+.control-select:focus {
+  outline: none;
+  border-color: var(--vscode-focusBorder);
 }
 
+/* Depth control */
 .depth-control {
   display: flex;
   align-items: center;

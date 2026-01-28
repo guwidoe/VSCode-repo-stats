@@ -1,5 +1,6 @@
 /**
  * TreemapControls - Control panel for treemap color mode, size mode, and nesting depth.
+ * Uses dropdowns instead of toggle buttons to save space.
  */
 
 import type { ColorMode } from '../../types';
@@ -8,16 +9,30 @@ import { InfoTooltip } from '../common/InfoTooltip';
 import './TreemapControls.css';
 
 interface TreemapControlsProps {
-  colorMode: ColorMode
-  sizeMode: SizeDisplayMode
-  nestingDepth: number
-  maxDepth: number
-  onColorModeChange: (mode: ColorMode) => void
-  onSizeModeChange: (mode: SizeDisplayMode) => void
-  onNestingDepthChange: (depth: number) => void
+  colorMode: ColorMode;
+  sizeMode: SizeDisplayMode;
+  nestingDepth: number;
+  maxDepth: number;
+  onColorModeChange: (mode: ColorMode) => void;
+  onSizeModeChange: (mode: SizeDisplayMode) => void;
+  onNestingDepthChange: (depth: number) => void;
 }
 
 const MIN_NESTING_DEPTH = 1;
+
+const COLOR_MODE_OPTIONS: { value: ColorMode; label: string }[] = [
+  { value: 'language', label: 'Language' },
+  { value: 'age', label: 'Age' },
+  { value: 'complexity', label: 'Complexity' },
+  { value: 'density', label: 'Density' },
+];
+
+const SIZE_MODE_OPTIONS: { value: SizeDisplayMode; label: string }[] = [
+  { value: 'loc', label: 'LOC' },
+  { value: 'bytes', label: 'Bytes' },
+  { value: 'files', label: 'Files' },
+  { value: 'complexity', label: 'Complexity' },
+];
 
 export function TreemapControls({
   colorMode,
@@ -43,74 +58,48 @@ export function TreemapControls({
   return (
     <div className="treemap-controls">
       <div className="controls-right">
-        {/* Color mode toggle */}
-        <div className="toggle-group">
-          <span className="toggle-label">
+        {/* Color mode dropdown */}
+        <div className="control-group">
+          <label className="control-label">
             Color
             <InfoTooltip
               content="Language: by programming language. Age: by last modified (green=recent, red=old). Complexity: by cyclomatic complexity (green=simple, red=complex). Density: by code density (green=dense code, red=sparse)."
               position="bottom"
             />
-          </span>
-          <button
-            className={`toggle-button ${colorMode === 'language' ? 'active' : ''}`}
-            onClick={() => onColorModeChange('language')}
+          </label>
+          <select
+            className="control-select"
+            value={colorMode}
+            onChange={(e) => onColorModeChange(e.target.value as ColorMode)}
           >
-            Language
-          </button>
-          <button
-            className={`toggle-button ${colorMode === 'age' ? 'active' : ''}`}
-            onClick={() => onColorModeChange('age')}
-          >
-            Age
-          </button>
-          <button
-            className={`toggle-button ${colorMode === 'complexity' ? 'active' : ''}`}
-            onClick={() => onColorModeChange('complexity')}
-          >
-            Complexity
-          </button>
-          <button
-            className={`toggle-button ${colorMode === 'density' ? 'active' : ''}`}
-            onClick={() => onColorModeChange('density')}
-          >
-            Density
-          </button>
+            {COLOR_MODE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
         </div>
 
-        {/* Size mode toggle */}
-        <div className="toggle-group">
-          <span className="toggle-label">
+        {/* Size mode dropdown */}
+        <div className="control-group">
+          <label className="control-label">
             Size
             <InfoTooltip
               content="LOC: by lines of code. Bytes: by file size. Files: equal size per file. Complexity: by cyclomatic complexity (shows complex hotspots)."
               position="bottom"
             />
-          </span>
-          <button
-            className={`toggle-button ${sizeMode === 'loc' ? 'active' : ''}`}
-            onClick={() => onSizeModeChange('loc')}
+          </label>
+          <select
+            className="control-select"
+            value={sizeMode}
+            onChange={(e) => onSizeModeChange(e.target.value as SizeDisplayMode)}
           >
-            LOC
-          </button>
-          <button
-            className={`toggle-button ${sizeMode === 'bytes' ? 'active' : ''}`}
-            onClick={() => onSizeModeChange('bytes')}
-          >
-            Bytes
-          </button>
-          <button
-            className={`toggle-button ${sizeMode === 'files' ? 'active' : ''}`}
-            onClick={() => onSizeModeChange('files')}
-          >
-            Files
-          </button>
-          <button
-            className={`toggle-button ${sizeMode === 'complexity' ? 'active' : ''}`}
-            onClick={() => onSizeModeChange('complexity')}
-          >
-            Complexity
-          </button>
+            {SIZE_MODE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Nesting depth control */}
