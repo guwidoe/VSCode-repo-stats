@@ -44,6 +44,41 @@ export function TreeViewPanel({
     return new Set(['']);
   });
 
+  // When selectedPath changes (e.g., from treemap click), expand all parent paths
+  useEffect(() => {
+    if (!selectedPath) {return;}
+
+    // Get all parent paths for the selected item
+    const parts = selectedPath.split('/').filter(Boolean);
+    const parentPaths: string[] = [''];  // Always include root
+
+    let currentPath = '';
+    for (let i = 0; i < parts.length - 1; i++) {  // Stop before the last part (the item itself)
+      currentPath = currentPath ? `${currentPath}/${parts[i]}` : parts[i];
+      parentPaths.push(currentPath);
+    }
+
+    // Add all parent paths to expanded set
+    setExpandedPaths((prev) => {
+      const next = new Set(prev);
+      for (const path of parentPaths) {
+        next.add(path);
+      }
+      return next;
+    });
+
+    // Uncollapse the tree view if it's collapsed
+    setIsCollapsed(false);
+
+    // Scroll the selected item into view after DOM updates
+    requestAnimationFrame(() => {
+      const selectedRow = panelRef.current?.querySelector('.tree-row.selected');
+      if (selectedRow) {
+        selectedRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    });
+  }, [selectedPath]);
+
   // Handle resize mouse events
   useEffect(() => {
     if (!isResizing) {return;}
