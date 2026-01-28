@@ -14,7 +14,7 @@ import {
 // Cache Version - Bump this when cache structure changes
 // ============================================================================
 
-const CACHE_VERSION = '1.0.0';
+const CACHE_VERSION = '1.1.0'; // Bumped for complexity metrics in TreemapNode
 
 // ============================================================================
 // Storage Interface (for dependency injection)
