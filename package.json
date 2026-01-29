@@ -2,7 +2,7 @@
   "name": "vscode-repo-stats",
   "displayName": "Repo Stats",
   "description": "Visualize repository statistics with contributor dashboards, code frequency graphs, and treemap views",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publisher": "guwidoe",
   "license": "MIT",
   "icon": "images/icon.png",
