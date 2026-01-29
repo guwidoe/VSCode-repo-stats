@@ -62,17 +62,26 @@ Use E2E tests to verify the extension works as a user would experience it.
 
 ## Autonomous Validation Rules
 
-**During development:** Fix obvious errors as you go, but don't run full validation after every edit.
+**CRITICAL: Tests are mandatory, not optional.**
+
+**After ANY component modification:**
+
+1. Check if the modified component has a `.test.tsx` or `.test.ts` file
+2. If tests exist, run them immediately: `npm run test:unit`
+3. If tests fail because of your changes, **update the tests** to match the new behavior
+4. Do NOT commit until tests pass
 
 **After completing a feature or logical unit of work:**
 
 1. Run `npm run typecheck` - Fix TypeScript errors
 2. Run `npm run lint` - Fix lint errors
-3. Run `npm run test` - Ensure all tests pass
+3. Run `npm run test` - Ensure ALL tests pass
 
 **Before committing:** Run `npm run validate` (runs all checks + package)
 
 **NEVER commit code that fails validation.**
+
+**If you change a component's structure (e.g., toggle buttons → dropdowns), you MUST update the corresponding tests. This is not optional.**
 
 ## Code Style
 
@@ -176,8 +185,10 @@ const result = analyzeRepo(workspacePath, new SimpleGitClient(workspacePath));
 - NEVER block the extension host with synchronous operations
 - Always use Worker Threads for operations over 100ms
 - YOU MUST handle the case where scc binary is not installed
-- NEVER commit without running tests first
+- NEVER commit without running `npm run validate` first
 - Never import from 'vscode' in webview code (use message passing)
+- **NEVER modify a component without checking if tests exist for it** - if they do, run them and update them if they fail due to your changes
+- **NEVER assume tests will pass** - always run `npm run test` before committing
 
 ## Debugging (for automated tests)
 

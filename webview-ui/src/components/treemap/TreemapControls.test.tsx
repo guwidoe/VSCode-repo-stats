@@ -13,16 +13,28 @@ describe('TreemapControls', () => {
     onNestingDepthChange: vi.fn(),
   };
 
-  it('should render color mode toggle', () => {
+  it('should render color mode dropdown with all options', () => {
     render(<TreemapControls {...defaultProps} />);
-    expect(screen.getByText('Language')).toBeInTheDocument();
-    expect(screen.getByText('Age')).toBeInTheDocument();
+    const colorSelect = screen.getByDisplayValue('Language') as HTMLSelectElement;
+    expect(colorSelect).toBeInTheDocument();
+    // Check all options are present in color dropdown
+    const colorOptions = Array.from(colorSelect.options).map(opt => opt.text);
+    expect(colorOptions).toContain('Language');
+    expect(colorOptions).toContain('Age');
+    expect(colorOptions).toContain('Complexity');
+    expect(colorOptions).toContain('Density');
   });
 
-  it('should render size mode toggle', () => {
+  it('should render size mode dropdown with all options', () => {
     render(<TreemapControls {...defaultProps} />);
-    expect(screen.getByText('LOC')).toBeInTheDocument();
-    expect(screen.getByText('Files')).toBeInTheDocument();
+    const sizeSelect = screen.getByDisplayValue('LOC') as HTMLSelectElement;
+    expect(sizeSelect).toBeInTheDocument();
+    // Check all options are present in size dropdown
+    const sizeOptions = Array.from(sizeSelect.options).map(opt => opt.text);
+    expect(sizeOptions).toContain('LOC');
+    expect(sizeOptions).toContain('Bytes');
+    expect(sizeOptions).toContain('Files');
+    expect(sizeOptions).toContain('Complexity');
   });
 
   it('should render nesting depth control', () => {
@@ -31,17 +43,19 @@ describe('TreemapControls', () => {
     expect(screen.getByText('3')).toBeInTheDocument();
   });
 
-  it('should call onColorModeChange when toggling', () => {
+  it('should call onColorModeChange when selecting different option', () => {
     const onColorModeChange = vi.fn();
     render(<TreemapControls {...defaultProps} onColorModeChange={onColorModeChange} />);
-    fireEvent.click(screen.getByText('Age'));
+    const colorSelect = screen.getByDisplayValue('Language');
+    fireEvent.change(colorSelect, { target: { value: 'age' } });
     expect(onColorModeChange).toHaveBeenCalledWith('age');
   });
 
-  it('should call onSizeModeChange when toggling', () => {
+  it('should call onSizeModeChange when selecting different option', () => {
     const onSizeModeChange = vi.fn();
     render(<TreemapControls {...defaultProps} onSizeModeChange={onSizeModeChange} />);
-    fireEvent.click(screen.getByText('Files'));
+    const sizeSelect = screen.getByDisplayValue('LOC');
+    fireEvent.change(sizeSelect, { target: { value: 'files' } });
     expect(onSizeModeChange).toHaveBeenCalledWith('files');
   });
 
@@ -73,17 +87,16 @@ describe('TreemapControls', () => {
     expect(onNestingDepthChange).not.toHaveBeenCalled();
   });
 
-  it('should show active state for current color mode', () => {
-    const { container } = render(<TreemapControls {...defaultProps} colorMode="language" />);
-    const languageButton = container.querySelector('.toggle-button.active');
-    expect(languageButton).toHaveTextContent('Language');
+  it('should show current color mode as selected', () => {
+    render(<TreemapControls {...defaultProps} colorMode="complexity" />);
+    const colorSelect = screen.getByDisplayValue('Complexity');
+    expect(colorSelect).toBeInTheDocument();
   });
 
-  it('should show active state for current size mode', () => {
-    const { container } = render(<TreemapControls {...defaultProps} sizeMode="files" />);
-    const activeButtons = container.querySelectorAll('.toggle-button.active');
-    const filesButton = Array.from(activeButtons).find(btn => btn.textContent === 'Files');
-    expect(filesButton).toBeTruthy();
+  it('should show current size mode as selected', () => {
+    render(<TreemapControls {...defaultProps} sizeMode="files" />);
+    const sizeSelect = screen.getByDisplayValue('Files');
+    expect(sizeSelect).toBeInTheDocument();
   });
 
   it('should disable minus button at minimum depth', () => {
