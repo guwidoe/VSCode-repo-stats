@@ -9,8 +9,6 @@ VSCode extension for repo statistics: contributors, code frequency, and treemap 
 - Extension: TypeScript, esbuild, simple-git, scc binary
 - Webview: React, Vite, D3.js, Plotly.js, Zustand
 
-See [docs/CODEBASE_MAP.md](docs/CODEBASE_MAP.md) for architecture and module guide.
-
 ## Project Rules
 
 - Run `npm run validate` before finishing any feature (required for publishing)
