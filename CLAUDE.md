@@ -68,7 +68,9 @@ Use E2E tests to verify the extension works as a user would experience it.
 
 1. Check if the modified component has a `.test.tsx` or `.test.ts` file
 2. If tests exist, run them immediately: `npm run test:unit`
-3. If tests fail because of your changes, **update the tests** to match the new behavior
+3. If tests fail, determine the cause:
+   - **Test caught a bug** → fix your code, not the test
+   - **Intentional behavior change** (e.g., UI structure changed) → update the test
 4. Do NOT commit until tests pass
 
 **After completing a feature or logical unit of work:**
@@ -81,7 +83,7 @@ Use E2E tests to verify the extension works as a user would experience it.
 
 **NEVER commit code that fails validation.**
 
-**If you change a component's structure (e.g., toggle buttons → dropdowns), you MUST update the corresponding tests. This is not optional.**
+**If you intentionally change a component's behavior or structure (e.g., toggle buttons → dropdowns), the tests WILL fail - this is expected and you must update them to match the new design.**
 
 ## Code Style
 
@@ -187,7 +189,7 @@ const result = analyzeRepo(workspacePath, new SimpleGitClient(workspacePath));
 - YOU MUST handle the case where scc binary is not installed
 - NEVER commit without running `npm run validate` first
 - Never import from 'vscode' in webview code (use message passing)
-- **NEVER modify a component without checking if tests exist for it** - if they do, run them and update them if they fail due to your changes
+- **NEVER modify a component without running its tests** - if tests fail, determine whether the test caught a bug (fix your code) or the behavior intentionally changed (update the test)
 - **NEVER assume tests will pass** - always run `npm run test` before committing
 
 ## Debugging (for automated tests)
