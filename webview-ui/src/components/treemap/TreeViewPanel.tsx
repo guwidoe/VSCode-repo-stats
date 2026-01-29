@@ -72,9 +72,27 @@ export function TreeViewPanel({
 
     // Scroll the selected item into view after DOM updates
     requestAnimationFrame(() => {
-      const selectedRow = panelRef.current?.querySelector('.tree-row.selected');
-      if (selectedRow) {
-        selectedRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      const selectedRow = panelRef.current?.querySelector('.tree-row.selected') as HTMLElement | null;
+      const scrollContainer = panelRef.current?.querySelector('.tree-view-content') as HTMLElement | null;
+      if (selectedRow && scrollContainer) {
+        const containerRect = scrollContainer.getBoundingClientRect();
+        const rowRect = selectedRow.getBoundingClientRect();
+        const headerHeight = 30; // Approximate sticky header height
+        const buffer = 4; // Extra padding so item isn't at the edge
+
+        // Check if item is above the visible area (accounting for sticky header)
+        const visibleTop = containerRect.top + headerHeight;
+        if (rowRect.top < visibleTop) {
+          // Item is above: scroll so item appears below the header with buffer
+          const scrollOffset = rowRect.top - visibleTop - buffer;
+          scrollContainer.scrollBy({ top: scrollOffset, behavior: 'smooth' });
+        }
+        // Check if item is below the visible area
+        else if (rowRect.bottom > containerRect.bottom) {
+          // Item is below: scroll so item appears above the bottom with buffer
+          const scrollOffset = rowRect.bottom - containerRect.bottom + buffer;
+          scrollContainer.scrollBy({ top: scrollOffset, behavior: 'smooth' });
+        }
       }
     });
   }, [selectedPath]);
