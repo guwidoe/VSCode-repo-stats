@@ -198,16 +198,16 @@
     "@types/chai": "^4.3.11",
     "@types/mocha": "^10.0.6",
     "@types/node": "^20.x",
-    "@types/vscode": "^1.85.0",
+    "@types/vscode": "^1.109.0",
     "@typescript-eslint/eslint-plugin": "^6.19.0",
     "@typescript-eslint/parser": "^6.19.0",
     "@vitejs/plugin-react": "^4.2.0",
     "@vitest/coverage-v8": "^1.2.0",
-    "@vscode/test-cli": "^0.0.6",
+    "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.3.9",
     "@vscode/vsce": "^2.22.0",
     "chai": "^4.4.1",
-    "esbuild": "^0.20.0",
+    "esbuild": "^0.27.3",
     "eslint": "^8.56.0",
     "eslint-plugin-react": "^7.37.5",
     "jsdom": "^24.0.0",
@@ -215,9 +215,9 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.3.0",
     "vitest": "^1.2.0",
-    "vscode-extension-tester": "^8.0.0"
+    "vscode-extension-tester": "^8.22.0"
   },
   "dependencies": {
-    "simple-git": "^3.22.0"
+    "simple-git": "^3.31.1"
   }
 }
