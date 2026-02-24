@@ -112,6 +112,7 @@ export interface ExtensionSettings {
   defaultColorMode: 'language' | 'age' | 'complexity' | 'density';
   generatedPatterns: string[];
   binaryExtensions: string[];
+  locExcludedExtensions: string[];
   showEmptyTimePeriods: boolean;
   defaultGranularityMode: 'auto' | 'weekly' | 'monthly';
   autoGranularityThreshold: number; // Weeks threshold for auto mode (default 20)

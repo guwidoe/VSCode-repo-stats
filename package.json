@@ -117,7 +117,12 @@
             ".sqlite", ".db", ".mdb",
             ".vhdx", ".vmdk", ".iso", ".dmg", ".deb", ".rpm", ".icns"
           ],
-          "description": "File extensions considered as binary files (images, fonts, compiled, etc.). These have 0 LOC but are shown in treemap Size mode."
+          "description": "File extensions considered binary for classification and binary-focused views."
+        },
+        "repoStats.locExcludedExtensions": {
+          "type": "array",
+          "default": [],
+          "description": "File extensions to exclude from LOC counting (e.g. .svg). Accepts forms like .svg, svg, or **/*.svg."
         },
         "repoStats.showEmptyTimePeriods": {
           "type": "boolean",

@@ -60,10 +60,18 @@ export function GeneralSettings({ settings, data, updateSettings, requestRefresh
 
         <PatternListSetting
           title="Binary File Extensions"
-          description="File extensions considered binary (images, fonts, compiled, etc.). These have 0 LOC but appear in Size mode."
+          description="File extensions considered binary for classification and binary-focused views."
           patterns={settings.binaryExtensions || []}
           onChange={(patterns) => updateSettings({ binaryExtensions: patterns })}
           placeholder="e.g., .png, .woff2"
+        />
+
+        <PatternListSetting
+          title="LOC Excluded Extensions"
+          description="File extensions excluded from LOC counting (use this for files like .svg that should not inflate code totals)."
+          patterns={settings.locExcludedExtensions || []}
+          onChange={(patterns) => updateSettings({ locExcludedExtensions: patterns })}
+          placeholder="e.g., .svg, svg, **/*.svg"
         />
 
         <NumberSetting
@@ -82,7 +90,7 @@ export function GeneralSettings({ settings, data, updateSettings, requestRefresh
           Re-analyze Repository
         </button>
         <p className="settings-hint">
-          Click to re-analyze after changing exclude or generated patterns.
+          Click to re-analyze after changing exclude, generated, binary, or LOC-excluded extension patterns.
         </p>
       </div>
     </>

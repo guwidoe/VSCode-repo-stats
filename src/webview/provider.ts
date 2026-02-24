@@ -210,6 +210,9 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     if (settings.binaryExtensions !== undefined) {
       await config.update('binaryExtensions', settings.binaryExtensions, vscode.ConfigurationTarget.Global);
     }
+    if (settings.locExcludedExtensions !== undefined) {
+      await config.update('locExcludedExtensions', settings.locExcludedExtensions, vscode.ConfigurationTarget.Global);
+    }
     if (settings.showEmptyTimePeriods !== undefined) {
       await config.update('showEmptyTimePeriods', settings.showEmptyTimePeriods, vscode.ConfigurationTarget.Global);
     }
@@ -339,6 +342,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
         '.sqlite', '.db', '.mdb',
         '.vhdx', '.vmdk', '.iso', '.dmg', '.deb', '.rpm', '.icns',
       ]),
+      locExcludedExtensions: config.get<string[]>('locExcludedExtensions', []),
       showEmptyTimePeriods: config.get<boolean>('showEmptyTimePeriods', true),
       defaultGranularityMode: config.get<'auto' | 'weekly' | 'monthly'>('defaultGranularityMode', 'auto'),
       autoGranularityThreshold: config.get<number>('autoGranularityThreshold', 20),

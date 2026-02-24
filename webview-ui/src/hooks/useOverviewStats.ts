@@ -5,7 +5,11 @@
 import { useMemo } from 'react';
 import { useStore } from '../store';
 import type { TreemapNode } from '../types';
-import { isBinaryFile, isCodeLanguage } from '../utils/fileTypes';
+import {
+  isBinaryFile,
+  isCodeLanguage,
+  buildBinaryExtensionSet,
+} from '../utils/fileTypes';
 import { getLanguageColor } from '../utils/colors';
 
 export interface ExtensionStats {
@@ -159,10 +163,19 @@ interface TraversalState {
   binaryFileCount: number;
 }
 
-function traverseTree(node: TreemapNode, state: TraversalState, generatedPatterns: string[]): void {
+function traverseTree(
+  node: TreemapNode,
+  state: TraversalState,
+  generatedPatterns: string[],
+  binaryExtensions: Set<string>
+): void {
   if (node.type === 'file') {
     const ext = getFileExtension(node.name);
-    const isBinary = isBinaryFile(node.path);
+    // `node.binary` is authoritative for backend-classified binary files.
+    // Fallback to extension-based detection only for 0-LOC files.
+    const isBinary =
+      node.binary === true ||
+      ((node.lines || 0) === 0 && isBinaryFile(node.path, binaryExtensions));
     const isGenerated = isGeneratedFile(node.path, generatedPatterns);
 
     // Count by extension (all files)
@@ -214,7 +227,7 @@ function traverseTree(node: TreemapNode, state: TraversalState, generatedPattern
     }
   } else if (node.children) {
     for (const child of node.children) {
-      traverseTree(child, state, generatedPatterns);
+      traverseTree(child, state, generatedPatterns, binaryExtensions);
     }
   }
 }
@@ -230,6 +243,7 @@ export function useOverviewStats(): OverviewStats | null {
 
     // Use settings patterns or fall back to defaults
     const generatedPatterns = settings?.generatedPatterns ?? DEFAULT_GENERATED_PATTERNS;
+    const binaryExtensions = buildBinaryExtensionSet(settings?.binaryExtensions);
 
     const state: TraversalState = {
       extensionMap: new Map(),
@@ -243,7 +257,7 @@ export function useOverviewStats(): OverviewStats | null {
       binaryFileCount: 0,
     };
 
-    traverseTree(data.fileTree, state, generatedPatterns);
+    traverseTree(data.fileTree, state, generatedPatterns, binaryExtensions);
 
     // Sort extensions by count descending
     const byExtension = Array.from(state.extensionMap.entries())
