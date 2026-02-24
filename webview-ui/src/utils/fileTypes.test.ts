@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { isBinaryFile, isCodeLanguage, BINARY_EXTENSIONS, CODE_LANGUAGES } from './fileTypes';
+import {
+  isBinaryFile,
+  isCodeLanguage,
+  BINARY_EXTENSIONS,
+  CODE_LANGUAGES,
+  buildBinaryExtensionSet,
+  normalizeExtension,
+} from './fileTypes';
 
 describe('fileTypes', () => {
   describe('isBinaryFile', () => {
@@ -67,6 +74,26 @@ describe('fileTypes', () => {
     it('should handle paths with directories', () => {
       expect(isBinaryFile('assets/images/logo.png')).toBe(true);
       expect(isBinaryFile('src/components/App.tsx')).toBe(false);
+    });
+
+    it('should support custom binary extension sets', () => {
+      const customBinary = buildBinaryExtensionSet(['.svg']);
+      expect(isBinaryFile('icon.svg', customBinary)).toBe(true);
+      expect(isBinaryFile('app.ts', customBinary)).toBe(false);
+    });
+  });
+
+  describe('binary extension normalization', () => {
+    it('should normalize common extension forms', () => {
+      expect(normalizeExtension('.SVG')).toBe('.svg');
+      expect(normalizeExtension('svg')).toBe('.svg');
+      expect(normalizeExtension('**/*.svg')).toBe('.svg');
+    });
+
+    it('should reject invalid extension forms', () => {
+      expect(normalizeExtension('')).toBeNull();
+      expect(normalizeExtension('*')).toBeNull();
+      expect(normalizeExtension('assets/icons')).toBeNull();
     });
   });
 

@@ -14,7 +14,12 @@ import {
   ExtensionSettings,
 } from '../types/index.js';
 import { GitClient, createGitAnalyzer } from './gitAnalyzer.js';
-import { LOCClient, createLOCCounter } from './locCounter.js';
+import {
+  LOCClient,
+  createLOCCounter,
+  normalizeExtensionForFilter,
+  shouldExcludeFileByExtension,
+} from './locCounter.js';
 
 // ============================================================================
 // Progress Callback Type
@@ -87,7 +92,10 @@ export class AnalysisCoordinator {
       ...this.settings.excludePatterns,
       ...submodulePaths,
     ];
-    const fileTree = await this.locClient.countLines(allExcludePatterns);
+    const fileTree = await this.locClient.countLines(
+      allExcludePatterns,
+      this.settings.locExcludedExtensions
+    );
     onProgress?.('Lines of code counted', 80);
 
     // Phase 6: Get git file modification dates
@@ -99,11 +107,19 @@ export class AnalysisCoordinator {
     onProgress?.('Scanning for binary files', 90);
     const trackedFiles = await this.gitClient.getTrackedFiles();
     const codeFilePaths = this.collectFilePaths(fileTree);
+    const locExcludedExtensionSet = this.buildExtensionSet(
+      this.settings.locExcludedExtensions
+    );
+    const binaryExtensionSet = this.buildExtensionSet(
+      this.settings.binaryExtensions
+    );
     await this.addBinaryFilesToTree(
       fileTree,
       trackedFiles,
       codeFilePaths,
-      fileModDates
+      fileModDates,
+      locExcludedExtensionSet,
+      binaryExtensionSet
     );
     onProgress?.('Binary files added', 93);
 
@@ -214,18 +230,66 @@ export class AnalysisCoordinator {
   }
 
   /**
+   * Build a normalized extension set from settings values.
+   */
+  private buildExtensionSet(extensions: string[] = []): Set<string> {
+    const result = new Set<string>();
+    for (const extension of extensions) {
+      const normalized = normalizeExtensionForFilter(extension);
+      if (normalized) {
+        result.add(normalized);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Returns normalized extension for a filename, handling dotfiles like ".env".
+   */
+  private getFileExtension(fileName: string): string {
+    const ext = path.extname(fileName).toLowerCase();
+    if (ext) {
+      return ext;
+    }
+
+    const normalizedName = fileName.toLowerCase();
+    if (normalizedName.startsWith('.') && !normalizedName.slice(1).includes('.')) {
+      return normalizedName;
+    }
+
+    return '';
+  }
+
+  /**
    * Add binary files (files not in scc output) to the tree.
    */
   private async addBinaryFilesToTree(
     root: TreemapNode,
     allTrackedFiles: string[],
     codeFilePaths: Set<string>,
-    fileModDates: Map<string, string>
+    fileModDates: Map<string, string>,
+    locExcludedExtensions: Set<string>,
+    binaryExtensions: Set<string>
   ): Promise<void> {
     // Find binary files (tracked but not in scc output)
     const binaryFiles = allTrackedFiles.filter(f => !codeFilePaths.has(f));
 
     for (const filePath of binaryFiles) {
+      const isLocExcluded = shouldExcludeFileByExtension(
+        filePath,
+        locExcludedExtensions
+      );
+      const isConfiguredBinary = shouldExcludeFileByExtension(
+        filePath,
+        binaryExtensions
+      );
+
+      // Files excluded from LOC but not configured as binary are fully ignored.
+      // This prevents cases like '.ts' being shown as binary when intentionally excluded.
+      if (isLocExcluded && !isConfiguredBinary) {
+        continue;
+      }
+
       // Get file size
       let bytes = 0;
       try {
@@ -241,7 +305,7 @@ export class AnalysisCoordinator {
       const fileName = segments[segments.length - 1];
 
       // Determine language from extension (for display purposes)
-      const ext = path.extname(fileName).toLowerCase();
+      const ext = this.getFileExtension(fileName);
       const language = this.getBinaryLanguage(ext);
 
       // Navigate/create directory structure
@@ -331,7 +395,10 @@ export class AnalysisCoordinator {
   }
 
   async getFileTree(): Promise<TreemapNode> {
-    return this.locClient.countLines(this.settings.excludePatterns);
+    return this.locClient.countLines(
+      this.settings.excludePatterns,
+      this.settings.locExcludedExtensions
+    );
   }
 }
 

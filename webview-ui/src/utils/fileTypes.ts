@@ -57,15 +57,84 @@ export const CODE_LANGUAGES = new Set([
 ]);
 
 /**
+ * Normalizes extension input into lowercase ".ext" format.
+ * Returns null for invalid values.
+ */
+export function normalizeExtension(extension: string): string | null {
+  const trimmed = extension.trim().toLowerCase();
+  if (!trimmed) {
+    return null;
+  }
+
+  const normalizedPath = trimmed.replace(/\\/g, '/');
+  const extFromPath = normalizedPath.includes('.')
+    ? normalizedPath.slice(normalizedPath.lastIndexOf('.'))
+    : '';
+
+  const candidate = extFromPath
+    ? extFromPath
+    : normalizedPath.startsWith('.')
+      ? normalizedPath
+      : `.${normalizedPath}`;
+
+  if (
+    candidate === '.' ||
+    candidate.includes('/') ||
+    candidate.includes('*') ||
+    candidate.includes('?')
+  ) {
+    return null;
+  }
+
+  return candidate;
+}
+
+/**
+ * Builds a normalized binary-extension set from settings.
+ * - If undefined: uses default built-in binary extensions.
+ * - If provided (including empty array): uses exactly the provided values.
+ */
+export function buildBinaryExtensionSet(extensions?: string[]): Set<string> {
+  if (extensions === undefined) {
+    return new Set(BINARY_EXTENSIONS);
+  }
+
+  const result = new Set<string>();
+  for (const extension of extensions) {
+    const normalized = normalizeExtension(extension);
+    if (normalized) {
+      result.add(normalized);
+    }
+  }
+
+  return result;
+}
+
+/**
  * Checks if a file should be considered binary based on its path.
  */
-export function isBinaryFile(filePath: string): boolean {
-  const lastDot = filePath.lastIndexOf('.');
-  if (lastDot === -1) {
+export function isBinaryFile(
+  filePath: string,
+  binaryExtensions: Set<string> = BINARY_EXTENSIONS
+): boolean {
+  const normalizedPath = filePath.replace(/\\/g, '/');
+  const fileName = normalizedPath.split('/').pop() || '';
+
+  if (!fileName) {
     return false;
   }
-  const ext = filePath.substring(lastDot).toLowerCase();
-  return BINARY_EXTENSIONS.has(ext);
+
+  let extension = '';
+  const lastDot = fileName.lastIndexOf('.');
+
+  if (lastDot > 0) {
+    extension = fileName.slice(lastDot).toLowerCase();
+  } else if (lastDot === 0 && fileName.indexOf('.', 1) === -1) {
+    // Dotfile like .env
+    extension = fileName.toLowerCase();
+  }
+
+  return extension.length > 0 && binaryExtensions.has(extension);
 }
 
 /**

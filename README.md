@@ -119,7 +119,10 @@ This extension uses [scc](https://github.com/boyter/scc) for accurate lines-of-c
 | `repoStats.defaultColorMode`     | `"language"` | Default treemap color mode (`language` or `age`)    |
 | `repoStats.showEmptyTimePeriods` | `true`       | Show weeks/months with no activity in charts        |
 | `repoStats.generatedPatterns`    | See below    | Glob patterns to identify generated files           |
-| `repoStats.binaryExtensions`     | See below    | File extensions considered as binary                |
+| `repoStats.binaryExtensions`     | See below    | File extensions considered binary for classification and binary-focused views |
+| `repoStats.locExcludedExtensions`| `[]`         | File extensions excluded from LOC counting          |
+
+Tip: If assets like `.svg` files inflate LOC totals for your project, add `.svg` to `repoStats.locExcludedExtensions`.
 
 <details>
 <summary>Default Generated Patterns</summary>

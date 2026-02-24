@@ -4,6 +4,9 @@
  *
  * Note: scc respects .gitignore by default. The excludePatterns setting
  * provides ADDITIONAL exclusions beyond what's in .gitignore.
+ *
+ * Files with extensions listed in `locExcludedExtensions` are excluded from
+ * LOC counting.
  */
 
 import { exec } from 'child_process';
@@ -23,9 +26,101 @@ const execAsync = promisify(exec);
 // ============================================================================
 
 export interface LOCClient {
-  countLines(excludePatterns: string[]): Promise<TreemapNode>;
+  countLines(
+    excludePatterns: string[],
+    locExcludedExtensions?: string[]
+  ): Promise<TreemapNode>;
   ensureSccAvailable(onProgress?: (percent: number) => void): Promise<void>;
   getSccInfo(): Promise<SccInfo>;
+}
+
+// ============================================================================
+// Extension Filter Helpers
+// ============================================================================
+
+/**
+ * Normalizes a user-provided extension into a lowercase ".ext" form.
+ * Returns null for invalid or empty values.
+ *
+ * Accepts both plain extensions and common glob-like forms:
+ * - "svg" -> ".svg"
+ * - ".SVG" -> ".svg"
+ * - "*.svg" / glob patterns ending in ".svg" -> ".svg"
+ */
+export function normalizeExtensionForFilter(extension: string): string | null {
+  const trimmed = extension.trim().toLowerCase();
+  if (!trimmed) {
+    return null;
+  }
+
+  const normalizedPath = trimmed.replace(/\\/g, '/');
+
+  // Support glob-like input by extracting the trailing extension if present.
+  const extFromPath = path.posix.extname(normalizedPath);
+  const candidate = extFromPath
+    ? extFromPath
+    : normalizedPath.startsWith('.')
+      ? normalizedPath
+      : `.${normalizedPath}`;
+
+  // If no extension was extracted and path separators remain,
+  // this is likely not an extension value (e.g., "assets/icons").
+  if (!extFromPath && normalizedPath.includes('/')) {
+    return null;
+  }
+
+  if (
+    candidate === '.' ||
+    candidate.includes('/') ||
+    candidate.includes('*') ||
+    candidate.includes('?')
+  ) {
+    return null;
+  }
+
+  return candidate;
+}
+
+function buildExcludedExtensionSet(extensions: string[] = []): Set<string> {
+  const set = new Set<string>();
+
+  for (const extension of extensions) {
+    const normalized = normalizeExtensionForFilter(extension);
+    if (normalized) {
+      set.add(normalized);
+    }
+  }
+
+  return set;
+}
+
+/**
+ * Returns true when the file path has an extension that should be excluded
+ * from LOC counting.
+ */
+export function shouldExcludeFileByExtension(
+  filePath: string,
+  excludedExtensions: Set<string>
+): boolean {
+  if (excludedExtensions.size === 0) {
+    return false;
+  }
+
+  const normalizedPath = filePath.replace(/\\/g, '/');
+  const basename = path.posix.basename(normalizedPath);
+
+  if (!basename) {
+    return false;
+  }
+
+  let extension = path.posix.extname(basename).toLowerCase();
+
+  // Support dotfiles like ".env" (extname returns empty string there).
+  if (!extension && basename.startsWith('.') && !basename.slice(1).includes('.')) {
+    extension = basename.toLowerCase();
+  }
+
+  return extension.length > 0 && excludedExtensions.has(extension);
 }
 
 // ============================================================================
@@ -93,8 +188,12 @@ export class LOCCounter implements LOCClient {
    * Count lines of code in the repository.
    * Note: scc respects .gitignore by default.
    * @param excludePatterns Additional patterns to exclude beyond .gitignore
+   * @param locExcludedExtensions File extensions to exclude from LOC counting
    */
-  async countLines(excludePatterns: string[]): Promise<TreemapNode> {
+  async countLines(
+    excludePatterns: string[],
+    locExcludedExtensions: string[] = []
+  ): Promise<TreemapNode> {
     if (!this.sccPath) {
       throw new Error(
         'scc is not available. Call ensureSccAvailable() first.'
@@ -104,6 +203,8 @@ export class LOCCounter implements LOCClient {
     const excludeArgs = excludePatterns
       .map((p) => `--exclude-dir=${p}`)
       .join(' ');
+
+    const excludedExtensionSet = buildExcludedExtensionSet(locExcludedExtensions);
 
     try {
       const { stdout } = await execAsync(
@@ -125,7 +226,12 @@ export class LOCCounter implements LOCClient {
           }
         }
       }
-      return this.buildTreeFromScc(allFiles);
+
+      const filteredFiles = allFiles.filter(
+        (file) => !shouldExcludeFileByExtension(file.Location, excludedExtensionSet)
+      );
+
+      return this.buildTreeFromScc(filteredFiles);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
