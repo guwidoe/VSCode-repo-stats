@@ -83,12 +83,6 @@ export function OverviewPanel() {
 
   return (
     <div className="overview-panel">
-      {blameIsUpdating && (
-        <div className="blame-live-indicator" role="status" aria-live="polite">
-          {loading.phase}
-        </div>
-      )}
-
       {/* Charts Row */}
       <div className="charts-row">
         <div className="chart-section">
