@@ -82,10 +82,23 @@ export function App() {
         {activeView !== 'settings' && activeView !== 'about' && activeView !== 'evolution' && (
           <>
             {!settings && <LoadingState phase="Loading settings..." progress={0} />}
-            {settings && loading.isLoading && <LoadingState phase={loading.phase} progress={loading.progress} />}
             {settings && error && <ErrorState message={error} onRetry={requestRefresh} />}
-            {settings && !loading.isLoading && !error && data && (
+            {settings && !error && !data && loading.isLoading && (
+              <LoadingState phase={loading.phase} progress={loading.progress} />
+            )}
+            {settings && !error && data && (
               <>
+                {loading.isLoading && (
+                  <div className="live-update-banner" role="status" aria-live="polite">
+                    <div className="live-update-banner-text">{loading.phase}</div>
+                    <div className="live-update-banner-track">
+                      <div
+                        className="live-update-banner-fill"
+                        style={{ width: `${Math.max(0, Math.min(100, loading.progress))}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
                 {activeView === 'overview' && <OverviewPanel />}
                 {activeView === 'files' && <FilesPanel />}
                 {activeView === 'contributors' && <ContributorsPanel />}

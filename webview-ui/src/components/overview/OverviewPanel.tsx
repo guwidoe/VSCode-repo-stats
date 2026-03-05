@@ -22,9 +22,12 @@ const DEFAULT_AGE_BUCKETS: AgeBucketDefinition[] = [
 export function OverviewPanel() {
   const stats = useOverviewStats();
   const settings = useStore((state) => state.settings)!;
+  const loading = useStore((state) => state.loading);
   const [showAllUnknown, setShowAllUnknown] = useState(false);
 
   const defaultDisplayMode = settings.overviewDisplayMode;
+  const blameIsUpdating =
+    loading.isLoading && loading.phase.startsWith('Analyzing line ownership and age');
 
   if (!stats) {
     return (
@@ -80,6 +83,12 @@ export function OverviewPanel() {
 
   return (
     <div className="overview-panel">
+      {blameIsUpdating && (
+        <div className="blame-live-indicator" role="status" aria-live="polite">
+          {loading.phase}
+        </div>
+      )}
+
       {/* Charts Row */}
       <div className="charts-row">
         <div className="chart-section">
@@ -183,6 +192,7 @@ export function OverviewPanel() {
           </h3>
           <p className="section-description">
             Files analyzed: {stats.blame.totals.filesAnalyzed.toLocaleString()} · Files skipped: {stats.blame.totals.filesSkipped.toLocaleString()} · Cache hits: {stats.blame.totals.cacheHits.toLocaleString()}
+            {blameIsUpdating && ' · Updating live…'}
           </p>
           <p className="section-description">
             Blame charts use physical line ownership (including comments/blank lines). The language LOC donut uses scc code-line metrics, so totals can differ.

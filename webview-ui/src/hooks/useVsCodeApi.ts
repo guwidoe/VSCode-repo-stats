@@ -47,6 +47,7 @@ function getVsCodeApi(): VsCodeApi {
 export function useVsCodeApi() {
   const {
     setData,
+    mergeData,
     setError,
     setLoading,
     setSettings,
@@ -119,13 +120,8 @@ export function useVsCodeApi() {
           break;
 
         case 'incrementalUpdate': {
-          // Handle incremental updates (merge with existing data)
-          const currentData = useStore.getState().data;
-          if (currentData && message.data) {
-            setData({
-              ...currentData,
-              ...message.data,
-            });
+          if (message.data) {
+            mergeData(message.data);
           }
           break;
         }
@@ -153,6 +149,7 @@ export function useVsCodeApi() {
     };
   }, [
     setData,
+    mergeData,
     setError,
     setLoading,
     setSettings,

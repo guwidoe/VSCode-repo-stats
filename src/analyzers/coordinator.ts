@@ -8,13 +8,14 @@ import * as path from 'path';
 import {
   AnalysisResult,
   BlameFileCacheEntry,
+  BlameMetrics,
   RepositoryInfo,
   ContributorStats,
   CodeFrequency,
   TreemapNode,
   ExtensionSettings,
 } from '../types/index.js';
-import { analyzeHeadBlameMetrics } from './blameMetrics.js';
+import { analyzeHeadBlameMetrics, createEmptyBlameMetrics } from './blameMetrics.js';
 import { GitClient, createGitAnalyzer } from './gitAnalyzer.js';
 import {
   LOCClient,
@@ -28,6 +29,12 @@ import {
 // ============================================================================
 
 export type ProgressCallback = (phase: string, progress: number) => void;
+
+export interface AnalysisCallbacks {
+  onProgress?: ProgressCallback;
+  onCoreReady?: (result: AnalysisResult) => void;
+  onBlameUpdate?: (blameMetrics: BlameMetrics) => void;
+}
 
 // ============================================================================
 // Analysis Coordinator
@@ -57,7 +64,9 @@ export class AnalysisCoordinator {
     this.latestBlameFileCache = {};
   }
 
-  async analyze(onProgress?: ProgressCallback): Promise<AnalysisResult> {
+  async analyze(callbacks: AnalysisCallbacks = {}): Promise<AnalysisResult> {
+    const { onProgress, onCoreReady, onBlameUpdate } = callbacks;
+
     // Phase 1: Repository info
     onProgress?.('Checking repository', 0);
     const repository = await this.gitClient.getRepoInfo();
@@ -131,32 +140,6 @@ export class AnalysisCoordinator {
     await this.enrichTreeWithMetadata(fileTree, fileModDates);
     onProgress?.('File data enriched', 97);
 
-    // Phase 9: HEAD-only blame metrics (line ownership + line age)
-    onProgress?.('Analyzing line ownership and age', 98);
-    const blameTargets = this.collectBlameTargets(fileTree);
-    const headBlobShas = await this.gitClient.getHeadBlobShas(
-      blameTargets.map((target) => target.path)
-    );
-    const blameAnalysis = await analyzeHeadBlameMetrics({
-      headSha: repository.headSha,
-      fileTargets: blameTargets,
-      headBlobShas,
-      previousFileCache: this.previousBlameFileCache,
-      runGitRaw: (args) => this.gitClient.raw(args),
-      onProgress: (processed, total) => {
-        const percent = total > 0 ? processed / total : 1;
-        onProgress?.(
-          `Analyzing line ownership and age (${processed}/${total})`,
-          98 + (percent * 1.5)
-        );
-      },
-    });
-    const blameMetrics = blameAnalysis.metrics;
-    this.latestBlameFileCache = blameAnalysis.fileCache;
-
-    // Complete
-    onProgress?.('Analysis complete', 100);
-
     // Calculate actual commits analyzed (sum across all contributors)
     const analyzedCommitCount = contributors.reduce(
       (sum, c) => sum + c.commits,
@@ -166,7 +149,12 @@ export class AnalysisCoordinator {
     // Limit is reached if repo has more commits than we analyzed
     const limitReached = repository.commitCount > maxCommitsLimit;
 
-    return {
+    const submodules = submodulePaths.length > 0
+      ? { paths: submodulePaths, count: submodulePaths.length }
+      : undefined;
+
+    // Emit a core result immediately so UI can render while blame keeps updating.
+    const coreResult: AnalysisResult = {
       repository,
       contributors,
       codeFrequency,
@@ -176,11 +164,63 @@ export class AnalysisCoordinator {
       maxCommitsLimit,
       limitReached,
       sccInfo,
-      blameMetrics,
-      submodules: submodulePaths.length > 0
-        ? { paths: submodulePaths, count: submodulePaths.length }
-        : undefined,
+      blameMetrics: createEmptyBlameMetrics(),
+      submodules,
     };
+    onCoreReady?.(coreResult);
+
+    // Phase 9: HEAD-only blame metrics (line ownership + line age)
+    onProgress?.('Analyzing line ownership and age', 98);
+    const blameTargets = this.collectBlameTargets(fileTree);
+    const headBlobShas = await this.gitClient.getHeadBlobShas(
+      blameTargets.map((target) => target.path)
+    );
+
+    let lastProgressProcessed = 0;
+    let lastProgressUpdateAt = 0;
+    const blameAnalysis = await analyzeHeadBlameMetrics({
+      headSha: repository.headSha,
+      fileTargets: blameTargets,
+      headBlobShas,
+      previousFileCache: this.previousBlameFileCache,
+      runGitRaw: (args) => this.gitClient.raw(args),
+      onProgress: (processed, total) => {
+        const now = Date.now();
+        const shouldEmit =
+          processed === total ||
+          processed === 1 ||
+          processed - lastProgressProcessed >= 50 ||
+          now - lastProgressUpdateAt >= 250;
+
+        if (!shouldEmit) {
+          return;
+        }
+
+        lastProgressProcessed = processed;
+        lastProgressUpdateAt = now;
+        const percent = total > 0 ? processed / total : 1;
+        onProgress?.(
+          `Analyzing line ownership and age (${processed}/${total})`,
+          98 + (percent * 1.5)
+        );
+      },
+      onPartial: (partialBlameMetrics) => {
+        onBlameUpdate?.(partialBlameMetrics);
+      },
+    });
+
+    const result: AnalysisResult = {
+      ...coreResult,
+      analyzedAt: new Date().toISOString(),
+      blameMetrics: blameAnalysis.metrics,
+    };
+
+    this.latestBlameFileCache = blameAnalysis.fileCache;
+
+    // Complete
+    onProgress?.('Analysis complete', 100);
+
+    return result;
   }
 
   /**

@@ -11,6 +11,16 @@
   color: var(--vscode-descriptionForeground);
 }
 
+.blame-live-indicator {
+  align-self: flex-start;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  border: 1px solid var(--vscode-panel-border);
+  background: color-mix(in srgb, var(--vscode-progressBar-background) 10%, transparent 90%);
+}
+
 /* Stats Row - Big Numbers */
 .stats-row {
   display: grid;

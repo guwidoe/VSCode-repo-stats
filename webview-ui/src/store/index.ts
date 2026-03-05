@@ -71,6 +71,7 @@ interface RepoStatsState {
 
   // Actions
   setData: (data: AnalysisResult) => void;
+  mergeData: (partial: Partial<AnalysisResult>) => void;
   setError: (error: string | null) => void;
   setLoading: (loading: Partial<LoadingState>) => void;
   setEvolutionData: (data: EvolutionResult) => void;
@@ -210,6 +211,22 @@ export const useStore = create<RepoStatsState>((set, get) => ({
       frequencyGranularity: defaultGranularity,
       contributorGranularity: defaultGranularity,
       coreStale: false,
+    });
+  },
+
+  mergeData: (partial: Partial<AnalysisResult>) => {
+    set((state) => {
+      if (!state.data) {
+        return {};
+      }
+
+      return {
+        data: {
+          ...state.data,
+          ...partial,
+        },
+        error: null,
+      };
     });
   },
 

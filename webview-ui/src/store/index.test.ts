@@ -95,6 +95,27 @@ describe('useStore', () => {
     });
   });
 
+  describe('mergeData', () => {
+    it('should merge partial analysis updates without clearing loading state', () => {
+      useStore.getState().setData(mockAnalysisResult);
+      useStore.getState().setLoading({ isLoading: true, phase: 'Analyzing line ownership and age (10/100)', progress: 98.1 });
+
+      useStore.getState().mergeData({
+        blameMetrics: {
+          ...mockAnalysisResult.blameMetrics,
+          totals: {
+            ...mockAnalysisResult.blameMetrics.totals,
+            totalBlamedLines: 42,
+            filesAnalyzed: 2,
+          },
+        },
+      });
+
+      expect(useStore.getState().data?.blameMetrics.totals.totalBlamedLines).toBe(42);
+      expect(useStore.getState().loading.isLoading).toBe(true);
+    });
+  });
+
   describe('setError', () => {
     it('should set error and stop loading', () => {
       useStore.getState().setLoading({ isLoading: true });

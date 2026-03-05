@@ -96,6 +96,32 @@ body {
   overflow: hidden;
 }
 
+.live-update-banner {
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  background: color-mix(in srgb, var(--vscode-progressBar-background) 8%, transparent 92%);
+}
+
+.live-update-banner-text {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  margin-bottom: 6px;
+}
+
+.live-update-banner-track {
+  width: 100%;
+  height: 3px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--vscode-panel-border);
+}
+
+.live-update-banner-fill {
+  height: 100%;
+  background: var(--vscode-progressBar-background);
+  transition: width 0.2s ease;
+}
+
 /* Default panel styles - most panels should scroll their content */
 .app-content > div {
   flex: 1;

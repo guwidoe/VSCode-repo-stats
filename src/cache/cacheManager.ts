@@ -15,7 +15,7 @@ import {
 // Cache Version - Bump this when cache structure changes
 // ============================================================================
 
-const CACHE_VERSION = '1.3.0'; // Bumped for persisted per-file blame cache entries
+const CACHE_VERSION = '1.3.1'; // Bumped to invalidate incorrect incremental blame ownership caches
 
 // ============================================================================
 // Storage Interface (for dependency injection)

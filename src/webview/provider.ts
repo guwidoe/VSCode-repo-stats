@@ -328,12 +328,27 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       // Run full analysis
       this.sendMessage(webview, { type: 'analysisStarted' });
 
-      const result = await coordinator.analyze((phase, progress) => {
-        this.sendMessage(webview, {
-          type: 'analysisProgress',
-          phase,
-          progress,
-        });
+      const result = await coordinator.analyze({
+        onProgress: (phase, progress) => {
+          this.sendMessage(webview, {
+            type: 'analysisProgress',
+            phase,
+            progress,
+          });
+        },
+        onCoreReady: (coreResult) => {
+          this.lastCoreHeadSha = coreResult.repository.headSha;
+          this.sendMessage(webview, {
+            type: 'analysisComplete',
+            data: coreResult,
+          });
+        },
+        onBlameUpdate: (blameMetrics) => {
+          this.sendMessage(webview, {
+            type: 'incrementalUpdate',
+            data: { blameMetrics },
+          });
+        },
       });
 
       // Save to cache

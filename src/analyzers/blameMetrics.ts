@@ -33,11 +33,15 @@ export interface ParsedBlameFileStats {
   topOwnerShare: number;
 }
 
-interface BlameHunkMeta {
-  lines: number;
+interface CommitMeta {
   author: string;
   email: string;
   authorTime: number;
+}
+
+interface BlameHunkMeta extends CommitMeta {
+  commit: string;
+  lines: number;
   applied: boolean;
 }
 
@@ -53,6 +57,7 @@ export interface AnalyzeHeadBlameOptions {
   previousFileCache?: Record<string, BlameFileCacheEntry>;
   runGitRaw: (args: string[]) => Promise<string>;
   onProgress?: (processed: number, total: number) => void;
+  onPartial?: (metrics: BlameMetrics) => void;
 }
 
 interface AnalyzeHeadBlameResult {
@@ -160,6 +165,7 @@ export function parseBlamePorcelain(
   let minAgeDays = Number.POSITIVE_INFINITY;
   let maxAgeDays = 0;
   let current: BlameHunkMeta | null = null;
+  const commitMetadata = new Map<string, CommitMeta>();
 
   const applyCurrent = () => {
     if (!current || current.applied) {
@@ -171,6 +177,12 @@ export function parseBlamePorcelain(
     const email = current.email || UNKNOWN_EMAIL;
     const authorTime = current.authorTime > 0 ? current.authorTime : nowUnixSeconds;
     const ageDays = Math.max(0, Math.floor((nowUnixSeconds - authorTime) / 86400));
+
+    commitMetadata.set(current.commit, {
+      author,
+      email,
+      authorTime,
+    });
 
     ageCounts.set(ageDays, (ageCounts.get(ageDays) ?? 0) + lines);
 
@@ -187,14 +199,17 @@ export function parseBlamePorcelain(
   };
 
   for (const line of porcelainOutput.split('\n')) {
-    const headerMatch = line.match(/^([0-9a-f]{40})\s+\d+\s+\d+\s+(\d+)$/i);
+    const headerMatch = line.match(/^(\^?[0-9a-f]{40})\s+\d+\s+\d+\s+(\d+)$/i);
     if (headerMatch) {
       applyCurrent();
+      const commit = headerMatch[1].replace(/^\^/, '').toLowerCase();
+      const cachedMeta = commitMetadata.get(commit);
       current = {
+        commit,
         lines: parseInt(headerMatch[2], 10),
-        author: UNKNOWN_AUTHOR,
-        email: UNKNOWN_EMAIL,
-        authorTime: nowUnixSeconds,
+        author: cachedMeta?.author || UNKNOWN_AUTHOR,
+        email: cachedMeta?.email || UNKNOWN_EMAIL,
+        authorTime: cachedMeta?.authorTime ?? nowUnixSeconds,
         applied: false,
       };
       continue;
@@ -290,6 +305,7 @@ export async function analyzeHeadBlameMetrics(
     previousFileCache,
     runGitRaw,
     onProgress,
+    onPartial,
   } = options;
 
   if (fileTargets.length === 0) {
@@ -312,6 +328,28 @@ export async function analyzeHeadBlameMetrics(
   let totalBlamedLines = 0;
   let processed = 0;
   let index = 0;
+  let lastPartialProcessed = 0;
+
+  const buildMetricsSnapshot = (): BlameMetrics => {
+    const ageByDay = trimTrailingZeroes(globalAgeByDay);
+    const ownershipByAuthor = Array.from(globalOwnership.values())
+      .sort((a, b) => b.lines - a.lines);
+
+    return {
+      analyzedAt: new Date().toISOString(),
+      maxAgeDays: Math.max(0, ageByDay.length - 1),
+      ageByDay,
+      ownershipByAuthor,
+      totals: {
+        totalBlamedLines,
+        filesAnalyzed,
+        filesSkipped,
+        cacheHits,
+      },
+    };
+  };
+
+  const partialStep = Math.max(25, Math.ceil(fileTargets.length / 40));
 
   const cpuCount = os.cpus().length;
   const concurrency = Math.max(2, Math.min(12, cpuCount, fileTargets.length));
@@ -366,29 +404,22 @@ export async function analyzeHeadBlameMetrics(
       } finally {
         processed += 1;
         onProgress?.(processed, fileTargets.length);
+
+        if (
+          onPartial &&
+          (processed === fileTargets.length || processed - lastPartialProcessed >= partialStep)
+        ) {
+          lastPartialProcessed = processed;
+          onPartial(buildMetricsSnapshot());
+        }
       }
     }
   });
 
   await Promise.all(workers);
 
-  const ageByDay = trimTrailingZeroes(globalAgeByDay);
-  const ownershipByAuthor = Array.from(globalOwnership.values())
-    .sort((a, b) => b.lines - a.lines);
-
   return {
-    metrics: {
-      analyzedAt: new Date().toISOString(),
-      maxAgeDays: Math.max(0, ageByDay.length - 1),
-      ageByDay,
-      ownershipByAuthor,
-      totals: {
-        totalBlamedLines,
-        filesAnalyzed,
-        filesSkipped,
-        cacheHits,
-      },
-    },
+    metrics: buildMetricsSnapshot(),
     fileCache,
   };
 }

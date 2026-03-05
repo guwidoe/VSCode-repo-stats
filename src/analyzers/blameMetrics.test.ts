@@ -30,6 +30,33 @@ describe('parseBlamePorcelain', () => {
     expect(parsed.maxAgeDays).toBeGreaterThanOrEqual(parsed.minAgeDays);
     expect(Array.from(parsed.ageCounts.values()).reduce((sum, c) => sum + c, 0)).toBe(3);
   });
+
+  it('reuses commit metadata for repeated incremental hunks', () => {
+    const output = [
+      'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 1 1 1',
+      'author Alice',
+      'author-mail <alice@example.com>',
+      'author-time 1799000000',
+      'filename src/a.ts',
+      'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 2 2 2',
+      'filename src/a.ts',
+      'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb 4 4 1',
+      'author Bob',
+      'author-mail <bob@example.com>',
+      'author-time 1798000000',
+      'filename src/a.ts',
+      '',
+    ].join('\n');
+
+    const parsed = parseBlamePorcelain(output, NOW_UNIX_SECONDS);
+
+    expect(parsed.totalLines).toBe(4);
+    expect(parsed.topOwnerAuthor).toBe('Alice');
+    expect(parsed.topOwnerLines).toBe(3);
+    expect(parsed.ownership.get('Alice\u0000alice@example.com')?.lines).toBe(3);
+    expect(parsed.ownership.get('Unknown\u0000unknown@unknown.local')).toBeUndefined();
+    expect(parsed.maxAgeDays).toBeGreaterThan(0);
+  });
 });
 
 describe('analyzeHeadBlameMetrics', () => {
@@ -128,5 +155,60 @@ describe('analyzeHeadBlameMetrics', () => {
     expect(secondRun.metrics.totals.cacheHits).toBe(1);
     expect(secondRun.metrics.totals.filesAnalyzed).toBe(1);
     expect(nodeA2.blamedLines).toBe(2);
+  });
+
+  it('emits partial blame snapshots while running', async () => {
+    const nodeA: TreemapNode = {
+      name: 'a.ts',
+      path: 'src/a.ts',
+      type: 'file',
+      lines: 2,
+      language: 'TypeScript',
+    };
+    const nodeB: TreemapNode = {
+      name: 'b.ts',
+      path: 'src/b.ts',
+      type: 'file',
+      lines: 1,
+      language: 'TypeScript',
+    };
+
+    const partials: number[] = [];
+
+    const result = await analyzeHeadBlameMetrics({
+      headSha: 'head789',
+      fileTargets: [
+        { path: 'src/a.ts', node: nodeA },
+        { path: 'src/b.ts', node: nodeB },
+      ],
+      runGitRaw: async (args) => {
+        const path = args[args.length - 1];
+        if (path === 'src/a.ts') {
+          return [
+            'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 1 1 2',
+            'author Alice',
+            'author-mail <alice@example.com>',
+            'author-time 1799990000',
+            'filename src/a.ts',
+            '',
+          ].join('\n');
+        }
+
+        return [
+          'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb 1 1 1',
+          'author Bob',
+          'author-mail <bob@example.com>',
+          'author-time 1799900000',
+          'filename src/b.ts',
+          '',
+        ].join('\n');
+      },
+      onPartial: (metrics) => {
+        partials.push(metrics.totals.totalBlamedLines);
+      },
+    });
+
+    expect(partials.length).toBeGreaterThan(0);
+    expect(partials[partials.length - 1]).toBe(result.metrics.totals.totalBlamedLines);
   });
 });
