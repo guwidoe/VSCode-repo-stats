@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'package.json'  # Only trigger when package.json changes
   release:
     types: [published]
   workflow_dispatch:
@@ -62,15 +60,19 @@ jobs:
         if: github.event_name != 'push' || steps.version_check.outputs.changed == 'true'
         run: npm ci
 
+      - name: Run validation gate
+        if: github.event_name != 'push' || steps.version_check.outputs.changed == 'true'
+        run: xvfb-run -a npm run typecheck && npm run lint && npm run test
+        env:
+          DISPLAY: ':99.0'
+
       - name: Install webview dependencies
         if: github.event_name != 'push' || steps.version_check.outputs.changed == 'true'
         run: cd webview-ui && npm ci
 
-      - name: Run validation
+      - name: Package extension
         if: github.event_name != 'push' || steps.version_check.outputs.changed == 'true'
-        run: xvfb-run -a npm run validate
-        env:
-          DISPLAY: ':99.0'
+        run: npm run package
 
       - name: Publish (with version bump - manual)
         if: github.event_name == 'workflow_dispatch' && inputs.version_bump != 'none' && inputs.version_bump != ''
