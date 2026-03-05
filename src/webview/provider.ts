@@ -6,6 +6,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as crypto from 'crypto';
 import {
   ExtensionMessage,
   WebviewMessage,
@@ -13,7 +14,9 @@ import {
   NotAGitRepoError,
 } from '../types/index.js';
 import { AnalysisCoordinator } from '../analyzers/coordinator.js';
+import { createEvolutionAnalyzer } from '../analyzers/evolutionAnalyzer.js';
 import { CacheManager, CacheStorage } from '../cache/cacheManager.js';
+import { EvolutionCacheManager } from '../cache/evolutionCacheManager.js';
 
 // ============================================================================
 // VSCode Workspace State Storage Adapter
@@ -132,7 +135,9 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     if (repoPath) {
       const storage = new WorkspaceStateStorage(this.workspaceState);
       const cacheManager = new CacheManager(storage, repoPath);
+      const evolutionCacheManager = new EvolutionCacheManager(storage, repoPath);
       cacheManager.clear();
+      evolutionCacheManager.clear();
     }
 
     await this.runAnalysis(this.panel.webview);
@@ -147,6 +152,14 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
 
       case 'requestRefresh':
         await this.refresh();
+        break;
+
+      case 'requestEvolutionAnalysis':
+        await this.runEvolutionAnalysis(webview, false);
+        break;
+
+      case 'requestEvolutionRefresh':
+        await this.runEvolutionAnalysis(webview, true);
         break;
 
       case 'openFile': {
@@ -228,6 +241,13 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     if (settings.tooltipSettings !== undefined) {
       await config.update('tooltipSettings', settings.tooltipSettings, vscode.ConfigurationTarget.Global);
     }
+    if (settings.evolution !== undefined) {
+      await config.update('evolution.autoRun', settings.evolution.autoRun, vscode.ConfigurationTarget.Global);
+      await config.update('evolution.snapshotIntervalDays', settings.evolution.snapshotIntervalDays, vscode.ConfigurationTarget.Global);
+      await config.update('evolution.maxSnapshots', settings.evolution.maxSnapshots, vscode.ConfigurationTarget.Global);
+      await config.update('evolution.maxSeries', settings.evolution.maxSeries, vscode.ConfigurationTarget.Global);
+      await config.update('evolution.cohortFormat', settings.evolution.cohortFormat, vscode.ConfigurationTarget.Global);
+    }
   }
 
   private async runAnalysis(webview: vscode.Webview): Promise<void> {
@@ -296,6 +316,99 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     }
   }
 
+  private async runEvolutionAnalysis(webview: vscode.Webview, forceRefresh: boolean): Promise<void> {
+    const repoPath = this.getWorkspacePath();
+
+    if (!repoPath) {
+      this.sendMessage(webview, {
+        type: 'evolutionError',
+        error: 'No workspace folder is open. Please open a folder containing a Git repository.',
+      });
+      return;
+    }
+
+    const settings = this.getSettings();
+    const storage = new WorkspaceStateStorage(this.workspaceState);
+    const evolutionCacheManager = new EvolutionCacheManager(storage, repoPath);
+    const coordinator = new AnalysisCoordinator(repoPath, settings, path.join(this.globalStoragePath, 'scc'));
+
+    try {
+      const repoInfo = await coordinator.getRepositoryInfo();
+      const settingsHash = createEvolutionSettingsHash(settings);
+      const validCached = evolutionCacheManager.getIfValid(
+        repoInfo.headSha,
+        repoInfo.branch,
+        settingsHash
+      );
+
+      if (validCached && !forceRefresh) {
+        this.sendMessage(webview, {
+          type: 'evolutionComplete',
+          data: validCached,
+        });
+        return;
+      }
+
+      if (!forceRefresh) {
+        const latestCached = evolutionCacheManager.getLatest();
+        if (latestCached) {
+          this.sendMessage(webview, {
+            type: 'evolutionComplete',
+            data: latestCached,
+          });
+
+          if (
+            latestCached.headSha !== repoInfo.headSha ||
+            latestCached.branch !== repoInfo.branch ||
+            latestCached.settingsHash !== settingsHash
+          ) {
+            this.sendMessage(webview, {
+              type: 'evolutionStale',
+              reason: 'Repository HEAD or Evolution settings changed since the last run.',
+            });
+          }
+
+          if (!settings.evolution.autoRun) {
+            return;
+          }
+        } else if (!settings.evolution.autoRun) {
+          return;
+        }
+      }
+
+      this.sendMessage(webview, { type: 'evolutionStarted' });
+
+      const analyzer = createEvolutionAnalyzer(repoPath, settings);
+      const result = await analyzer.analyze((phase, progress) => {
+        this.sendMessage(webview, {
+          type: 'evolutionProgress',
+          phase,
+          progress,
+        });
+      });
+
+      evolutionCacheManager.save(result, repoPath);
+
+      this.sendMessage(webview, {
+        type: 'evolutionComplete',
+        data: result,
+      });
+    } catch (error) {
+      let errorMessage = 'An unexpected error occurred during evolution analysis.';
+
+      if (error instanceof NotAGitRepoError) {
+        errorMessage = 'This folder is not a Git repository. Please open a folder containing a Git repository.';
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      this.sendMessage(webview, {
+        type: 'evolutionError',
+        error: errorMessage,
+      });
+    }
+  }
+
   private sendMessage(webview: vscode.Webview, message: ExtensionMessage): void {
     webview.postMessage(message);
   }
@@ -359,6 +472,13 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
         showCodeDensity: false,
         showFileCount: true,
       }),
+      evolution: {
+        autoRun: config.get<boolean>('evolution.autoRun', false),
+        snapshotIntervalDays: config.get<number>('evolution.snapshotIntervalDays', 30),
+        maxSnapshots: config.get<number>('evolution.maxSnapshots', 80),
+        maxSeries: config.get<number>('evolution.maxSeries', 20),
+        cohortFormat: config.get<string>('evolution.cohortFormat', '%Y'),
+      },
     };
   }
 
@@ -445,6 +565,15 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
 // ============================================================================
 // Utility Functions
 // ============================================================================
+
+function createEvolutionSettingsHash(settings: ExtensionSettings): string {
+  const payload = JSON.stringify({
+    excludePatterns: settings.excludePatterns,
+    binaryExtensions: settings.binaryExtensions,
+    evolution: settings.evolution,
+  });
+  return crypto.createHash('sha1').update(payload).digest('hex').slice(0, 16);
+}
 
 function getNonce(): string {
   let text = '';

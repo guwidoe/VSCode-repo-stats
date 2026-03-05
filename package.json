@@ -170,6 +170,37 @@
             "showFileCount": true
           },
           "description": "Configure which metrics to show in the treemap tooltip"
+        },
+        "repoStats.evolution.autoRun": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically run Evolution analysis when opening the Evolution tab if cached data is missing or stale"
+        },
+        "repoStats.evolution.snapshotIntervalDays": {
+          "type": "number",
+          "default": 30,
+          "minimum": 1,
+          "maximum": 365,
+          "description": "Days between sampled snapshots for Evolution analysis"
+        },
+        "repoStats.evolution.maxSnapshots": {
+          "type": "number",
+          "default": 80,
+          "minimum": 2,
+          "maximum": 500,
+          "description": "Maximum number of historical snapshots analyzed in Evolution mode"
+        },
+        "repoStats.evolution.maxSeries": {
+          "type": "number",
+          "default": 20,
+          "minimum": 5,
+          "maximum": 200,
+          "description": "Default maximum number of series shown in Evolution charts"
+        },
+        "repoStats.evolution.cohortFormat": {
+          "type": "string",
+          "default": "%Y",
+          "description": "Cohort grouping format for Evolution analysis (%Y, %Y-%m, %Y-W%W)"
         }
       }
     }

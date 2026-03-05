@@ -38,6 +38,32 @@ export interface CodeFrequency {
 }
 
 // ============================================================================
+// Evolution Types
+// ============================================================================
+
+export type EvolutionDimension = 'cohort' | 'author' | 'ext' | 'dir' | 'domain';
+
+export interface EvolutionTimeSeriesData {
+  ts: string[]; // ISO date strings for each snapshot
+  labels: string[]; // Series labels (e.g. author names, cohorts)
+  y: number[][]; // Series x snapshots matrix (same shape as labels x ts)
+}
+
+export interface EvolutionResult {
+  generatedAt: string; // ISO date string
+  headSha: string;
+  branch: string;
+  settingsHash: string;
+  cohorts: EvolutionTimeSeriesData;
+  authors: EvolutionTimeSeriesData;
+  exts: EvolutionTimeSeriesData;
+  dirs: EvolutionTimeSeriesData;
+  domains: EvolutionTimeSeriesData;
+}
+
+export type EvolutionStatus = 'idle' | 'loading' | 'ready' | 'error' | 'stale';
+
+// ============================================================================
 // Treemap Types
 // ============================================================================
 
@@ -132,11 +158,18 @@ export type ExtensionMessage =
   | { type: 'analysisComplete'; data: AnalysisResult }
   | { type: 'analysisError'; error: string }
   | { type: 'incrementalUpdate'; data: Partial<AnalysisResult> }
+  | { type: 'evolutionStarted' }
+  | { type: 'evolutionProgress'; phase: string; progress: number }
+  | { type: 'evolutionComplete'; data: EvolutionResult }
+  | { type: 'evolutionError'; error: string }
+  | { type: 'evolutionStale'; reason: string }
   | { type: 'settingsLoaded'; settings: ExtensionSettings };
 
 export type WebviewMessage =
   | { type: 'requestAnalysis' }
   | { type: 'requestRefresh' }
+  | { type: 'requestEvolutionAnalysis' }
+  | { type: 'requestEvolutionRefresh' }
   | { type: 'openFile'; path: string }
   | { type: 'revealInExplorer'; path: string }
   | { type: 'copyPath'; path: string }
@@ -160,6 +193,14 @@ export interface TooltipSettings {
   showFileCount: boolean;
 }
 
+export interface EvolutionSettings {
+  autoRun: boolean;
+  snapshotIntervalDays: number;
+  maxSnapshots: number;
+  maxSeries: number;
+  cohortFormat: string;
+}
+
 export interface ExtensionSettings {
   excludePatterns: string[];
   maxCommitsToAnalyze: number;
@@ -174,6 +215,8 @@ export interface ExtensionSettings {
   overviewDisplayMode: 'percent' | 'count'; // Default display mode for donut charts
   // Treemap tooltip settings
   tooltipSettings: TooltipSettings;
+  // Evolution settings (on-demand analysis)
+  evolution: EvolutionSettings;
 }
 
 // ============================================================================

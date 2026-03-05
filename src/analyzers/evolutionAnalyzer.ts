@@ -1,0 +1,548 @@
+/**
+ * Evolution Analyzer - On-demand blame-based repository evolution analysis.
+ * This module has NO VSCode dependencies and is fully testable.
+ */
+
+import * as crypto from 'crypto';
+import * as path from 'path';
+import simpleGit from 'simple-git';
+import {
+  EvolutionResult,
+  EvolutionTimeSeriesData,
+  ExtensionSettings,
+  NotAGitRepoError,
+} from '../types/index.js';
+
+export type EvolutionProgressCallback = (phase: string, progress: number) => void;
+
+type DimensionCounts = Record<string, number>;
+
+interface FileHistogram {
+  cohort: DimensionCounts;
+  author: DimensionCounts;
+  ext: DimensionCounts;
+  dir: DimensionCounts;
+  domain: DimensionCounts;
+}
+
+interface SnapshotCommit {
+  sha: string;
+  timestamp: number;
+}
+
+interface BlameHunkMeta {
+  lines: number;
+  author: string;
+  email: string;
+  authorTime: number;
+  applied: boolean;
+}
+
+const UNKNOWN_AUTHOR = 'Unknown';
+const UNKNOWN_EMAIL = 'unknown@unknown.local';
+const ROOT_DIR = '[root]';
+const EMPTY_EXT = '[no-ext]';
+
+export interface EvolutionGitClient {
+  checkIsRepo(): Promise<boolean>;
+  revparse(args: string[]): Promise<string>;
+  raw(args: string[]): Promise<string>;
+}
+
+export class EvolutionAnalyzer {
+  private readonly git: EvolutionGitClient;
+  private readonly repoPath: string;
+  private readonly settings: ExtensionSettings;
+  private readonly excludeRegexes: RegExp[];
+
+  constructor(repoPath: string, settings: ExtensionSettings, gitClient?: EvolutionGitClient) {
+    this.repoPath = repoPath;
+    this.settings = settings;
+    this.git = gitClient ?? simpleGit(repoPath);
+    this.excludeRegexes = settings.excludePatterns
+      .map((pattern) => pattern.trim())
+      .filter((pattern) => pattern.length > 0)
+      .map((pattern) => globToRegExp(pattern));
+  }
+
+  async analyze(onProgress?: EvolutionProgressCallback): Promise<EvolutionResult> {
+    const isRepo = await this.git.checkIsRepo();
+    if (!isRepo) {
+      throw new NotAGitRepoError(this.repoPath);
+    }
+
+    onProgress?.('Preparing evolution analysis', 0);
+
+    const [branchRaw, headShaRaw] = await Promise.all([
+      this.git.revparse(['--abbrev-ref', 'HEAD']),
+      this.git.revparse(['HEAD']),
+    ]);
+
+    const branch = branchRaw.trim();
+    const headSha = headShaRaw.trim();
+
+    const commits = await this.getSampledCommits(branch, onProgress);
+
+    const snapshotTotals = {
+      cohort: [] as DimensionCounts[],
+      author: [] as DimensionCounts[],
+      ext: [] as DimensionCounts[],
+      dir: [] as DimensionCounts[],
+      domain: [] as DimensionCounts[],
+    };
+    const snapshotTimestamps: string[] = [];
+
+    let previousFileBlobs = new Map<string, string>();
+    const fileHistograms = new Map<string, FileHistogram>();
+    const runningTotals = this.createEmptyHistogram();
+
+    for (let i = 0; i < commits.length; i++) {
+      const commit = commits[i];
+      const progress = 5 + Math.round(((i + 1) / commits.length) * 90);
+      onProgress?.(
+        `Analyzing snapshot ${i + 1}/${commits.length} (${commit.sha.slice(0, 8)})`,
+        progress
+      );
+
+      const currentFileBlobs = await this.getFileBlobsAtCommit(commit.sha);
+
+      for (const [previousPath] of previousFileBlobs) {
+        if (!currentFileBlobs.has(previousPath)) {
+          const existing = fileHistograms.get(previousPath);
+          if (existing) {
+            this.mergeHistogram(runningTotals, existing, -1);
+            fileHistograms.delete(previousPath);
+          }
+        }
+      }
+
+      const changedPaths: string[] = [];
+      for (const [filePath, blobSha] of currentFileBlobs) {
+        const previousBlob = previousFileBlobs.get(filePath);
+        if (previousBlob !== blobSha) {
+          changedPaths.push(filePath);
+        }
+      }
+
+      const maxFilesPerSnapshot = 250;
+      const selectedChangedPaths = changedPaths.slice(0, maxFilesPerSnapshot);
+
+      const updatedHistograms = await this.computeHistogramsForFiles(
+        selectedChangedPaths,
+        commit.sha,
+        commit.timestamp
+      );
+
+      for (const [filePath, histogram] of updatedHistograms) {
+        const existing = fileHistograms.get(filePath);
+        if (existing) {
+          this.mergeHistogram(runningTotals, existing, -1);
+        }
+
+        fileHistograms.set(filePath, histogram);
+        this.mergeHistogram(runningTotals, histogram, 1);
+      }
+
+      previousFileBlobs = currentFileBlobs;
+      snapshotTimestamps.push(new Date(commit.timestamp * 1000).toISOString());
+      snapshotTotals.cohort.push({ ...runningTotals.cohort });
+      snapshotTotals.author.push({ ...runningTotals.author });
+      snapshotTotals.ext.push({ ...runningTotals.ext });
+      snapshotTotals.dir.push({ ...runningTotals.dir });
+      snapshotTotals.domain.push({ ...runningTotals.domain });
+    }
+
+    onProgress?.('Finalizing evolution data', 98);
+
+    const settingsHash = this.createSettingsHash();
+
+    const result: EvolutionResult = {
+      generatedAt: new Date().toISOString(),
+      headSha,
+      branch,
+      settingsHash,
+      cohorts: this.toSeries(snapshotTimestamps, snapshotTotals.cohort),
+      authors: this.toSeries(snapshotTimestamps, snapshotTotals.author),
+      exts: this.toSeries(snapshotTimestamps, snapshotTotals.ext),
+      dirs: this.toSeries(snapshotTimestamps, snapshotTotals.dir),
+      domains: this.toSeries(snapshotTimestamps, snapshotTotals.domain),
+    };
+
+    onProgress?.('Evolution analysis complete', 100);
+
+    return result;
+  }
+
+  private async getSampledCommits(
+    branch: string,
+    onProgress?: EvolutionProgressCallback
+  ): Promise<SnapshotCommit[]> {
+    onProgress?.('Collecting commit history', 2);
+
+    const rawLog = await this.git.raw([
+      'log',
+      '--first-parent',
+      '--reverse',
+      '--format=%H|%ct',
+      branch,
+    ]);
+
+    const allCommits = rawLog
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+      .map((line) => {
+        const [sha, tsRaw] = line.split('|');
+        return { sha, timestamp: parseInt(tsRaw, 10) };
+      })
+      .filter((entry) => Boolean(entry.sha) && Number.isFinite(entry.timestamp));
+
+    if (allCommits.length === 0) {
+      return [];
+    }
+
+    const intervalSeconds = Math.max(1, this.settings.evolution.snapshotIntervalDays) * 24 * 60 * 60;
+    const intervalSampled: SnapshotCommit[] = [];
+
+    intervalSampled.push(allCommits[0]);
+    let lastTimestamp = allCommits[0].timestamp;
+
+    for (let i = 1; i < allCommits.length; i++) {
+      const commit = allCommits[i];
+      if (commit.timestamp >= lastTimestamp + intervalSeconds) {
+        intervalSampled.push(commit);
+        lastTimestamp = commit.timestamp;
+      }
+    }
+
+    const lastCommit = allCommits[allCommits.length - 1];
+    if (intervalSampled[intervalSampled.length - 1].sha !== lastCommit.sha) {
+      intervalSampled.push(lastCommit);
+    }
+
+    const maxSnapshots = Math.max(2, this.settings.evolution.maxSnapshots);
+    if (intervalSampled.length <= maxSnapshots) {
+      return intervalSampled;
+    }
+
+    onProgress?.('Downsampling snapshots', 4);
+
+    const downsampled: SnapshotCommit[] = [];
+    const maxIndex = intervalSampled.length - 1;
+    const step = maxIndex / (maxSnapshots - 1);
+    let lastAddedSha = '';
+
+    for (let i = 0; i < maxSnapshots; i++) {
+      const index = Math.round(i * step);
+      const commit = intervalSampled[index];
+      if (commit && commit.sha !== lastAddedSha) {
+        downsampled.push(commit);
+        lastAddedSha = commit.sha;
+      }
+    }
+
+    if (downsampled[downsampled.length - 1]?.sha !== lastCommit.sha) {
+      downsampled.push(lastCommit);
+    }
+
+    return downsampled;
+  }
+
+  private async getFileBlobsAtCommit(commitSha: string): Promise<Map<string, string>> {
+    const output = await this.git.raw(['ls-tree', '-r', commitSha]);
+    const fileBlobs = new Map<string, string>();
+
+    for (const line of output.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        continue;
+      }
+
+      // Format: <mode> <type> <sha>\t<path>
+      const match = trimmed.match(/^\d+\s+\w+\s+([0-9a-f]{40})\t(.+)$/);
+      if (!match) {
+        continue;
+      }
+
+      const blobSha = match[1];
+      const filePath = match[2];
+      if (!this.shouldAnalyzeFile(filePath)) {
+        continue;
+      }
+
+      fileBlobs.set(filePath, blobSha);
+    }
+
+    return fileBlobs;
+  }
+
+  private shouldAnalyzeFile(filePath: string): boolean {
+    const normalizedPath = filePath.replace(/\\/g, '/');
+
+    const ext = path.extname(normalizedPath).toLowerCase();
+    if (ext && this.settings.binaryExtensions.includes(ext)) {
+      return false;
+    }
+
+    for (const regex of this.excludeRegexes) {
+      if (regex.test(normalizedPath)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private async computeHistogramsForFiles(
+    paths: string[],
+    commitSha: string,
+    defaultTimestamp: number
+  ): Promise<Map<string, FileHistogram>> {
+    const result = new Map<string, FileHistogram>();
+    const concurrency = 4;
+    let index = 0;
+
+    const workers = Array.from({ length: Math.min(concurrency, paths.length) }, async () => {
+      while (index < paths.length) {
+        const currentIndex = index;
+        index += 1;
+
+        const filePath = paths[currentIndex];
+        const histogram = await this.computeFileHistogram(filePath, commitSha, defaultTimestamp);
+        result.set(filePath, histogram);
+      }
+    });
+
+    await Promise.all(workers);
+    return result;
+  }
+
+  private async computeFileHistogram(
+    filePath: string,
+    commitSha: string,
+    defaultTimestamp: number
+  ): Promise<FileHistogram> {
+    const histogram = this.createEmptyHistogram();
+
+    let blameOutput = '';
+    try {
+      blameOutput = await this.git.raw([
+        'blame',
+        commitSha,
+        '--line-porcelain',
+        '--',
+        filePath,
+      ]);
+    } catch {
+      return histogram;
+    }
+
+    const ext = path.extname(filePath) || EMPTY_EXT;
+    const topDir = getTopDirectory(filePath);
+
+    let current: BlameHunkMeta | null = null;
+
+    const applyCurrent = () => {
+      if (!current || current.applied) {
+        return;
+      }
+
+      const author = current.author || UNKNOWN_AUTHOR;
+      const email = current.email || UNKNOWN_EMAIL;
+      const domain = email.includes('@') ? email.split('@').pop() || 'unknown.local' : 'unknown.local';
+      const timestamp = current.authorTime > 0 ? current.authorTime : defaultTimestamp;
+      const cohort = formatCohort(timestamp, this.settings.evolution.cohortFormat);
+      const lines = current.lines;
+
+      incrementCount(histogram.cohort, cohort, lines);
+      incrementCount(histogram.author, author, lines);
+      incrementCount(histogram.ext, ext, lines);
+      incrementCount(histogram.dir, topDir, lines);
+      incrementCount(histogram.domain, domain, lines);
+
+      current.applied = true;
+    };
+
+    for (const line of blameOutput.split('\n')) {
+      const headerMatch = line.match(/^([0-9a-f]{40})\s+\d+\s+\d+\s+(\d+)$/);
+      if (headerMatch) {
+        applyCurrent();
+        current = {
+          lines: parseInt(headerMatch[2], 10),
+          author: UNKNOWN_AUTHOR,
+          email: UNKNOWN_EMAIL,
+          authorTime: defaultTimestamp,
+          applied: false,
+        };
+        continue;
+      }
+
+      if (!current) {
+        continue;
+      }
+
+      if (line.startsWith('author ')) {
+        current.author = line.slice(7).trim() || UNKNOWN_AUTHOR;
+        continue;
+      }
+
+      if (line.startsWith('author-mail ')) {
+        const rawEmail = line.slice(12).trim();
+        current.email = rawEmail.replace(/^</, '').replace(/>$/, '') || UNKNOWN_EMAIL;
+        continue;
+      }
+
+      if (line.startsWith('author-time ')) {
+        const ts = parseInt(line.slice(12).trim(), 10);
+        if (Number.isFinite(ts)) {
+          current.authorTime = ts;
+        }
+        continue;
+      }
+
+      if (line.startsWith('\t')) {
+        applyCurrent();
+      }
+    }
+
+    applyCurrent();
+    return histogram;
+  }
+
+  private createEmptyHistogram(): FileHistogram {
+    return {
+      cohort: {},
+      author: {},
+      ext: {},
+      dir: {},
+      domain: {},
+    };
+  }
+
+  private mergeHistogram(target: FileHistogram, source: FileHistogram, sign: 1 | -1): void {
+    mergeCounts(target.cohort, source.cohort, sign);
+    mergeCounts(target.author, source.author, sign);
+    mergeCounts(target.ext, source.ext, sign);
+    mergeCounts(target.dir, source.dir, sign);
+    mergeCounts(target.domain, source.domain, sign);
+  }
+
+  private toSeries(ts: string[], snapshots: DimensionCounts[]): EvolutionTimeSeriesData {
+    const labelSet = new Set<string>();
+    for (const snapshot of snapshots) {
+      for (const label of Object.keys(snapshot)) {
+        labelSet.add(label);
+      }
+    }
+
+    const labels = Array.from(labelSet).sort((a, b) => a.localeCompare(b));
+    const y = labels.map((label) => snapshots.map((snapshot) => snapshot[label] || 0));
+
+    return {
+      ts,
+      labels,
+      y,
+    };
+  }
+
+  private createSettingsHash(): string {
+    const payload = JSON.stringify({
+      excludePatterns: this.settings.excludePatterns,
+      binaryExtensions: this.settings.binaryExtensions,
+      evolution: this.settings.evolution,
+    });
+    return crypto.createHash('sha1').update(payload).digest('hex').slice(0, 16);
+  }
+}
+
+function incrementCount(target: DimensionCounts, label: string, value: number): void {
+  if (!label) {
+    return;
+  }
+  target[label] = (target[label] || 0) + value;
+}
+
+function mergeCounts(target: DimensionCounts, source: DimensionCounts, sign: 1 | -1): void {
+  for (const [label, value] of Object.entries(source)) {
+    const next = (target[label] || 0) + value * sign;
+    if (next <= 0) {
+      delete target[label];
+    } else {
+      target[label] = next;
+    }
+  }
+}
+
+function getTopDirectory(filePath: string): string {
+  const normalized = filePath.replace(/\\/g, '/');
+  const slashIndex = normalized.indexOf('/');
+  if (slashIndex === -1) {
+    return ROOT_DIR;
+  }
+  return normalized.slice(0, slashIndex + 1);
+}
+
+function formatCohort(unixSeconds: number, format: string): string {
+  const date = new Date(unixSeconds * 1000);
+  const year = date.getUTCFullYear();
+  const month = `${date.getUTCMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getUTCDate()}`.padStart(2, '0');
+  const week = `${getUtcWeekNumber(date)}`.padStart(2, '0');
+
+  return format
+    .replace(/%Y/g, `${year}`)
+    .replace(/%m/g, month)
+    .replace(/%d/g, day)
+    .replace(/%W/g, week);
+}
+
+function getUtcWeekNumber(date: Date): number {
+  const working = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const dayNum = working.getUTCDay() || 7;
+  working.setUTCDate(working.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(working.getUTCFullYear(), 0, 1));
+  return Math.ceil((((working.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+}
+
+function globToRegExp(glob: string): RegExp {
+  const normalized = glob.replace(/\\/g, '/');
+  let pattern = '^';
+
+  for (let i = 0; i < normalized.length; i++) {
+    const char = normalized[i];
+    const next = normalized[i + 1];
+
+    if (char === '*' && next === '*') {
+      pattern += '.*';
+      i += 1;
+      continue;
+    }
+
+    if (char === '*') {
+      pattern += '[^/]*';
+      continue;
+    }
+
+    if (char === '?') {
+      pattern += '.';
+      continue;
+    }
+
+    pattern += escapeRegExp(char);
+  }
+
+  pattern += '$';
+  return new RegExp(pattern);
+}
+
+function escapeRegExp(input: string): string {
+  return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+export function createEvolutionAnalyzer(
+  repoPath: string,
+  settings: ExtensionSettings,
+  gitClient?: EvolutionGitClient
+): EvolutionAnalyzer {
+  return new EvolutionAnalyzer(repoPath, settings, gitClient);
+}
