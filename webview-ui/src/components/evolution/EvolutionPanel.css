@@ -2,6 +2,23 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  padding: 16px;
+}
+
+.evolution-panel .panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.evolution-panel .panel-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--vscode-foreground);
 }
 
 .evolution-meta {
@@ -117,6 +134,10 @@
   margin: 0;
   color: var(--vscode-descriptionForeground);
   max-width: 70ch;
+}
+
+.evolution-state-view .evolution-run-button {
+  align-self: flex-start;
 }
 
 .evolution-progress-track {
