@@ -183,12 +183,8 @@ export function FilesPanel() {
     });
   };
 
-  const startColumnResize = (key: FileSortKey, event: ReactMouseEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-
+  const startColumnResize = (key: FileSortKey, startX: number) => {
     const baseWidth = columnWidths[key] ?? getColumnConfig(key).width;
-    const startX = event.clientX;
 
     const previousCursor = document.body.style.cursor;
     const previousSelect = document.body.style.userSelect;
@@ -214,6 +210,44 @@ export function FilesPanel() {
 
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
+  };
+
+  const isInResizeHotZone = (
+    event: ReactMouseEvent<HTMLElement>,
+    element: HTMLElement,
+    hotZonePx: number = 10
+  ) => {
+    const rect = element.getBoundingClientRect();
+    return rect.right - event.clientX <= hotZonePx;
+  };
+
+  const handleHeaderMouseDown = (key: FileSortKey, event: ReactMouseEvent<HTMLDivElement>) => {
+    if (event.button !== 0) {
+      return;
+    }
+
+    const target = event.target as HTMLElement;
+    if (target.closest('.header-filter-anchor')) {
+      return;
+    }
+
+    if (!isInResizeHotZone(event, event.currentTarget)) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    startColumnResize(key, event.clientX);
+  };
+
+  const handleHeaderMouseMove = (event: ReactMouseEvent<HTMLDivElement>) => {
+    event.currentTarget.style.cursor = isInResizeHotZone(event, event.currentTarget)
+      ? 'col-resize'
+      : '';
+  };
+
+  const handleHeaderMouseLeave = (event: ReactMouseEvent<HTMLDivElement>) => {
+    event.currentTarget.style.cursor = '';
   };
 
   if (!catalog) {
@@ -299,6 +333,9 @@ export function FilesPanel() {
                   key={column.key}
                   className={`files-header-cell ${column.align === 'right' ? 'numeric' : ''}`}
                   role="columnheader"
+                  onMouseDownCapture={(event) => handleHeaderMouseDown(column.key, event)}
+                  onMouseMove={handleHeaderMouseMove}
+                  onMouseLeave={handleHeaderMouseLeave}
                 >
                   <button
                     type="button"
@@ -336,11 +373,7 @@ export function FilesPanel() {
                       )}
                     </div>
 
-                    <div
-                      className="header-resize-handle"
-                      onMouseDown={(event) => startColumnResize(column.key, event)}
-                      title="Drag to resize column"
-                    />
+                    <div className="header-resize-hint" title="Drag right edge to resize column" />
                   </div>
                 </div>
               );
