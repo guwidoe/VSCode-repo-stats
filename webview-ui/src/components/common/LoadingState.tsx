@@ -4,10 +4,12 @@ interface LoadingStateProps {
 }
 
 export function LoadingState({ phase, progress }: LoadingStateProps) {
+  const displayPhase = phase.trim().length > 0 ? phase : '(phase missing)';
+
   return (
     <div className="loading-state">
       <div className="loading-spinner" />
-      <p className="loading-phase">{phase || 'Analyzing repository...'}</p>
+      <p className="loading-phase">{displayPhase}</p>
       <div className="progress-bar">
         <div
           className="progress-fill"

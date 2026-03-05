@@ -26,7 +26,7 @@ function collectLanguages(node: TreemapNode, languages: Set<string>): void {
   if (node.type === 'file' && node.language) {
     languages.add(node.language);
   }
-  for (const child of node.children || []) {
+  for (const child of node.children ?? []) {
     collectLanguages(child, languages);
   }
 }

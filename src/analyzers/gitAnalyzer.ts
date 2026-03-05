@@ -61,10 +61,10 @@ export class GitAnalyzer implements GitClient {
         this.git.log(['--oneline']),
       ]);
 
-      const name = this.repoPath.split('/').pop() || 'unknown';
+      const name = this.getRepositoryName();
 
       return {
-        name: name.trim(),
+        name,
         path: this.repoPath,
         branch: branch.trim(),
         commitCount: log.total,
@@ -420,6 +420,15 @@ export class GitAnalyzer implements GitClient {
     }
 
     return { additions, deletions };
+  }
+
+  private getRepositoryName(): string {
+    const name = this.repoPath.split('/').pop()?.trim() ?? '';
+    if (!name) {
+      throw new Error(`Cannot derive repository name from path: "${this.repoPath}"`);
+    }
+
+    return name;
   }
 
   private getISOWeek(date: Date): string {

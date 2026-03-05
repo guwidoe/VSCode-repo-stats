@@ -104,11 +104,11 @@ function traverseTree(
     // Fallback to extension-based detection only for 0-LOC files.
     const isBinary =
       node.binary === true ||
-      ((node.lines || 0) === 0 && isBinaryFile(node.path, binaryExtensions));
+      ((node.lines ?? 0) === 0 && isBinaryFile(node.path, binaryExtensions));
     const isGenerated = isGeneratedFile(node.path, generatedPatterns);
 
     // Count by extension (all files)
-    state.extensionMap.set(ext, (state.extensionMap.get(ext) || 0) + 1);
+    state.extensionMap.set(ext, (state.extensionMap.get(ext) ?? 0) + 1);
 
     if (isBinary) {
       state.binaryFileCount++;
@@ -122,8 +122,8 @@ function traverseTree(
       }
     } else {
       // Non-binary file
-      const language = node.language || 'Unknown';
-      const lines = node.lines || 0;
+      const language = node.language ?? 'Unknown';
+      const lines = node.lines ?? 0;
 
       // Track LOC by language
       const existing = state.languageMap.get(language) || { lines: 0, fileCount: 0 };
@@ -134,7 +134,7 @@ function traverseTree(
 
       // Track unknown extensions
       if (language === 'Unknown') {
-        state.unknownExtMap.set(ext, (state.unknownExtMap.get(ext) || 0) + 1);
+        state.unknownExtMap.set(ext, (state.unknownExtMap.get(ext) ?? 0) + 1);
       }
 
       // Track generated files
@@ -204,7 +204,7 @@ export function useOverviewStats(): OverviewStats | null {
     const byCategory = Array.from(state.binaryCategoryMap.entries())
       .map(([category, exts]) => ({
         category,
-        count: Array.from(exts).reduce((sum, ext) => sum + (state.extensionMap.get(ext) || 0), 0),
+        count: Array.from(exts).reduce((sum, ext) => sum + (state.extensionMap.get(ext) ?? 0), 0),
         extensions: Array.from(exts).sort(),
       }))
       .sort((a, b) => b.count - a.count);

@@ -43,13 +43,13 @@ function getNodeColor(node: TreemapNode, colorMode: ColorMode): string {
       return getComplexityColor(node.complexity);
     case 'density':
       return getCodeDensityColor(
-        node.lines || 0,
-        node.commentLines || 0,
-        node.blankLines || 0
+        node.lines ?? 0,
+        node.commentLines ?? 0,
+        node.blankLines ?? 0
       );
     case 'language':
     default:
-      return getLanguageColor(node.language || 'Unknown');
+      return getLanguageColor(node.language ?? 'Unknown');
   }
 }
 
@@ -76,7 +76,7 @@ function countFiles(node: TreemapNode): number {
   if (node.type === 'file') {
     return 1;
   }
-  return (node.children || []).reduce((sum, child) => sum + countFiles(child), 0);
+  return (node.children ?? []).reduce((sum, child) => sum + countFiles(child), 0);
 }
 
 export function useTreemapRender() {
@@ -132,9 +132,9 @@ export function useTreemapRender() {
           const color = getNodeColor(node.data, colorMode);
           ctx.fillStyle = getContrastColor(color);
 
-          const lines = node.data.lines || 0;
-          const bytes = node.data.bytes || 0;
-          const complexity = node.data.complexity || 0;
+          const lines = node.data.lines ?? 0;
+          const bytes = node.data.bytes ?? 0;
+          const complexity = node.data.complexity ?? 0;
           let sizeText: string;
           if (sizeMode === 'loc') {
             sizeText = `(${formatNumber(lines)})`;

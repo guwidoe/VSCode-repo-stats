@@ -111,7 +111,7 @@ export function TreemapCanvas({
       return;
     }
 
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = window.devicePixelRatio ?? 1;
     canvas.width = dimensions.width * dpr;
     canvas.height = dimensions.height * dpr;
     canvas.style.width = `${dimensions.width}px`;
@@ -130,7 +130,7 @@ export function TreemapCanvas({
       sizeMode,
       hoveredNode,
       selectedNode,
-      devicePixelRatio: window.devicePixelRatio || 1,
+      devicePixelRatio: window.devicePixelRatio ?? 1,
     });
   }, [allNodes, colorMode, sizeMode, hoveredNode, selectedNode, render]);
 
@@ -154,13 +154,13 @@ export function TreemapCanvas({
       const y = e.clientY - rect.top;
 
       const node = findNodeAtPoint(x, y);
-      onHover(node?.data || null);
+      onHover(node?.data ?? null);
 
       setTooltipState({
         visible: !!node,
         x: e.clientX,
         y: e.clientY,
-        node: node?.data || null,
+        node: node?.data ?? null,
       });
     },
     [findNodeAtPoint, onHover]
@@ -183,7 +183,7 @@ export function TreemapCanvas({
       const y = e.clientY - rect.top;
 
       const node = findNodeAtPoint(x, y);
-      onSelect(node?.data || null);
+      onSelect(node?.data ?? null);
     },
     [findNodeAtPoint, onSelect]
   );

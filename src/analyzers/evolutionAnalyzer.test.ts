@@ -7,6 +7,7 @@ import { ExtensionSettings, NotAGitRepoError } from '../types';
 
 class FakeGitClient implements EvolutionGitClient {
   private readonly responses = new Map<string, string>();
+  private readonly errors = new Map<string, Error>();
   private readonly revparseResponses = new Map<string, string>();
   public blameCallCount = 0;
 
@@ -14,6 +15,10 @@ class FakeGitClient implements EvolutionGitClient {
 
   setRawResponse(args: string[], output: string): void {
     this.responses.set(args.join(' '), output);
+  }
+
+  setRawError(args: string[], error: Error): void {
+    this.errors.set(args.join(' '), error);
   }
 
   setRevparseResponse(args: string[], output: string): void {
@@ -25,7 +30,13 @@ class FakeGitClient implements EvolutionGitClient {
   }
 
   async revparse(args: string[]): Promise<string> {
-    return this.revparseResponses.get(args.join(' ')) ?? '';
+    const key = args.join(' ');
+    const response = this.revparseResponses.get(key);
+    if (response === undefined) {
+      throw new Error(`Missing revparse response for: ${key}`);
+    }
+
+    return response;
   }
 
   async raw(args: string[]): Promise<string> {
@@ -33,7 +44,18 @@ class FakeGitClient implements EvolutionGitClient {
     if (key.includes('blame')) {
       this.blameCallCount += 1;
     }
-    return this.responses.get(key) ?? '';
+
+    const error = this.errors.get(key);
+    if (error) {
+      throw error;
+    }
+
+    const response = this.responses.get(key);
+    if (response === undefined) {
+      throw new Error(`Missing raw response for: ${key}`);
+    }
+
+    return response;
   }
 }
 
@@ -152,6 +174,30 @@ describe('EvolutionAnalyzer', () => {
     expect(git.blameCallCount).toBe(2);
   });
 
+  it('throws on unexpected blame command failures', async () => {
+    const git = new FakeGitClient(true);
+    const settings = createSettings({ snapshotIntervalDays: 30, maxSnapshots: 10 });
+
+    git.setRevparseResponse(['--abbrev-ref', 'HEAD'], 'main\n');
+    git.setRevparseResponse(['HEAD'], 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n');
+    git.setRawResponse(
+      ['log', '--first-parent', '--reverse', '--format=%H|%ct', 'main'],
+      'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa|1577836800'
+    );
+    git.setRawResponse(
+      ['ls-tree', '-r', '--name-only', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
+      'src/app.ts\n'
+    );
+    git.setRawError(
+      ['blame', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', '--line-porcelain', '--', 'src/app.ts'],
+      new Error('fatal: unexpected io error')
+    );
+
+    const analyzer = new EvolutionAnalyzer('/tmp/repo', settings, git);
+
+    await expect(analyzer.analyze()).rejects.toThrow(/Failed to run git blame/);
+  });
+
   it('respects maxSnapshots downsampling', async () => {
     const git = new FakeGitClient(true);
     const settings = createSettings({ snapshotIntervalDays: 1, maxSnapshots: 3 });
@@ -182,6 +228,16 @@ describe('EvolutionAnalyzer', () => {
     git.setRawResponse(
       ['log', '--first-parent', '--reverse', '--format=%H|%ct', 'main'],
       commits.join('\n')
+    );
+
+    // Downsampling selects commits 0, 5, and 9 for maxSnapshots=3.
+    git.setRawResponse(
+      ['diff-tree', '--no-commit-id', '--name-status', '-r', '0000000000000000000000000000000000000000', '5555555555555555555555555555555555555555'],
+      ''
+    );
+    git.setRawResponse(
+      ['diff-tree', '--no-commit-id', '--name-status', '-r', '5555555555555555555555555555555555555555', '9999999999999999999999999999999999999999'],
+      ''
     );
 
     const analyzer = new EvolutionAnalyzer('/tmp/repo', settings, git);

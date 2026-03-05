@@ -79,7 +79,7 @@ export class EvolutionCacheManager {
 
   private getCache(): EvolutionCacheStructure | null {
     const cached = this.storage.get<EvolutionCacheStructure>(this.keyPrefix);
-    return cached || null;
+    return cached ?? null;
   }
 
   private hashPath(path: string): string {

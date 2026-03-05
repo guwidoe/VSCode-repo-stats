@@ -30,8 +30,8 @@ function flattenTree(
     const ext = getFileExtension(node.name);
     const binary =
       node.binary === true ||
-      ((node.lines || 0) === 0 && isBinaryFile(node.path, binaryExtensions));
-    const language = node.language || 'Unknown';
+      ((node.lines ?? 0) === 0 && isBinaryFile(node.path, binaryExtensions));
+    const language = node.language ?? 'Unknown';
     const generated = isGeneratedFile(node.path, generatedPatterns);
 
     const row: FileRow = {
@@ -39,27 +39,27 @@ function flattenTree(
       name: node.name,
       ext,
       language,
-      lines: node.lines || 0,
-      bytes: node.bytes || 0,
+      lines: node.lines ?? 0,
+      bytes: node.bytes ?? 0,
       binary,
       generated,
       isCode: isCodeLanguage(language),
-      complexity: node.complexity || 0,
-      commentLines: node.commentLines || 0,
-      blankLines: node.blankLines || 0,
-      blamedLines: node.blamedLines || 0,
-      lineAgeAvgDays: node.lineAgeAvgDays || 0,
-      lineAgeMinDays: node.lineAgeMinDays || 0,
-      lineAgeMaxDays: node.lineAgeMaxDays || 0,
-      topOwnerAuthor: node.topOwnerAuthor || '',
-      topOwnerEmail: node.topOwnerEmail || '',
-      topOwnerLines: node.topOwnerLines || 0,
-      topOwnerShare: node.topOwnerShare || 0,
+      complexity: node.complexity ?? 0,
+      commentLines: node.commentLines ?? 0,
+      blankLines: node.blankLines ?? 0,
+      blamedLines: node.blamedLines ?? 0,
+      lineAgeAvgDays: node.lineAgeAvgDays ?? 0,
+      lineAgeMinDays: node.lineAgeMinDays ?? 0,
+      lineAgeMaxDays: node.lineAgeMaxDays ?? 0,
+      topOwnerAuthor: node.topOwnerAuthor ?? '',
+      topOwnerEmail: node.topOwnerEmail ?? '',
+      topOwnerLines: node.topOwnerLines ?? 0,
+      topOwnerShare: node.topOwnerShare ?? 0,
       lastModified: node.lastModified,
       lastModifiedEpoch: toEpoch(node.lastModified),
       pathLower: node.path.toLowerCase(),
       nameLower: node.name.toLowerCase(),
-      topOwnerAuthorLower: (node.topOwnerAuthor || '').toLowerCase(),
+      topOwnerAuthorLower: (node.topOwnerAuthor ?? '').toLowerCase(),
     };
 
     rows.push(row);
@@ -68,7 +68,7 @@ function flattenTree(
     return;
   }
 
-  for (const child of node.children || []) {
+  for (const child of node.children ?? []) {
     flattenTree(child, rows, generatedPatterns, binaryExtensions, languages, extensions);
   }
 }

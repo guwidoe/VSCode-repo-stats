@@ -169,7 +169,7 @@ export function TreeViewPanel({
             return a.type === 'directory' ? -1 : 1;
           }
           // Then by lines descending
-          return (b.lines || 0) - (a.lines || 0);
+          return (b.lines ?? 0) - (a.lines ?? 0);
         });
 
       return { ...node, children: sortedChildren };

@@ -91,6 +91,8 @@ export class SccBinaryManager {
    * Check if scc is available in system PATH.
    */
   async getSystemBinaryPath(): Promise<string | null> {
+    let resolvedPath: string | null = null;
+
     try {
       const command = process.platform === 'win32' ? 'where scc' : 'which scc';
       const { stdout } = await execAsync(command);
@@ -98,10 +100,12 @@ export class SccBinaryManager {
 
       // Verify it actually works
       await execAsync(`"${sccPath}" --version`);
-      return sccPath;
+      resolvedPath = sccPath;
     } catch {
-      return null;
+      // Expected when scc is not installed system-wide.
     }
+
+    return resolvedPath;
   }
 
   /**
@@ -109,15 +113,18 @@ export class SccBinaryManager {
    */
   async getDownloadedBinaryPath(): Promise<string | null> {
     const binaryPath = this.getExpectedBinaryPath();
+    let resolvedPath: string | null = null;
 
     try {
       await fs.promises.access(binaryPath, fs.constants.X_OK);
       // Verify it works
       await execAsync(`"${binaryPath}" --version`);
-      return binaryPath;
+      resolvedPath = binaryPath;
     } catch {
-      return null;
+      // Expected when no downloaded binary exists yet.
     }
+
+    return resolvedPath;
   }
 
   /**

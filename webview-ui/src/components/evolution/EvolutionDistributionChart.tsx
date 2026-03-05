@@ -8,7 +8,7 @@ interface Props {
 export function EvolutionDistributionChart({ data }: Props) {
   const latestValues = data.labels.map((label, index) => ({
     label: String(label),
-    value: data.y[index]?.[data.y[index].length - 1] || 0,
+    value: data.y[index]?.[data.y[index].length - 1] ?? 0,
   }));
 
   latestValues.sort((a, b) => b.value - a.value || a.label.localeCompare(b.label));

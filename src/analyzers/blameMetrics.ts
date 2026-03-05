@@ -91,7 +91,7 @@ function applyStatsToGlobal(
   globalOwnership: Map<string, BlameOwnershipEntry>
 ): void {
   for (const [ageDays, count] of stats.ageCounts.entries()) {
-    globalAgeByDay[ageDays] = (globalAgeByDay[ageDays] || 0) + count;
+    globalAgeByDay[ageDays] = (globalAgeByDay[ageDays] ?? 0) + count;
   }
 
   for (const owner of stats.ownership.values()) {
@@ -172,7 +172,7 @@ export function parseBlamePorcelain(
     const authorTime = current.authorTime > 0 ? current.authorTime : nowUnixSeconds;
     const ageDays = Math.max(0, Math.floor((nowUnixSeconds - authorTime) / 86400));
 
-    ageCounts.set(ageDays, (ageCounts.get(ageDays) || 0) + lines);
+    ageCounts.set(ageDays, (ageCounts.get(ageDays) ?? 0) + lines);
 
     const ownerKey = `${author}\u0000${email}`;
     const existingOwner = ownership.get(ownerKey) || { author, email, lines: 0 };
@@ -247,8 +247,8 @@ export function parseBlamePorcelain(
     avgAgeDays: totalLines > 0 ? weightedAge / totalLines : 0,
     topOwnerAuthor: topOwner?.author || UNKNOWN_AUTHOR,
     topOwnerEmail: topOwner?.email || UNKNOWN_EMAIL,
-    topOwnerLines: topOwner?.lines || 0,
-    topOwnerShare: totalLines > 0 ? (topOwner?.lines || 0) / totalLines : 0,
+    topOwnerLines: topOwner?.lines ?? 0,
+    topOwnerShare: totalLines > 0 ? (topOwner?.lines ?? 0) / totalLines : 0,
   };
 }
 

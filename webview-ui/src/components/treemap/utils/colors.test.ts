@@ -49,6 +49,10 @@ describe('parseColor', () => {
   it('should parse rgb colors', () => {
     expect(parseColor('rgb(255, 128, 64)')).toEqual({ r: 255, g: 128, b: 64 });
   });
+
+  it('should throw for invalid colors in non-production runtimes', () => {
+    expect(() => parseColor('not-a-color')).toThrow(/Invalid color input/);
+  });
 });
 
 describe('colorToRgba', () => {

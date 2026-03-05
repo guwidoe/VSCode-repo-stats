@@ -60,6 +60,7 @@ export class EvolutionAnalyzer {
   private readonly repoPath: string;
   private readonly settings: ExtensionSettings;
   private readonly excludeRegexes: RegExp[];
+  private expectedBlameMisses = 0;
 
   constructor(repoPath: string, settings: ExtensionSettings, gitClient?: EvolutionGitClient) {
     this.repoPath = repoPath;
@@ -72,6 +73,8 @@ export class EvolutionAnalyzer {
   }
 
   async analyze(onProgress?: EvolutionProgressCallback): Promise<EvolutionResult> {
+    this.expectedBlameMisses = 0;
+
     const isRepo = await this.git.checkIsRepo();
     if (!isRepo) {
       throw new NotAGitRepoError(this.repoPath);
@@ -186,6 +189,9 @@ export class EvolutionAnalyzer {
       exts: this.toSeries(snapshotTimestamps, snapshotTotals.ext),
       dirs: this.toSeries(snapshotTimestamps, snapshotTotals.dir),
       domains: this.toSeries(snapshotTimestamps, snapshotTotals.domain),
+      diagnostics: {
+        expectedBlameMisses: this.expectedBlameMisses,
+      },
     };
 
     onProgress?.('Evolution analysis complete', 100);
@@ -380,6 +386,7 @@ export class EvolutionAnalyzer {
       ]);
     } catch (error) {
       if (isExpectedBlameMiss(error)) {
+        this.expectedBlameMisses += 1;
         return histogram;
       }
 
@@ -486,7 +493,7 @@ export class EvolutionAnalyzer {
     }
 
     const labels = Array.from(labelSet).sort((a, b) => a.localeCompare(b));
-    const y = labels.map((label) => snapshots.map((snapshot) => snapshot[label] || 0));
+    const y = labels.map((label) => snapshots.map((snapshot) => snapshot[label] ?? 0));
 
     return {
       ts,
@@ -509,12 +516,12 @@ function incrementCount(target: DimensionCounts, label: string, value: number): 
   if (!label) {
     return;
   }
-  target[label] = (target[label] || 0) + value;
+  target[label] = (target[label] ?? 0) + value;
 }
 
 function mergeCounts(target: DimensionCounts, source: DimensionCounts, sign: 1 | -1): void {
   for (const [label, value] of Object.entries(source)) {
-    const next = (target[label] || 0) + value * sign;
+    const next = (target[label] ?? 0) + value * sign;
     if (next <= 0) {
       delete target[label];
     } else {

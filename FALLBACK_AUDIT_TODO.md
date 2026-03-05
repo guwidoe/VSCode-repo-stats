@@ -85,17 +85,17 @@ Context: classify and fix fallback behavior so it does **not hide bugs/misconfig
 
 ## P1 — Validate questionable value fallbacks
 
-- [ ] **`parseColor` gray fallback should be explicit error path**
+- [x] **`parseColor` gray fallback should be explicit error path**
   - File: `webview-ui/src/components/treemap/utils/colors.ts` (default gray)
   - Why risky: invalid color inputs should be detected during development.
   - Fix: in dev/test throw on invalid color; in prod log + fallback with telemetry counter.
 
-- [ ] **`LoadingState` phase fallback string**
+- [x] **`LoadingState` phase fallback string**
   - File: `webview-ui/src/components/common/LoadingState.tsx`
   - Why questionable: may hide missing progress phase wiring.
   - Fix: require phase from producer, or explicitly mark unknown phase (`"(phase missing)"`) in dev.
 
-- [ ] **Name fallback `unknown` in cache/repo display**
+- [x] **Name fallback `unknown` in cache/repo display**
   - Files:
     - `src/analyzers/gitAnalyzer.ts`
     - `src/cache/cacheManager.ts`
@@ -106,11 +106,11 @@ Context: classify and fix fallback behavior so it does **not hide bugs/misconfig
 
 ## P1 — Data-shape fallbacks: keep only where contract says partial is expected
 
-- [ ] **Audit all `node.lines || 0`, `children || []`, etc. and document contract**
+- [x] **Audit all `node.lines || 0`, `children || []`, etc. and document contract**
   - Scope: analyzers + webview hooks/store/components.
   - Fix: tighten `TreemapNode` typing where possible (separate `FileNode`/`DirectoryNode`), reduce defensive fallback usage.
 
-- [ ] **Replace `||` with `??` where `0` is valid and should not trigger fallback**
+- [x] **Replace `||` with `??` where `0` is valid and should not trigger fallback**
   - Scope: numeric fallbacks that currently coerce `0` to default.
   - Fix: switch to nullish checks and add tests for zero values.
 
@@ -118,7 +118,7 @@ Context: classify and fix fallback behavior so it does **not hide bugs/misconfig
 
 ## P2 — Tests (avoid masking failures)
 
-- [ ] **Review test fallbacks that can hide fixture issues**
+- [x] **Review test fallbacks that can hide fixture issues**
   - Files:
     - `src/analyzers/evolutionAnalyzer.test.ts` (`?? ''`)
     - `webview-ui/src/store/index.test.ts` (`|| []`)
@@ -129,6 +129,6 @@ Context: classify and fix fallback behavior so it does **not hide bugs/misconfig
 ## Implementation notes
 
 - [x] Add a shared helper for strict config reads (type-safe + explicit errors).
-- [ ] Add degraded-state telemetry/reporting object for optional subsystems (blame/evolution metadata), instead of silent empties.
-- [ ] Add lint rule/checklist for disallowing silent catch + empty fallback in production code.
-- [ ] Add regression tests for “settings not loaded” and “unexpected command failure” paths (must surface, not hide).
+- [x] Add degraded-state telemetry/reporting object for optional subsystems (blame/evolution metadata), instead of silent empties.
+- [x] Add lint rule/checklist for disallowing silent catch + empty fallback in production code.
+- [x] Add regression tests for “settings not loaded” and “unexpected command failure” paths (must surface, not hide).

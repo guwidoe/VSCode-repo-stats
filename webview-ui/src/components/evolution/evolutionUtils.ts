@@ -20,7 +20,7 @@ export function processEvolutionSeries(
     label,
     index,
     max: Math.max(...(y[index] || [0])),
-    latest: y[index]?.[y[index].length - 1] || 0,
+    latest: y[index]?.[y[index].length - 1] ?? 0,
   }));
 
   indexed.sort((a, b) => b.latest - a.latest || b.max - a.max || a.label.localeCompare(b.label));
@@ -35,9 +35,9 @@ export function processEvolutionSeries(
   if (rest.length > 0) {
     const other = Array(ts.length).fill(0);
     for (const entry of rest) {
-      const series = y[entry.index] || [];
+      const series = y[entry.index] ?? [];
       for (let i = 0; i < ts.length; i++) {
-        other[i] += series[i] || 0;
+        other[i] += series[i] ?? 0;
       }
     }
     outLabels.push('Other');
@@ -80,7 +80,7 @@ export function processEvolutionSeries(
   for (let i = 0; i < ts.length; i++) {
     let total = 0;
     for (const series of normalized) {
-      total += series[i] || 0;
+      total += series[i] ?? 0;
     }
 
     if (total <= 0) {
@@ -88,7 +88,7 @@ export function processEvolutionSeries(
     }
 
     for (const series of normalized) {
-      series[i] = (100 * (series[i] || 0)) / total;
+      series[i] = (100 * (series[i] ?? 0)) / total;
     }
   }
 

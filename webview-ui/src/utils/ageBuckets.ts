@@ -10,7 +10,7 @@ export function buildAgePrefixSums(ageByDay: number[]): number[] {
   let running = 0;
 
   for (let i = 0; i < ageByDay.length; i++) {
-    running += ageByDay[i] || 0;
+    running += ageByDay[i] ?? 0;
     prefix[i] = running;
   }
 
@@ -25,8 +25,8 @@ export function sumAgeRange(prefix: number[], minDay: number, maxDay: number): n
   const start = Math.max(0, minDay);
   const end = Math.max(start, Math.min(maxDay, prefix.length - 1));
 
-  const endValue = prefix[end] || 0;
-  const beforeStart = start > 0 ? (prefix[start - 1] || 0) : 0;
+  const endValue = prefix[end] ?? 0;
+  const beforeStart = start > 0 ? (prefix[start - 1] ?? 0) : 0;
 
   return endValue - beforeStart;
 }

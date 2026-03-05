@@ -49,6 +49,10 @@ export interface EvolutionTimeSeriesData {
   y: number[][]; // Series x snapshots matrix (same shape as labels x ts)
 }
 
+export interface EvolutionDiagnostics {
+  expectedBlameMisses: number;
+}
+
 export interface EvolutionResult {
   generatedAt: string; // ISO date string
   headSha: string;
@@ -59,6 +63,7 @@ export interface EvolutionResult {
   exts: EvolutionTimeSeriesData;
   dirs: EvolutionTimeSeriesData;
   domains: EvolutionTimeSeriesData;
+  diagnostics?: EvolutionDiagnostics;
 }
 
 export type EvolutionStatus = 'idle' | 'loading' | 'ready' | 'error' | 'stale';

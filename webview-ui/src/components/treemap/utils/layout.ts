@@ -21,7 +21,7 @@ export function collectLanguageCounts(node: TreemapNode): Map<string, number> {
 
   function traverse(n: TreemapNode) {
     if (n.type === 'file' && n.language) {
-      counts.set(n.language, (counts.get(n.language) || 0) + (n.lines || 0));
+      counts.set(n.language, (counts.get(n.language) ?? 0) + (n.lines ?? 0));
     }
     if (n.children) {
       n.children.forEach(traverse);

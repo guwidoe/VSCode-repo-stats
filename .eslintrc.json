@@ -37,6 +37,22 @@
         "argsIgnorePattern": "^_",
         "varsIgnorePattern": "^_"
       }
+    ],
+    "no-empty": ["error", { "allowEmptyCatch": false }],
+    "no-restricted-syntax": [
+      "warn",
+      {
+        "selector": "CatchClause ReturnStatement[argument.type='ArrayExpression'][argument.elements.length=0]",
+        "message": "Do not silently return [] from catch blocks. Log, surface, or rethrow explicitly."
+      },
+      {
+        "selector": "CatchClause ReturnStatement[argument.type='Literal'][argument.value=null]",
+        "message": "Do not silently return null from catch blocks. Log, surface, or rethrow explicitly."
+      },
+      {
+        "selector": "CatchClause ReturnStatement[argument.type='ObjectExpression'][argument.properties.length=0]",
+        "message": "Do not silently return {} from catch blocks. Log, surface, or rethrow explicitly."
+      }
     ]
   },
   "overrides": [

@@ -275,10 +275,10 @@ export class LOCCounter implements LOCClient {
             commentLines: file.Comment,
             blankLines: file.Blank,
           };
-          current.children = current.children || [];
+          current.children = current.children ?? [];
           current.children.push(fileNode);
         } else {
-          current.children = current.children || [];
+          current.children = current.children ?? [];
           let dirNode = current.children.find(
             (c) => c.name === part && c.type === 'directory'
           );
@@ -310,12 +310,12 @@ export class LOCCounter implements LOCClient {
   private calculateDirectoryMetrics(node: TreemapNode): DirectoryMetrics {
     if (node.type === 'file') {
       return {
-        lines: node.lines || 0,
-        complexity: node.complexity || 0,
-        commentLines: node.commentLines || 0,
-        blankLines: node.blankLines || 0,
+        lines: node.lines ?? 0,
+        complexity: node.complexity ?? 0,
+        commentLines: node.commentLines ?? 0,
+        blankLines: node.blankLines ?? 0,
         fileCount: 1,
-        maxComplexity: node.complexity || 0,
+        maxComplexity: node.complexity ?? 0,
       };
     }
 
@@ -327,7 +327,7 @@ export class LOCCounter implements LOCClient {
     let totalFileCount = 0;
     let maxComplexity = 0;
 
-    for (const child of node.children || []) {
+    for (const child of node.children ?? []) {
       const childMetrics = this.calculateDirectoryMetrics(child);
       totalLines += childMetrics.lines;
       totalComplexity += childMetrics.complexity;

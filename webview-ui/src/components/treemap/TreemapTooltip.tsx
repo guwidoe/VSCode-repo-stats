@@ -17,7 +17,7 @@ interface TreemapTooltipProps {
 
 function countFiles(node: TreemapNode): number {
   if (node.type === 'file') {return 1;}
-  return (node.children || []).reduce((sum, child) => sum + countFiles(child), 0);
+  return (node.children ?? []).reduce((sum, child) => sum + countFiles(child), 0);
 }
 
 function formatBytes(bytes: number): string {
@@ -79,13 +79,13 @@ export function TreemapTooltip({ visible, x, y, node, sizeMode, colorMode }: Tre
 
   const isFile = node.type === 'file';
   const isDirectory = node.type === 'directory';
-  const lines = node.lines || 0;
-  const bytes = node.bytes || 0;
+  const lines = node.lines ?? 0;
+  const bytes = node.bytes ?? 0;
   const fileCount = node.fileCount ?? countFiles(node);
 
   // Compute derived metrics
-  const totalLines = lines + (node.commentLines || 0) + (node.blankLines || 0);
-  const commentRatio = totalLines > 0 ? ((node.commentLines || 0) / totalLines) * 100 : 0;
+  const totalLines = lines + (node.commentLines ?? 0) + (node.blankLines ?? 0);
+  const commentRatio = totalLines > 0 ? ((node.commentLines ?? 0) / totalLines) * 100 : 0;
   const codeDensity = totalLines > 0 ? (lines / totalLines) * 100 : 0;
 
   // Determine primary size display based on mode

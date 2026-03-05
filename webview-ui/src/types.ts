@@ -41,6 +41,10 @@ export interface EvolutionTimeSeriesData {
   y: number[][];
 }
 
+export interface EvolutionDiagnostics {
+  expectedBlameMisses: number;
+}
+
 export interface EvolutionResult {
   generatedAt: string;
   headSha: string;
@@ -51,6 +55,7 @@ export interface EvolutionResult {
   exts: EvolutionTimeSeriesData;
   dirs: EvolutionTimeSeriesData;
   domains: EvolutionTimeSeriesData;
+  diagnostics?: EvolutionDiagnostics;
 }
 
 export type EvolutionStatus = 'idle' | 'loading' | 'ready' | 'error' | 'stale';

@@ -75,7 +75,7 @@ export function CommitsChart({ contributors, granularity }: Props) {
       for (const week of contributor.weeklyActivity) {
         // Only include valid weeks (skip any malformed data)
         if (parseISOWeek(week.week)) {
-          weeklyMap.set(week.week, (weeklyMap.get(week.week) || 0) + week.commits);
+          weeklyMap.set(week.week, (weeklyMap.get(week.week) ?? 0) + week.commits);
         }
       }
     }

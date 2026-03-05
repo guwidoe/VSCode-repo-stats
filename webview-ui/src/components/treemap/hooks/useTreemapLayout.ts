@@ -21,7 +21,7 @@ function getNodeSize(node: TreemapNode, sizeMode: SizeDisplayMode): number {
     case 'loc':
       return node.lines || 1;
     case 'bytes':
-      return node.bytes || (node.lines || 1) * 40; // Fallback to estimate
+      return node.bytes ?? (node.lines ?? 1) * 40; // Fallback to estimate
     case 'files':
       return 1;
     case 'complexity':
@@ -60,7 +60,7 @@ function createLayoutNode(
       // Re-layout children within the adjusted bounds
       const childRoot = d3.hierarchy(d3Node.data)
         .sum(n => getNodeSize(n, sizeMode))
-        .sort((a, b) => (b.value || 0) - (a.value || 0));
+        .sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
 
       const childTreemap = d3.treemap<TreemapNode>()
         .size([childWidth, childHeight])
@@ -71,7 +71,7 @@ function createLayoutNode(
 
       // After treemap layout, children have x0/y0/x1/y1 properties
       const layoutChildren = childRoot.children as d3.HierarchyRectangularNode<TreemapNode>[] | undefined;
-      node.children = (layoutChildren || []).map(child => {
+      node.children = (layoutChildren ?? []).map(child => {
         const childNode = createLayoutNode(
           {
             ...child,
@@ -117,7 +117,7 @@ export function useTreemapLayout(
 
     const hierarchy = d3.hierarchy(root)
       .sum(n => getNodeSize(n, sizeMode))
-      .sort((a, b) => (b.value || 0) - (a.value || 0));
+      .sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
 
     const treemap = d3.treemap<TreemapNode>()
       .size([width, height])

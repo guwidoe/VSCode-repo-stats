@@ -1,33 +1,46 @@
 // webview-ui/src/components/treemap/TreemapTooltip.test.tsx
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { TreemapTooltip } from './TreemapTooltip';
 import type { TreemapNode } from '../../types';
 
-// Mock the store
-vi.mock('../../store', () => {
-  const state = {
-    settings: {
-      tooltipSettings: {
-        showLinesOfCode: true,
-        showFileSize: true,
-        showLanguage: true,
-        showLastModified: true,
-        showComplexity: false,
-        showCommentLines: false,
-        showCommentRatio: false,
-        showBlankLines: false,
-        showCodeDensity: false,
-        showFileCount: true,
-      },
+const mockStoreState: {
+  settings: {
+    tooltipSettings: {
+      showLinesOfCode: boolean;
+      showFileSize: boolean;
+      showLanguage: boolean;
+      showLastModified: boolean;
+      showComplexity: boolean;
+      showCommentLines: boolean;
+      showCommentRatio: boolean;
+      showBlankLines: boolean;
+      showCodeDensity: boolean;
+      showFileCount: boolean;
+    };
+  } | null;
+} = {
+  settings: {
+    tooltipSettings: {
+      showLinesOfCode: true,
+      showFileSize: true,
+      showLanguage: true,
+      showLastModified: true,
+      showComplexity: false,
+      showCommentLines: false,
+      showCommentRatio: false,
+      showBlankLines: false,
+      showCodeDensity: false,
+      showFileCount: true,
     },
-  };
+  },
+};
 
-  return {
-    useStore: (selector?: (value: typeof state) => unknown) =>
-      selector ? selector(state) : state,
-  };
-});
+// Mock the store
+vi.mock('../../store', () => ({
+  useStore: (selector?: (value: typeof mockStoreState) => unknown) =>
+    selector ? selector(mockStoreState) : mockStoreState,
+}));
 
 const mockFileNode: TreemapNode = {
   name: 'index.ts',
@@ -47,6 +60,23 @@ const mockDirNode: TreemapNode = {
 };
 
 describe('TreemapTooltip', () => {
+  afterEach(() => {
+    mockStoreState.settings = {
+      tooltipSettings: {
+        showLinesOfCode: true,
+        showFileSize: true,
+        showLanguage: true,
+        showLastModified: true,
+        showComplexity: false,
+        showCommentLines: false,
+        showCommentRatio: false,
+        showBlankLines: false,
+        showCodeDensity: false,
+        showFileCount: true,
+      },
+    };
+  });
+
   it('should not render when not visible', () => {
     const { container } = render(
       <TreemapTooltip visible={false} x={0} y={0} node={mockFileNode} sizeMode="loc" />
@@ -80,6 +110,16 @@ describe('TreemapTooltip', () => {
     const { container } = render(
       <TreemapTooltip visible={true} x={100} y={100} node={null} sizeMode="loc" />
     );
+    expect(container.firstChild).toBeNull();
+  });
+
+  it('should not render when settings are missing', () => {
+    mockStoreState.settings = null;
+
+    const { container } = render(
+      <TreemapTooltip visible={true} x={100} y={100} node={mockFileNode} sizeMode="loc" />
+    );
+
     expect(container.firstChild).toBeNull();
   });
 

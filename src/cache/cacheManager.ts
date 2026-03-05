@@ -62,7 +62,7 @@ export class CacheManager {
 
     return {
       repository: {
-        name: cache.repoPath.split('/').pop() || 'unknown',
+        name: this.getRepositoryName(cache.repoPath),
         path: cache.repoPath,
         branch: '', // Not cached, will be refreshed
         commitCount: 0, // Not cached, will be refreshed
@@ -129,23 +129,32 @@ export class CacheManager {
 
   private getCache(): CacheStructure | null {
     const cached = this.storage.get<CacheStructure>(this.keyPrefix);
-    return cached || null;
+    return cached ?? null;
   }
 
   private hashPath(path: string): string {
     return crypto.createHash('md5').update(path).digest('hex').slice(0, 8);
   }
 
+  private getRepositoryName(repoPath: string): string {
+    const name = repoPath.split('/').pop()?.trim() ?? '';
+    if (!name) {
+      throw new Error(`Cannot derive repository name from cache repo path: "${repoPath}"`);
+    }
+
+    return name;
+  }
+
   private buildFileLOCMap(node: TreemapNode, map: Record<string, { sha: string; lines: number; language: string }> = {}): Record<string, { sha: string; lines: number; language: string }> {
     if (node.type === 'file') {
       map[node.path] = {
         sha: '', // TODO: Could store blob SHA for incremental updates
-        lines: node.lines || 0,
-        language: node.language || 'Unknown',
+        lines: node.lines ?? 0,
+        language: node.language ?? 'Unknown',
       };
     }
 
-    for (const child of node.children || []) {
+    for (const child of node.children ?? []) {
       this.buildFileLOCMap(child, map);
     }
 

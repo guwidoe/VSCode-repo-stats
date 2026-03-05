@@ -312,7 +312,7 @@ export const useStore = create<RepoStatsState>((set, get) => ({
         node = null;
         break;
       }
-      node = node.children.find((child) => child.name === segment) || null;
+      node = node.children.find((child) => child.name === segment) ?? null;
     }
 
     set({
@@ -439,7 +439,7 @@ export const selectWeeklyCommitTotals = (state: RepoStatsState): { week: string;
     for (const week of contributor.weeklyActivity) {
       // Only include valid ISO week strings
       if (isValidISOWeek(week.week)) {
-        weekMap.set(week.week, (weekMap.get(week.week) || 0) + week.commits);
+        weekMap.set(week.week, (weekMap.get(week.week) ?? 0) + week.commits);
       }
     }
   }
@@ -677,7 +677,7 @@ function createTreemapFilterFunction(
         if (node.type === 'directory') {
           return true;
         }
-        return filter.selectedLanguages.has(node.language || 'Unknown');
+        return filter.selectedLanguages.has(node.language ?? 'Unknown');
       };
 
     default:
@@ -716,11 +716,11 @@ function filterTreeNode(
   const filteredChildren: TreemapNode[] = [];
   let totalLines = 0;
 
-  for (const child of node.children || []) {
+  for (const child of node.children ?? []) {
     const filteredChild = filterTreeNode(child, filterFn);
     if (filteredChild) {
       filteredChildren.push(filteredChild);
-      totalLines += filteredChild.lines || 0;
+      totalLines += filteredChild.lines ?? 0;
     }
   }
 

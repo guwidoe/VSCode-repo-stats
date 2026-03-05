@@ -259,7 +259,7 @@ describe('selectFilteredTreemapNode', () => {
     expect(result).not.toBeNull();
 
     // Check root children - logo.png should be filtered out
-    const rootChildren = result!.children || [];
+    const rootChildren = result!.children ?? [];
     expect(rootChildren.some(c => c.name === 'logo.png')).toBe(false);
     expect(rootChildren.some(c => c.name === 'app.tsx')).toBe(true);
     expect(rootChildren.some(c => c.name === 'config.json')).toBe(true);
@@ -280,7 +280,7 @@ describe('selectFilteredTreemapNode', () => {
     const result = selectFilteredTreemapNode(useStore.getState());
     expect(result).not.toBeNull();
 
-    const rootChildren = result!.children || [];
+    const rootChildren = result!.children ?? [];
     // JSON, Markdown, Unknown are NOT code
     expect(rootChildren.some(c => c.name === 'config.json')).toBe(false);
     expect(rootChildren.some(c => c.name === 'README.md')).toBe(false);
@@ -355,7 +355,7 @@ describe('selectFilteredTreemapNode', () => {
     const result = selectFilteredTreemapNode(useStore.getState());
     expect(result).not.toBeNull();
 
-    const rootChildren = result!.children || [];
+    const rootChildren = result!.children ?? [];
     expect(rootChildren.some(c => c.name === 'app.tsx')).toBe(true);
     expect(rootChildren.some(c => c.name === 'config.json')).toBe(false);
 

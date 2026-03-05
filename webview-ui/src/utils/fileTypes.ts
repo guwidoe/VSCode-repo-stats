@@ -118,7 +118,7 @@ export function isBinaryFile(
   binaryExtensions: Set<string> = BINARY_EXTENSIONS
 ): boolean {
   const normalizedPath = filePath.replace(/\\/g, '/');
-  const fileName = normalizedPath.split('/').pop() || '';
+  const fileName = normalizedPath.split('/').pop() ?? '';
 
   if (!fileName) {
     return false;

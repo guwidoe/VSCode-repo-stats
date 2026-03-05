@@ -4,6 +4,33 @@ export interface RGB {
   b: number;
 }
 
+let invalidColorFallbackCount = 0;
+
+function isDevLikeRuntime(): boolean {
+  const maybeProcess = globalThis as {
+    process?: {
+      env?: {
+        NODE_ENV?: string;
+      };
+    };
+  };
+
+  return maybeProcess.process?.env?.NODE_ENV !== 'production';
+}
+
+function handleInvalidColor(color: string): RGB {
+  if (isDevLikeRuntime()) {
+    throw new Error(`Invalid color input: "${color}". Expected #RRGGBB, #RGB, or rgb(r, g, b).`);
+  }
+
+  invalidColorFallbackCount += 1;
+  if (invalidColorFallbackCount === 1) {
+    console.warn('[RepoStats] Invalid color encountered. Falling back to neutral gray.', color);
+  }
+
+  return { r: 128, g: 128, b: 128 };
+}
+
 /**
  * Parse a color string to RGB values
  */
@@ -31,8 +58,7 @@ export function parseColor(color: string): RGB {
     };
   }
 
-  // Default fallback
-  return { r: 128, g: 128, b: 128 };
+  return handleInvalidColor(color);
 }
 
 /**

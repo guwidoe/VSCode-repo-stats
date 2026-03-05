@@ -66,7 +66,7 @@ export function getCellTitle(row: FileRow, key: FileSortKey): string | undefined
         ? `${row.topOwnerLines.toLocaleString()} / ${row.blamedLines.toLocaleString()} lines`
         : undefined;
     case 'lastModified':
-      return row.lastModified || 'Unknown';
+      return row.lastModified ?? 'Unknown';
     default:
       return undefined;
   }

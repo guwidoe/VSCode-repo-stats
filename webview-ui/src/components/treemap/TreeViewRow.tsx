@@ -35,11 +35,11 @@ export function TreeViewRow({
   const hasChildren = isDirectory && node.children && node.children.length > 0;
 
   // Compute metrics
-  const lines = node.lines || 0;
-  const complexity = node.complexity || 0;
+  const lines = node.lines ?? 0;
+  const complexity = node.complexity ?? 0;
   const fileCount = node.fileCount ?? (isDirectory ? 0 : 1);
-  const commentLines = node.commentLines || 0;
-  const totalLines = lines + commentLines + (node.blankLines || 0);
+  const commentLines = node.commentLines ?? 0;
+  const totalLines = lines + commentLines + (node.blankLines ?? 0);
   const commentRatio = totalLines > 0 ? (commentLines / totalLines) * 100 : 0;
 
   // For directories, show avg/max complexity

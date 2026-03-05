@@ -204,7 +204,7 @@ export class AnalysisCoordinator {
         node.bytes = stats.size;
       } catch {
         // File may have been deleted or moved - use estimate
-        node.bytes = (node.lines || 0) * 40; // ~40 bytes per line estimate
+        node.bytes = (node.lines ?? 0) * 40; // ~40 bytes per line estimate
       }
 
       return node.bytes;
@@ -264,7 +264,7 @@ export class AnalysisCoordinator {
     if (node.type === 'file') {
       paths.add(node.path);
     }
-    for (const child of node.children || []) {
+    for (const child of node.children ?? []) {
       this.collectFilePaths(child, paths);
     }
     return paths;
@@ -278,14 +278,14 @@ export class AnalysisCoordinator {
     targets: Array<{ path: string; node: TreemapNode }> = []
   ): Array<{ path: string; node: TreemapNode }> {
     if (node.type === 'file') {
-      const lines = node.lines || 0;
+      const lines = node.lines ?? 0;
       if (!node.binary && lines > 0) {
         targets.push({ path: node.path, node });
       }
       return targets;
     }
 
-    for (const child of node.children || []) {
+    for (const child of node.children ?? []) {
       this.collectBlameTargets(child, targets);
     }
 
@@ -377,7 +377,7 @@ export class AnalysisCoordinator {
         const dirName = segments[i];
         const dirPath = segments.slice(0, i + 1).join('/');
 
-        current.children = current.children || [];
+        current.children = current.children ?? [];
         let dirNode = current.children.find(
           c => c.name === dirName && c.type === 'directory'
         );
@@ -396,7 +396,7 @@ export class AnalysisCoordinator {
       }
 
       // Add the binary file node
-      current.children = current.children || [];
+      current.children = current.children ?? [];
       current.children.push({
         name: fileName,
         path: filePath,
@@ -442,7 +442,7 @@ export class AnalysisCoordinator {
       // Database
       '.sqlite': 'Database', '.db': 'Database',
     };
-    return binaryLanguages[ext] || 'Binary';
+    return binaryLanguages[ext] ?? 'Binary';
   }
 
   async getRepositoryInfo(): Promise<RepositoryInfo> {
