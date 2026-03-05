@@ -177,7 +177,8 @@
   border: 1px solid var(--vscode-panel-border);
   border-radius: 8px;
   background: var(--vscode-editor-background);
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .files-table {
@@ -223,7 +224,14 @@
 }
 
 .header-sort-button.numeric {
-  justify-content: flex-end;
+  justify-content: space-between;
+}
+
+.header-sort-button > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sort-indicator {
@@ -282,7 +290,8 @@
 .files-table-body {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   position: relative;
 }
 
