@@ -28,12 +28,9 @@ export function processEvolutionSeries(
   const top = indexed.slice(0, Math.max(1, maxSeries));
   const rest = indexed.slice(Math.max(1, maxSeries));
 
-  if (dimension === 'cohort') {
-    top.sort((a, b) => compareCohortLabels(a.label, b.label));
-  }
 
-  const outLabels = top.map((entry) => entry.label);
-  const outY = top.map((entry) => y[entry.index] || Array(ts.length).fill(0));
+  let outLabels = top.map((entry) => entry.label);
+  let outY = top.map((entry) => y[entry.index] || Array(ts.length).fill(0));
 
   if (rest.length > 0) {
     const other = Array(ts.length).fill(0);
@@ -45,6 +42,34 @@ export function processEvolutionSeries(
     }
     outLabels.push('Other');
     outY.push(other);
+  }
+
+  if (dimension === 'cohort') {
+    const zipped = outLabels.map((label, index) => ({
+      label,
+      series: outY[index],
+      isOther: label === 'Other',
+      key: cohortSortKey(label),
+    }));
+
+    zipped.sort((a, b) => {
+      if (a.isOther && b.isOther) {
+        return 0;
+      }
+      if (a.isOther) {
+        return 1;
+      }
+      if (b.isOther) {
+        return -1;
+      }
+      if (a.key !== b.key) {
+        return a.key - b.key;
+      }
+      return a.label.localeCompare(b.label);
+    });
+
+    outLabels = zipped.map((entry) => entry.label);
+    outY = zipped.map((entry) => entry.series);
   }
 
   if (!normalize) {
@@ -72,15 +97,6 @@ export function processEvolutionSeries(
     labels: outLabels,
     y: normalized,
   };
-}
-
-function compareCohortLabels(a: string, b: string): number {
-  const aKey = cohortSortKey(a);
-  const bKey = cohortSortKey(b);
-  if (aKey !== bKey) {
-    return aKey - bKey;
-  }
-  return a.localeCompare(b);
 }
 
 function cohortSortKey(label: string): number {

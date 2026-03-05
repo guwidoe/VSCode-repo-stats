@@ -43,4 +43,19 @@ describe('processEvolutionSeries', () => {
 
     expect(processed.labels).toEqual(['2022', '2023', '2024', '2025', '2026']);
   });
+
+  it('keeps Other as last entry for cohort dimension', () => {
+    const processed = processEvolutionSeries(
+      {
+        ts: ['2025-01-01T00:00:00.000Z'],
+        labels: ['2022', '2023', '2024', '2025', '2026', '2027'],
+        y: [[50], [40], [30], [20], [10], [5]],
+      },
+      3,
+      false,
+      'cohort'
+    );
+
+    expect(processed.labels[processed.labels.length - 1]).toBe('Other');
+  });
 });
