@@ -206,13 +206,13 @@
   flex: 1;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  justify-content: flex-start;
+  gap: 4px;
   border: none;
   background: transparent;
   color: var(--vscode-foreground);
   text-align: left;
-  padding: 8px 6px 8px 10px;
+  padding: 8px 4px 8px 8px;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -224,7 +224,7 @@
 }
 
 .header-sort-button.numeric {
-  justify-content: space-between;
+  justify-content: flex-start;
 }
 
 .header-sort-button > span:first-child {
@@ -235,10 +235,15 @@
 }
 
 .sort-indicator {
-  min-width: 20px;
+  margin-left: auto;
+  min-width: 14px;
   color: var(--vscode-descriptionForeground);
   font-size: 10px;
   text-align: right;
+}
+
+.sort-indicator:empty {
+  display: none;
 }
 
 .header-actions {
