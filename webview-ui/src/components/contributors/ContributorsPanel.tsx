@@ -21,6 +21,7 @@ const LOAD_MORE_COUNT = 50;
 
 export function ContributorsPanel() {
   const data = useStore((state) => state.data);
+  const settings = useStore((state) => state.settings);
 
   // Get current values from store
   const contributors = useStore(selectFilteredContributors);
@@ -69,6 +70,12 @@ export function ContributorsPanel() {
           <TimeRangeSlider />
         </div>
       </div>
+
+      {settings?.includeSubmodules && data.submodules && data.submodules.count > 0 && (
+        <div className="submodule-note">
+          Note: Contributors are based on parent-repo history only. Submodule repositories are not aggregated in this tab.
+        </div>
+      )}
 
       <div className="commits-chart-container">
         <h3>Commits Over Time</h3>

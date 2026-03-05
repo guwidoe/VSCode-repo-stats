@@ -64,6 +64,15 @@
   margin-bottom: 16px;
 }
 
+.submodule-note {
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 6px;
+  color: var(--vscode-descriptionForeground);
+  background: color-mix(in srgb, var(--vscode-editor-background) 90%, black 10%);
+}
+
 .summary-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));

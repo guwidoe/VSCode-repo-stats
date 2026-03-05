@@ -45,6 +45,15 @@
   border-radius: 6px;
 }
 
+.submodule-note {
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 6px;
+  color: var(--vscode-descriptionForeground);
+  background: color-mix(in srgb, var(--vscode-editor-background) 90%, black 10%);
+}
+
 .commits-chart-container h3 {
   margin: 0 0 12px 0;
   font-size: 14px;

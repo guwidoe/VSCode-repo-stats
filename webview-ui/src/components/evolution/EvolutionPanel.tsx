@@ -120,6 +120,12 @@ export function EvolutionPanel() {
         </div>
       )}
 
+      {settings?.includeSubmodules && data?.submodules && data.submodules.count > 0 && (
+        <div className="evolution-note-banner">
+          Evolution analysis uses parent-repo history only. Submodule repositories are not aggregated in this tab.
+        </div>
+      )}
+
       <EvolutionControls
         dimension={dimension}
         onDimensionChange={setDimension}

@@ -234,6 +234,9 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     if (settings.locExcludedExtensions !== undefined) {
       await config.update('locExcludedExtensions', settings.locExcludedExtensions, vscode.ConfigurationTarget.Global);
     }
+    if (settings.includeSubmodules !== undefined) {
+      await config.update('includeSubmodules', settings.includeSubmodules, vscode.ConfigurationTarget.Global);
+    }
     if (settings.showEmptyTimePeriods !== undefined) {
       await config.update('showEmptyTimePeriods', settings.showEmptyTimePeriods, vscode.ConfigurationTarget.Global);
     }
@@ -511,6 +514,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
         '.vhdx', '.vmdk', '.iso', '.dmg', '.deb', '.rpm', '.icns',
       ]),
       locExcludedExtensions: config.get<string[]>('locExcludedExtensions', []),
+      includeSubmodules: config.get<boolean>('includeSubmodules', false),
       showEmptyTimePeriods: config.get<boolean>('showEmptyTimePeriods', true),
       defaultGranularityMode: config.get<'auto' | 'weekly' | 'monthly'>('defaultGranularityMode', 'auto'),
       autoGranularityThreshold: config.get<number>('autoGranularityThreshold', 20),

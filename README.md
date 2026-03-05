@@ -87,7 +87,7 @@ Results are cached based on the current Git HEAD, so subsequent opens are instan
 
 ### Settings Panel
 
-Configure exclude patterns, generated file patterns, binary extensions, max commits to analyze, and default color mode.
+Configure exclude patterns, submodule inclusion for file analysis, generated file patterns, binary extensions, max commits to analyze, and default color mode.
 
 ## Installation
 
@@ -130,6 +130,7 @@ This extension uses [scc](https://github.com/boyter/scc) for accurate lines-of-c
 | `repoStats.generatedPatterns`    | See below    | Glob patterns to identify generated files           |
 | `repoStats.binaryExtensions`     | See below    | File extensions considered binary for classification and binary-focused views |
 | `repoStats.locExcludedExtensions`| `[]`         | File extensions excluded from LOC counting          |
+| `repoStats.includeSubmodules`    | `false`      | Include submodule files in file analysis (Overview + Treemap only) |
 | `repoStats.evolution.autoRun`    | `false`      | Auto-run evolution analysis when data is stale/missing |
 | `repoStats.evolution.snapshotIntervalDays` | `30` | Days between analyzed evolution snapshots           |
 | `repoStats.evolution.maxSnapshots` | `80`       | Maximum historical snapshots in evolution analysis  |
@@ -137,6 +138,8 @@ This extension uses [scc](https://github.com/boyter/scc) for accurate lines-of-c
 | `repoStats.evolution.cohortFormat` | `"%Y"`    | Cohort grouping format (`%Y`, `%Y-%m`, `%Y-W%W`)    |
 
 Tip: If assets like `.svg` files inflate LOC totals for your project, add `.svg` to `repoStats.locExcludedExtensions`.
+
+`repoStats.includeSubmodules` only affects file-based analysis (Overview + Treemap). Contributors, Code Frequency, and Evolution continue to use parent-repo history only.
 
 <details>
 <summary>Default Generated Patterns</summary>
@@ -177,7 +180,7 @@ Evolution analysis is cached separately from the main dashboard data. If your re
 ## Known Issues
 
 - **Large monorepos**: First analysis may take longer; subsequent loads are cached
-- **Submodules**: Automatically detected and excluded from analysis
+- **Submodules**: Excluded by default; enable `repoStats.includeSubmodules` to include them in Overview + Treemap (history-based tabs are parent-repo only)
 - **Binary files**: Shown in treemap with 0 LOC; use "Size (Bytes)" mode to see their actual size
 
 ## Contributing

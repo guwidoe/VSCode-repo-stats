@@ -5,6 +5,7 @@
 import type { ExtensionSettings, AnalysisResult } from '../../types';
 import { PatternListSetting } from './PatternListSetting';
 import { NumberSetting } from './NumberSetting';
+import { SelectSetting } from './SelectSetting';
 
 interface Props {
   settings: ExtensionSettings;
@@ -50,6 +51,17 @@ export function GeneralSettings({ settings, data, updateSettings, requestRefresh
           placeholder="e.g., vendor, temp"
         />
 
+        <SelectSetting
+          title="Include Git Submodules in File Analysis"
+          description="When enabled, submodule files are included in LOC and file-tree analysis (Overview + Treemap only). Contributors, Code Frequency, and Evolution remain parent-repo only."
+          value={settings.includeSubmodules ? 'enabled' : 'disabled'}
+          options={[
+            { value: 'disabled', label: 'Disabled' },
+            { value: 'enabled', label: 'Enabled' },
+          ]}
+          onChange={(value) => updateSettings({ includeSubmodules: value === 'enabled' })}
+        />
+
         <PatternListSetting
           title="Generated File Patterns"
           description="Patterns to identify generated files (excluded from 'Largest Files' and marked separately)"
@@ -90,7 +102,7 @@ export function GeneralSettings({ settings, data, updateSettings, requestRefresh
           Re-analyze Repository
         </button>
         <p className="settings-hint">
-          Click to re-analyze after changing exclude, generated, binary, or LOC-excluded extension patterns.
+          Click to re-analyze after changing exclude patterns, submodule inclusion, generated patterns, binary extensions, or LOC extension filters.
         </p>
       </div>
     </>

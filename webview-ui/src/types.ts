@@ -107,7 +107,7 @@ export interface AnalysisResult {
   limitReached: boolean;
   // SCC tool info
   sccInfo: SccInfo;
-  // Submodule info (excluded from analysis)
+  // Detected submodule info
   submodules?: SubmoduleInfo;
 }
 
@@ -143,6 +143,7 @@ export interface ExtensionSettings {
   generatedPatterns: string[];
   binaryExtensions: string[];
   locExcludedExtensions: string[];
+  includeSubmodules: boolean;
   showEmptyTimePeriods: boolean;
   defaultGranularityMode: 'auto' | 'weekly' | 'monthly';
   autoGranularityThreshold: number; // Weeks threshold for auto mode (default 20)

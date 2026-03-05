@@ -124,6 +124,11 @@
           "default": [],
           "description": "File extensions to exclude from LOC counting (e.g. .svg). Accepts forms like .svg, svg, or **/*.svg."
         },
+        "repoStats.includeSubmodules": {
+          "type": "boolean",
+          "default": false,
+          "description": "Include Git submodule files in LOC/file-tree analysis (Overview + Treemap). Does not aggregate submodule history in Contributors, Code Frequency, or Evolution."
+        },
         "repoStats.showEmptyTimePeriods": {
           "type": "boolean",
           "default": true,

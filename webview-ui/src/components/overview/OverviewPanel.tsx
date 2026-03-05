@@ -121,7 +121,9 @@ export function OverviewPanel() {
               <span className="section-count">{stats.submodules.count}</span>
             </h3>
             <p className="section-description">
-              Submodules are excluded from analysis. To analyze them, open each submodule as a separate workspace.
+              {settings?.includeSubmodules
+                ? 'Submodule files are included in file analysis (Overview + Treemap). Contributors, Code Frequency, and Evolution still use parent-repo history only.'
+                : 'Submodule files are excluded from file analysis. Enable "Include Git Submodules in File Analysis" in Settings to include them in Overview + Treemap.'}
             </p>
             <div className="submodule-list">
               {stats.submodules.paths.map((path) => (

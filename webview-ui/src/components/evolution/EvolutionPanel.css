@@ -94,6 +94,14 @@
   cursor: pointer;
 }
 
+.evolution-note-banner {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--vscode-panel-border);
+  color: var(--vscode-descriptionForeground);
+  background: color-mix(in srgb, var(--vscode-editor-background) 90%, black 10%);
+}
+
 .evolution-chart-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

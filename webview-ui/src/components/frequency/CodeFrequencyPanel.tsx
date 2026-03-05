@@ -37,6 +37,8 @@ function formatMonthLabel(monthKey: string): string {
 export function CodeFrequencyPanel() {
   const frequency = useStore(selectFilteredCodeFrequency);
   const { frequencyGranularity, setFrequencyGranularity } = useStore();
+  const settings = useStore((state) => state.settings);
+  const data = useStore((state) => state.data);
   const showEmptyTimePeriods = useStore((state) => state.settings?.showEmptyTimePeriods ?? true);
 
   const chartData = useMemo(() => {
@@ -96,6 +98,12 @@ export function CodeFrequencyPanel() {
           <TimePeriodFilter />
         </div>
       </div>
+
+      {settings?.includeSubmodules && data?.submodules && data.submodules.count > 0 && (
+        <div className="submodule-note">
+          Note: Code Frequency uses parent-repo history only. Submodule repositories are not aggregated in this tab.
+        </div>
+      )}
 
       <div className="chart-container">
         <Plot
