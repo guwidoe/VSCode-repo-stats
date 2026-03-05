@@ -210,7 +210,7 @@
     "@vitest/coverage-v8": "^1.2.0",
     "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.3.9",
-    "@vscode/vsce": "^2.22.0",
+    "@vscode/vsce": "^3.7.1",
     "chai": "^6.2.2",
     "esbuild": "^0.27.3",
     "eslint": "^10.0.2",
