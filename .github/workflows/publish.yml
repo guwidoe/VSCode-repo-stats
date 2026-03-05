@@ -66,9 +66,7 @@ jobs:
 
       - name: Run validation gate
         if: github.event_name != 'push' || steps.version_check.outputs.changed == 'true'
-        run: xvfb-run -a npm run typecheck && npm run lint && npm run test
-        env:
-          DISPLAY: ':99.0'
+        run: xvfb-run -a bash -lc "npm run typecheck && npm run lint && npm run test"
 
       - name: Package extension
         if: github.event_name != 'push' || steps.version_check.outputs.changed == 'true'
