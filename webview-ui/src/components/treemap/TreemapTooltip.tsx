@@ -1,6 +1,6 @@
 // webview-ui/src/components/treemap/TreemapTooltip.tsx
 import { useRef, useLayoutEffect, useState } from 'react';
-import type { TreemapNode, TooltipSettings, ColorMode } from '../../types';
+import type { TreemapNode, ColorMode } from '../../types';
 import type { SizeDisplayMode } from './types';
 import { useStore } from '../../store';
 import { formatNumber, formatRelativeTime } from '../../utils/colors';
@@ -27,20 +27,6 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 }
 
-// Default tooltip settings if not loaded yet
-const DEFAULT_TOOLTIP_SETTINGS: TooltipSettings = {
-  showLinesOfCode: true,
-  showFileSize: true,
-  showLanguage: true,
-  showLastModified: true,
-  showComplexity: false,
-  showCommentLines: false,
-  showCommentRatio: false,
-  showBlankLines: false,
-  showCodeDensity: false,
-  showFileCount: true,
-};
-
 const TOOLTIP_OFFSET = 15;
 const VIEWPORT_PADDING = 8;
 
@@ -48,7 +34,7 @@ export function TreemapTooltip({ visible, x, y, node, sizeMode, colorMode }: Tre
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({ left: 0, top: 0 });
   const settings = useStore((state) => state.settings);
-  const tooltipSettings = settings?.tooltipSettings ?? DEFAULT_TOOLTIP_SETTINGS;
+  const tooltipSettings = settings?.tooltipSettings;
 
   // Always show metrics relevant to current color/size mode
   const needsComplexity = colorMode === 'complexity' || sizeMode === 'complexity';
@@ -89,7 +75,7 @@ export function TreemapTooltip({ visible, x, y, node, sizeMode, colorMode }: Tre
     setPosition({ left, top });
   }, [visible, x, y, node]);
 
-  if (!visible || !node) {return null;}
+  if (!visible || !node || !tooltipSettings) {return null;}
 
   const isFile = node.type === 'file';
   const isDirectory = node.type === 'directory';

@@ -195,12 +195,12 @@ export function useVsCodeApi() {
   const updateSettings = useCallback((settings: Partial<ExtensionSettings>) => {
     const currentSettings = useStore.getState().settings;
     if (currentSettings) {
-      useStore.getState().setSettings({
+      const nextSettings = {
         ...currentSettings,
         ...settings,
-        tooltipSettings: settings.tooltipSettings ?? currentSettings.tooltipSettings,
-        evolution: settings.evolution ?? currentSettings.evolution,
-      });
+      };
+
+      useStore.getState().setSettings(nextSettings);
     }
 
     getVsCodeApi().postMessage({ type: 'updateSettings', settings });

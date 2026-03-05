@@ -54,9 +54,11 @@ function clampIndex(value: number | null | undefined, max: number): number {
 export function TimeRangeSlider() {
   const allWeeks = useStore(selectAllWeeks);
   const weeklyTotals = useStore(selectWeeklyCommitTotals);
-  const showEmptyTimePeriods = useStore((state) => state.settings?.showEmptyTimePeriods ?? true);
+  const settings = useStore((state) => state.settings)!;
   // Only subscribe to the setter, not the values (to avoid re-renders from store changes)
   const setTimeRange = useStore((state) => state.setTimeRange);
+
+  const showEmptyTimePeriods = settings.showEmptyTimePeriods;
 
   const trackRef = useRef<HTMLDivElement>(null);
   const pendingUpdateRef = useRef<number | null>(null);

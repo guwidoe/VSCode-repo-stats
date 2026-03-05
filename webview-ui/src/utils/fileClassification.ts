@@ -2,7 +2,7 @@
  * Shared file classification helpers (extensions + generated-file detection).
  */
 
-// Default patterns (fallback if settings not loaded)
+// Built-in generated-file patterns (kept in sync with package.json defaults).
 export const DEFAULT_GENERATED_PATTERNS = [
   '**/generated/**',
   '**/gen/**',

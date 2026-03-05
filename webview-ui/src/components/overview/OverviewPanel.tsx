@@ -21,10 +21,10 @@ const DEFAULT_AGE_BUCKETS: AgeBucketDefinition[] = [
 
 export function OverviewPanel() {
   const stats = useOverviewStats();
-  const settings = useStore((state) => state.settings);
+  const settings = useStore((state) => state.settings)!;
   const [showAllUnknown, setShowAllUnknown] = useState(false);
 
-  const defaultDisplayMode = settings?.overviewDisplayMode ?? 'percent';
+  const defaultDisplayMode = settings.overviewDisplayMode;
 
   if (!stats) {
     return (

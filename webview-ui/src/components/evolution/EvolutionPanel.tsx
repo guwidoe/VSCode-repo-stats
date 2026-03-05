@@ -11,14 +11,13 @@ import { processEvolutionSeries } from './evolutionUtils';
 import './EvolutionPanel.css';
 
 export function EvolutionPanel() {
-  const {
-    evolutionData,
-    evolutionStatus,
-    evolutionError,
-    evolutionLoading,
-    settings,
-    data,
-  } = useStore();
+  const evolutionData = useStore((state) => state.evolutionData);
+  const evolutionStatus = useStore((state) => state.evolutionStatus);
+  const evolutionError = useStore((state) => state.evolutionError);
+  const evolutionLoading = useStore((state) => state.evolutionLoading);
+  const settings = useStore((state) => state.settings)!;
+  const data = useStore((state) => state.data);
+
   const {
     requestEvolutionAnalysis,
     requestEvolutionRefresh,
@@ -26,12 +25,10 @@ export function EvolutionPanel() {
 
   const [dimension, setDimension] = useState<EvolutionDimension>('cohort');
   const [normalize, setNormalize] = useState(false);
-  const [maxSeries, setMaxSeries] = useState(settings?.evolution.maxSeries ?? 20);
+  const [maxSeries, setMaxSeries] = useState(settings.evolution.maxSeries);
 
   useEffect(() => {
-    if (settings) {
-      setMaxSeries(settings.evolution.maxSeries);
-    }
+    setMaxSeries(settings.evolution.maxSeries);
   }, [settings]);
 
   useEffect(() => {
@@ -64,7 +61,7 @@ export function EvolutionPanel() {
         </div>
         <EvolutionStateView
           title="Analyzing repository evolution"
-          message={evolutionLoading.phase || 'Preparing analysis...'}
+          message={evolutionLoading.phase}
           loading
           progress={evolutionLoading.progress}
         />
@@ -73,6 +70,10 @@ export function EvolutionPanel() {
   }
 
   if (evolutionStatus === 'error') {
+    if (!evolutionError) {
+      throw new Error('Evolution status is error but no error message is set.');
+    }
+
     return (
       <div className="evolution-panel">
         <div className="panel-header">
@@ -80,7 +81,7 @@ export function EvolutionPanel() {
         </div>
         <EvolutionStateView
           title="Evolution analysis failed"
-          message={evolutionError || 'An unexpected error occurred.'}
+          message={evolutionError}
           actionLabel="Retry Evolution Analysis"
           onAction={requestEvolutionRefresh}
         />

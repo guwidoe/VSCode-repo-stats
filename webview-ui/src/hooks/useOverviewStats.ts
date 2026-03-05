@@ -10,7 +10,7 @@ import {
   isCodeLanguage,
   buildBinaryExtensionSet,
 } from '../utils/fileTypes';
-import { DEFAULT_GENERATED_PATTERNS, getFileExtension, isGeneratedFile } from '../utils/fileClassification';
+import { getFileExtension, isGeneratedFile } from '../utils/fileClassification';
 import { getLanguageColor } from '../utils/colors';
 
 export interface ExtensionStats {
@@ -160,13 +160,12 @@ export function useOverviewStats(): OverviewStats | null {
   const settings = useStore((state) => state.settings);
 
   return useMemo(() => {
-    if (!data?.fileTree) {
+    if (!data?.fileTree || !settings) {
       return null;
     }
 
-    // Use settings patterns or fall back to defaults
-    const generatedPatterns = settings?.generatedPatterns ?? DEFAULT_GENERATED_PATTERNS;
-    const binaryExtensions = buildBinaryExtensionSet(settings?.binaryExtensions);
+    const generatedPatterns = settings.generatedPatterns;
+    const binaryExtensions = buildBinaryExtensionSet(settings.binaryExtensions);
 
     const state: TraversalState = {
       extensionMap: new Map(),

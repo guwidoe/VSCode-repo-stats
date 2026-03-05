@@ -5,8 +5,8 @@ import { TreemapTooltip } from './TreemapTooltip';
 import type { TreemapNode } from '../../types';
 
 // Mock the store
-vi.mock('../../store', () => ({
-  useStore: () => ({
+vi.mock('../../store', () => {
+  const state = {
     settings: {
       tooltipSettings: {
         showLinesOfCode: true,
@@ -21,8 +21,13 @@ vi.mock('../../store', () => ({
         showFileCount: true,
       },
     },
-  }),
-}));
+  };
+
+  return {
+    useStore: (selector?: (value: typeof state) => unknown) =>
+      selector ? selector(state) : state,
+  };
+});
 
 const mockFileNode: TreemapNode = {
   name: 'index.ts',

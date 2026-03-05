@@ -270,38 +270,33 @@ export class GitAnalyzer implements GitClient {
 
     const fileModDates = new Map<string, string>();
 
-    try {
-      // Get the last commit date for each file using git log with name-only
-      // Format: date\n\nfile1\nfile2\n\ndate\n\nfile3\n...
-      const rawLog = await this.git.raw([
-        'log',
-        '--all',
-        '--format=%aI',
-        '--name-only',
-      ]);
+    // Get the last commit date for each file using git log with name-only
+    // Format: date\n\nfile1\nfile2\n\ndate\n\nfile3\n...
+    const rawLog = await this.git.raw([
+      'log',
+      '--all',
+      '--format=%aI',
+      '--name-only',
+    ]);
 
-      const lines = rawLog.split('\n');
-      let currentDate: string | null = null;
+    const lines = rawLog.split('\n');
+    let currentDate: string | null = null;
 
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed) {
-          continue;
-        }
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        continue;
+      }
 
-        // Check if this is a date line (ISO format)
-        if (trimmed.match(/^\d{4}-\d{2}-\d{2}T/)) {
-          currentDate = trimmed;
-        } else if (currentDate) {
-          // This is a file path - only set if not already set (we want most recent)
-          if (!fileModDates.has(trimmed)) {
-            fileModDates.set(trimmed, currentDate);
-          }
+      // Check if this is a date line (ISO format)
+      if (trimmed.match(/^\d{4}-\d{2}-\d{2}T/)) {
+        currentDate = trimmed;
+      } else if (currentDate) {
+        // This is a file path - only set if not already set (we want most recent)
+        if (!fileModDates.has(trimmed)) {
+          fileModDates.set(trimmed, currentDate);
         }
       }
-    } catch (error) {
-      // If git log fails, return empty map - graceful degradation
-      console.error('Failed to get file modification dates:', error);
     }
 
     return fileModDates;
@@ -316,16 +311,11 @@ export class GitAnalyzer implements GitClient {
       throw new NotAGitRepoError(this.repoPath);
     }
 
-    try {
-      const output = await this.git.raw(['ls-files']);
-      return output
-        .split('\n')
-        .map(line => line.trim())
-        .filter(line => line.length > 0);
-    } catch (error) {
-      console.error('Failed to get tracked files:', error);
-      return [];
-    }
+    const output = await this.git.raw(['ls-files']);
+    return output
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0);
   }
 
   /**
@@ -337,34 +327,28 @@ export class GitAnalyzer implements GitClient {
       throw new NotAGitRepoError(this.repoPath);
     }
 
-    try {
-      // git submodule status returns lines like:
-      // " abc123 path/to/submodule (v1.0.0)"
-      // or "-abc123 path/to/submodule" (not initialized)
-      // or "+abc123 path/to/submodule" (different commit)
-      const output = await this.git.raw(['submodule', 'status', '--recursive']);
-      const paths: string[] = [];
+    // git submodule status returns lines like:
+    // " abc123 path/to/submodule (v1.0.0)"
+    // or "-abc123 path/to/submodule" (not initialized)
+    // or "+abc123 path/to/submodule" (different commit)
+    const output = await this.git.raw(['submodule', 'status', '--recursive']);
+    const paths: string[] = [];
 
-      for (const line of output.split('\n')) {
-        const trimmed = line.trim();
-        if (!trimmed) {
-          continue;
-        }
-
-        // Extract path from submodule status line
-        // Format: [+-]<sha> <path> [(<description>)]
-        const match = trimmed.match(/^[+-]?\s*[a-f0-9]+\s+(\S+)/);
-        if (match) {
-          paths.push(match[1]);
-        }
+    for (const line of output.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        continue;
       }
 
-      return paths;
-    } catch (error) {
-      // If git submodule fails (e.g., no submodules), return empty array
-      console.error('Failed to get submodule paths:', error);
-      return [];
+      // Extract path from submodule status line
+      // Format: [+-]<sha> <path> [(<description>)]
+      const match = trimmed.match(/^[+-]?\s*[a-f0-9]+\s+(\S+)/);
+      if (match) {
+        paths.push(match[1]);
+      }
     }
+
+    return paths;
   }
 
   async raw(args: string[]): Promise<string> {

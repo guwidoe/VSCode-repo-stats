@@ -157,7 +157,7 @@ function computeDefaultGranularity(
     return 'weekly';
   }
 
-  const mode = settings.defaultGranularityMode || 'auto';
+  const mode = settings.defaultGranularityMode;
 
   if (mode === 'weekly') {
     return 'weekly';
@@ -183,7 +183,7 @@ function computeDefaultGranularity(
   }
 
   const weekCount = allWeeks.size;
-  const threshold = settings.autoGranularityThreshold || 20;
+  const threshold = settings.autoGranularityThreshold;
 
   return weekCount <= threshold ? 'weekly' : 'monthly';
 }

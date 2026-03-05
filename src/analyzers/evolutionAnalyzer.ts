@@ -378,8 +378,13 @@ export class EvolutionAnalyzer {
         '--',
         filePath,
       ]);
-    } catch {
-      return histogram;
+    } catch (error) {
+      if (isExpectedBlameMiss(error)) {
+        return histogram;
+      }
+
+      const detail = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to run git blame for ${filePath} at ${commitSha}: ${detail}`);
     }
 
     const ext = path.extname(filePath) || EMPTY_EXT;
@@ -547,6 +552,17 @@ function getUtcWeekNumber(date: Date): number {
   working.setUTCDate(working.getUTCDate() + 4 - dayNum);
   const yearStart = new Date(Date.UTC(working.getUTCFullYear(), 0, 1));
   return Math.ceil((((working.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+}
+
+function isExpectedBlameMiss(error: unknown): boolean {
+  const message = (error instanceof Error ? error.message : String(error)).toLowerCase();
+
+  return (
+    message.includes('no such path') ||
+    message.includes('no such file') ||
+    message.includes('file not found') ||
+    message.includes('no such ref')
+  );
 }
 
 function globToRegExp(glob: string): RegExp {

@@ -36,7 +36,7 @@ export function TreemapSettings({ settings, updateSettings }: Props) {
   const tooltipOptions = TOOLTIP_OPTIONS.map((opt) => ({
     key: opt.key,
     label: opt.label,
-    checked: settings.tooltipSettings?.[opt.key] ?? false,
+    checked: settings.tooltipSettings[opt.key],
   }));
 
   return (

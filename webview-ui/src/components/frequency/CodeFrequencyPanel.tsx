@@ -37,9 +37,10 @@ function formatMonthLabel(monthKey: string): string {
 export function CodeFrequencyPanel() {
   const frequency = useStore(selectFilteredCodeFrequency);
   const { frequencyGranularity, setFrequencyGranularity } = useStore();
-  const settings = useStore((state) => state.settings);
+  const settings = useStore((state) => state.settings)!;
   const data = useStore((state) => state.data);
-  const showEmptyTimePeriods = useStore((state) => state.settings?.showEmptyTimePeriods ?? true);
+
+  const showEmptyTimePeriods = settings.showEmptyTimePeriods;
 
   const chartData = useMemo(() => {
     let data = frequency;

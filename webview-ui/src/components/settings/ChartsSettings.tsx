@@ -30,7 +30,7 @@ export function ChartsSettings({ settings, updateSettings }: Props) {
       <SelectSetting
         title="Default Time Granularity"
         description="How to group time periods in charts. 'Auto' uses weekly for small repos, monthly for larger ones."
-        value={settings.defaultGranularityMode || 'auto'}
+        value={settings.defaultGranularityMode}
         options={[
           { value: 'auto', label: 'Auto (smart)' },
           { value: 'weekly', label: 'Always Weekly' },
@@ -41,11 +41,11 @@ export function ChartsSettings({ settings, updateSettings }: Props) {
         }
       />
 
-      {(settings.defaultGranularityMode || 'auto') === 'auto' && (
+      {settings.defaultGranularityMode === 'auto' && (
         <NumberSetting
           title="Auto Granularity Threshold"
           description="In auto mode, use weekly view if repo has this many weeks or fewer. Use monthly for longer histories."
-          value={settings.autoGranularityThreshold || 20}
+          value={settings.autoGranularityThreshold}
           onChange={(value) => updateSettings({ autoGranularityThreshold: value })}
           min={1}
           max={520}

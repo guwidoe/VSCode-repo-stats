@@ -64,7 +64,8 @@ function formatMonthLabel(monthKey: string): string {
 }
 
 export function CommitsChart({ contributors, granularity }: Props) {
-  const showEmptyTimePeriods = useStore((state) => state.settings?.showEmptyTimePeriods ?? true);
+  const settings = useStore((state) => state.settings)!;
+  const showEmptyTimePeriods = settings.showEmptyTimePeriods;
 
   const chartData = useMemo(() => {
     // Aggregate all weekly commits across contributors, filtering invalid weeks

@@ -13,7 +13,7 @@ import {
   TreemapNode,
   ExtensionSettings,
 } from '../types/index.js';
-import { analyzeHeadBlameMetrics, createEmptyBlameMetrics } from './blameMetrics.js';
+import { analyzeHeadBlameMetrics } from './blameMetrics.js';
 import { GitClient, createGitAnalyzer } from './gitAnalyzer.js';
 import {
   LOCClient,
@@ -139,7 +139,7 @@ export class AnalysisCoordinator {
           98 + (percent * 1.5)
         );
       },
-    }).catch(() => createEmptyBlameMetrics());
+    });
 
     // Complete
     onProgress?.('Analysis complete', 100);

@@ -240,7 +240,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       await config.update('locExcludedExtensions', settings.locExcludedExtensions, vscode.ConfigurationTarget.Global);
     }
     if (settings.includeSubmodules !== undefined) {
-      const currentValue = config.get<boolean>('includeSubmodules', false);
+      const currentValue = this.getRequiredConfigValue<boolean>(config, 'includeSubmodules');
       await config.update('includeSubmodules', settings.includeSubmodules, vscode.ConfigurationTarget.Global);
       if (currentValue !== settings.includeSubmodules) {
         shouldPromptReanalysis = true;
@@ -294,13 +294,13 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       return;
     }
 
-    const settings = this.getSettings();
-    const storage = new WorkspaceStateStorage(this.workspaceState);
-    const cacheManager = new CacheManager(storage, repoPath);
-    const sccStoragePath = path.join(this.globalStoragePath, 'scc');
-    const coordinator = new AnalysisCoordinator(repoPath, settings, sccStoragePath);
-
     try {
+      const settings = this.getSettings();
+      const storage = new WorkspaceStateStorage(this.workspaceState);
+      const cacheManager = new CacheManager(storage, repoPath);
+      const sccStoragePath = path.join(this.globalStoragePath, 'scc');
+      const coordinator = new AnalysisCoordinator(repoPath, settings, sccStoragePath);
+
       // Check if we have a valid cache
       const repoInfo = await coordinator.getRepositoryInfo();
       const cached = cacheManager.getIfValid(repoInfo.headSha);
@@ -364,12 +364,12 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       return;
     }
 
-    const settings = this.getSettings();
-    const storage = new WorkspaceStateStorage(this.workspaceState);
-    const evolutionCacheManager = new EvolutionCacheManager(storage, repoPath);
-    const coordinator = new AnalysisCoordinator(repoPath, settings, path.join(this.globalStoragePath, 'scc'));
-
     try {
+      const settings = this.getSettings();
+      const storage = new WorkspaceStateStorage(this.workspaceState);
+      const evolutionCacheManager = new EvolutionCacheManager(storage, repoPath);
+      const coordinator = new AnalysisCoordinator(repoPath, settings, path.join(this.globalStoragePath, 'scc'));
+
       const repoInfo = await coordinator.getRepositoryInfo();
       const settingsHash = createEvolutionSettingsHash(settings);
       const validCached = evolutionCacheManager.getIfValid(
@@ -484,8 +484,8 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
         coreStale,
         evolutionStale: evolutionStaleByHead || evolutionStaleBySettings,
       });
-    } catch {
-      // Best effort only; don't block UX if staleness check fails.
+    } catch (error) {
+      console.error('[RepoStats] Failed to compute staleness status:', error);
     }
   }
 
@@ -501,64 +501,39 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     return workspaceFolders[0].uri.fsPath;
   }
 
+  private getRequiredConfigValue<T>(config: vscode.WorkspaceConfiguration, key: string): T {
+    const value = config.get<T>(key);
+    if (value === undefined) {
+      throw new Error(
+        `Missing required configuration value: repoStats.${key}. ` +
+        'Check package.json contributes.configuration defaults and user/workspace settings.'
+      );
+    }
+    return value;
+  }
+
   private getSettings(): ExtensionSettings {
     const config = vscode.workspace.getConfiguration('repoStats');
+
     return {
-      excludePatterns: config.get<string[]>('excludePatterns', []),
-      maxCommitsToAnalyze: config.get<number>('maxCommitsToAnalyze', 10000),
-      defaultColorMode: config.get<'language' | 'age' | 'complexity' | 'density'>('defaultColorMode', 'language'),
-      generatedPatterns: config.get<string[]>('generatedPatterns', [
-        '**/generated/**',
-        '**/gen/**',
-        '**/__generated__/**',
-        '**/dist/**',
-        '**/build/**',
-        '**/*.generated.*',
-        '**/*.g.ts',
-        '**/*.g.js',
-        '**/*.g.dart',
-        '**/*.min.js',
-        '**/*.min.css',
-        '**/package-lock.json',
-        '**/yarn.lock',
-        '**/*-lock.*',
-      ]),
-      binaryExtensions: config.get<string[]>('binaryExtensions', [
-        '.png', '.jpg', '.jpeg', '.gif', '.ico', '.webp', '.bmp', '.tiff', '.tif',
-        '.psd', '.ai', '.eps', '.raw', '.cr2', '.nef', '.heic', '.avif', '.arw', '.dng', '.raf',
-        '.mp4', '.webm', '.mov', '.avi', '.mkv', '.flv', '.wmv', '.m4v', '.mpeg', '.mpg',
-        '.mp3', '.wav', '.ogg', '.flac', '.aac', '.wma', '.m4a', '.opus',
-        '.ttf', '.otf', '.woff', '.woff2', '.eot',
-        '.zip', '.tar', '.gz', '.rar', '.7z', '.bz2', '.xz', '.tgz',
-        '.pyc', '.pyo', '.class', '.o', '.so', '.dll', '.exe', '.bin', '.wasm', '.a', '.lib', '.obj',
-        '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
-        '.sqlite', '.db', '.mdb',
-        '.vhdx', '.vmdk', '.iso', '.dmg', '.deb', '.rpm', '.icns',
-      ]),
-      locExcludedExtensions: config.get<string[]>('locExcludedExtensions', []),
-      includeSubmodules: config.get<boolean>('includeSubmodules', false),
-      showEmptyTimePeriods: config.get<boolean>('showEmptyTimePeriods', true),
-      defaultGranularityMode: config.get<'auto' | 'weekly' | 'monthly'>('defaultGranularityMode', 'auto'),
-      autoGranularityThreshold: config.get<number>('autoGranularityThreshold', 20),
-      overviewDisplayMode: config.get<'percent' | 'count'>('overviewDisplayMode', 'percent'),
-      tooltipSettings: config.get('tooltipSettings', {
-        showLinesOfCode: true,
-        showFileSize: true,
-        showLanguage: true,
-        showLastModified: true,
-        showComplexity: false,
-        showCommentLines: false,
-        showCommentRatio: false,
-        showBlankLines: false,
-        showCodeDensity: false,
-        showFileCount: true,
-      }),
+      excludePatterns: this.getRequiredConfigValue<string[]>(config, 'excludePatterns'),
+      maxCommitsToAnalyze: this.getRequiredConfigValue<number>(config, 'maxCommitsToAnalyze'),
+      defaultColorMode: this.getRequiredConfigValue<'language' | 'age' | 'complexity' | 'density'>(config, 'defaultColorMode'),
+      generatedPatterns: this.getRequiredConfigValue<string[]>(config, 'generatedPatterns'),
+      binaryExtensions: this.getRequiredConfigValue<string[]>(config, 'binaryExtensions'),
+      locExcludedExtensions: this.getRequiredConfigValue<string[]>(config, 'locExcludedExtensions'),
+      includeSubmodules: this.getRequiredConfigValue<boolean>(config, 'includeSubmodules'),
+      showEmptyTimePeriods: this.getRequiredConfigValue<boolean>(config, 'showEmptyTimePeriods'),
+      defaultGranularityMode: this.getRequiredConfigValue<'auto' | 'weekly' | 'monthly'>(config, 'defaultGranularityMode'),
+      autoGranularityThreshold: this.getRequiredConfigValue<number>(config, 'autoGranularityThreshold'),
+      overviewDisplayMode: this.getRequiredConfigValue<'percent' | 'count'>(config, 'overviewDisplayMode'),
+      tooltipSettings: this.getRequiredConfigValue<ExtensionSettings['tooltipSettings']>(config, 'tooltipSettings'),
       evolution: {
-        autoRun: config.get<boolean>('evolution.autoRun', false),
-        snapshotIntervalDays: config.get<number>('evolution.snapshotIntervalDays', 30),
-        maxSnapshots: config.get<number>('evolution.maxSnapshots', 80),
-        maxSeries: config.get<number>('evolution.maxSeries', 20),
-        cohortFormat: config.get<string>('evolution.cohortFormat', '%Y'),
+        autoRun: this.getRequiredConfigValue<boolean>(config, 'evolution.autoRun'),
+        snapshotIntervalDays: this.getRequiredConfigValue<number>(config, 'evolution.snapshotIntervalDays'),
+        maxSnapshots: this.getRequiredConfigValue<number>(config, 'evolution.maxSnapshots'),
+        maxSeries: this.getRequiredConfigValue<number>(config, 'evolution.maxSeries'),
+        cohortFormat: this.getRequiredConfigValue<string>(config, 'evolution.cohortFormat'),
       },
     };
   }

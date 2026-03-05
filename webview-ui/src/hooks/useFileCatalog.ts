@@ -6,7 +6,7 @@ import { useMemo } from 'react';
 import { useStore } from '../store';
 import type { TreemapNode } from '../types';
 import { buildBinaryExtensionSet, isBinaryFile, isCodeLanguage } from '../utils/fileTypes';
-import { DEFAULT_GENERATED_PATTERNS, getFileExtension, isGeneratedFile } from '../utils/fileClassification';
+import { getFileExtension, isGeneratedFile } from '../utils/fileClassification';
 import type { FileCatalog, FileRow } from '../components/files/types';
 
 function toEpoch(dateValue: string | undefined): number {
@@ -105,13 +105,13 @@ export function useFileCatalog(): FileCatalog | null {
   const settings = useStore((state) => state.settings);
 
   return useMemo(() => {
-    if (!data?.fileTree) {
+    if (!data?.fileTree || !settings) {
       return null;
     }
 
-    const generatedPatterns = settings?.generatedPatterns ?? DEFAULT_GENERATED_PATTERNS;
-    const binaryExtensions = buildBinaryExtensionSet(settings?.binaryExtensions);
+    const generatedPatterns = settings.generatedPatterns;
+    const binaryExtensions = buildBinaryExtensionSet(settings.binaryExtensions);
 
     return buildFileCatalog(data.fileTree, generatedPatterns, binaryExtensions);
-  }, [data?.fileTree, settings?.generatedPatterns, settings?.binaryExtensions]);
+  }, [data?.fileTree, settings]);
 }

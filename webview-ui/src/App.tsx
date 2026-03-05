@@ -21,7 +21,7 @@ import { LimitWarning } from './components/common/LimitWarning';
 import './App.css';
 
 export function App() {
-  const { activeView, loading, error, data, coreStale, evolutionStale } = useStore();
+  const { activeView, loading, error, data, settings, coreStale, evolutionStale } = useStore();
   const { requestRefresh } = useVsCodeApi();
 
   // Request initial analysis on mount
@@ -72,14 +72,19 @@ export function App() {
         {activeView === 'about' && <AboutPanel />}
 
         {/* Evolution is intentionally on-demand and independent from global analysis loading */}
-        {activeView === 'evolution' && <EvolutionPanel />}
+        {activeView === 'evolution' && (
+          settings
+            ? <EvolutionPanel />
+            : <LoadingState phase="Loading settings..." progress={0} />
+        )}
 
-        {/* Core views depend on global analysis */}
+        {/* Core views depend on settings + global analysis */}
         {activeView !== 'settings' && activeView !== 'about' && activeView !== 'evolution' && (
           <>
-            {loading.isLoading && <LoadingState phase={loading.phase} progress={loading.progress} />}
-            {error && <ErrorState message={error} onRetry={requestRefresh} />}
-            {!loading.isLoading && !error && data && (
+            {!settings && <LoadingState phase="Loading settings..." progress={0} />}
+            {settings && loading.isLoading && <LoadingState phase={loading.phase} progress={loading.progress} />}
+            {settings && error && <ErrorState message={error} onRetry={requestRefresh} />}
+            {settings && !loading.isLoading && !error && data && (
               <>
                 {activeView === 'overview' && <OverviewPanel />}
                 {activeView === 'files' && <FilesPanel />}
@@ -88,7 +93,7 @@ export function App() {
                 {activeView === 'treemap' && <TreemapPanel />}
               </>
             )}
-            {!loading.isLoading && !error && !data && (
+            {settings && !loading.isLoading && !error && !data && (
               <EmptyState onRequest={requestRefresh} />
             )}
           </>
