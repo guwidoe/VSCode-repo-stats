@@ -1,3 +1,4 @@
+/* eslint-disable react/no-multi-comp */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import type { AnalysisResult, EvolutionResult, ExtensionSettings } from '../../types';
