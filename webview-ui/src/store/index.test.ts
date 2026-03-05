@@ -354,6 +354,44 @@ describe('selectFilteredTreemapNode', () => {
   });
 });
 
+describe('evolution state', () => {
+  beforeEach(() => {
+    useStore.getState().reset();
+  });
+
+  it('should start with idle evolution status', () => {
+    expect(useStore.getState().evolutionStatus).toBe('idle');
+  });
+
+  it('should update evolution loading and status', () => {
+    useStore.getState().setEvolutionLoading({
+      isLoading: true,
+      phase: 'Analyzing...',
+      progress: 30,
+    });
+
+    expect(useStore.getState().evolutionStatus).toBe('loading');
+    expect(useStore.getState().evolutionLoading.progress).toBe(30);
+  });
+
+  it('should set evolution data and mark ready', () => {
+    useStore.getState().setEvolutionData({
+      generatedAt: '2026-03-05T00:00:00.000Z',
+      headSha: 'abc123',
+      branch: 'main',
+      settingsHash: 'hash1',
+      cohorts: { ts: ['2026-01-01T00:00:00.000Z'], labels: ['2026'], y: [[1]] },
+      authors: { ts: ['2026-01-01T00:00:00.000Z'], labels: ['Alice'], y: [[1]] },
+      exts: { ts: ['2026-01-01T00:00:00.000Z'], labels: ['.ts'], y: [[1]] },
+      dirs: { ts: ['2026-01-01T00:00:00.000Z'], labels: ['src/'], y: [[1]] },
+      domains: { ts: ['2026-01-01T00:00:00.000Z'], labels: ['example.com'], y: [[1]] },
+    });
+
+    expect(useStore.getState().evolutionStatus).toBe('ready');
+    expect(useStore.getState().evolutionData?.headSha).toBe('abc123');
+  });
+});
+
 describe('treemap new state', () => {
   beforeEach(() => {
     useStore.setState({

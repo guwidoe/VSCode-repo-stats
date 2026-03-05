@@ -4,7 +4,7 @@
 [![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/guwidoe.vscode-repo-stats)](https://marketplace.visualstudio.com/items?itemName=guwidoe.vscode-repo-stats)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Visualize your repository statistics directly in VS Code with interactive dashboards, charts, and treemaps. Get insights into contributor activity, code frequency, and codebase structure at a glance.
+Visualize your repository statistics directly in VS Code with interactive dashboards, charts, treemaps, and evolution analytics. Get insights into contributor activity, code frequency, code ownership trends, and codebase structure at a glance.
 
 ## Usage
 
@@ -66,6 +66,15 @@ Results are cached based on the current Git HEAD, so subsequent opens are instan
 - Summary cards with total additions, deletions, and net change
 - Weekly or monthly granularity toggle
 
+### Evolution (On-Demand)
+
+- **Git-of-theseus style ownership timelines** (inspired by repository evolution analysis)
+- **Dimensions**: Cohorts, authors, extensions, top-level directories, and email domains
+- **Chart suite**: Stacked ownership view, line trends, and latest distribution
+- **On-demand execution** with dedicated cache, stale-state detection, and recompute button
+- **Performance controls**: Snapshot interval, max snapshots, cohort format, and max displayed series
+- _Evolution screenshot coming soon_
+
 ### Repository Treemap
 
 - **WizTree-inspired design** with nested hierarchy and vignette shading
@@ -121,6 +130,11 @@ This extension uses [scc](https://github.com/boyter/scc) for accurate lines-of-c
 | `repoStats.generatedPatterns`    | See below    | Glob patterns to identify generated files           |
 | `repoStats.binaryExtensions`     | See below    | File extensions considered binary for classification and binary-focused views |
 | `repoStats.locExcludedExtensions`| `[]`         | File extensions excluded from LOC counting          |
+| `repoStats.evolution.autoRun`    | `false`      | Auto-run evolution analysis when data is stale/missing |
+| `repoStats.evolution.snapshotIntervalDays` | `30` | Days between analyzed evolution snapshots           |
+| `repoStats.evolution.maxSnapshots` | `80`       | Maximum historical snapshots in evolution analysis  |
+| `repoStats.evolution.maxSeries`  | `20`         | Default max visible series in evolution charts      |
+| `repoStats.evolution.cohortFormat` | `"%Y"`    | Cohort grouping format (`%Y`, `%Y-%m`, `%Y-W%W`)    |
 
 Tip: If assets like `.svg` files inflate LOC totals for your project, add `.svg` to `repoStats.locExcludedExtensions`.
 
@@ -153,9 +167,12 @@ Repo Stats is designed to handle large repositories efficiently:
 - **Caching**: Results cached by Git HEAD SHA - instant reload if no new commits
 - **Progress reporting**: Visual feedback during analysis
 - **Commit limits**: Configurable maximum commits to analyze
+- **On-demand evolution cache**: Heavy blame-based evolution analysis only runs when requested and is cached separately
 - **Canvas rendering**: Treemap uses HTML5 Canvas for smooth performance with 50K+ files
 
 For very large repositories, consider reducing `maxCommitsToAnalyze` or adding exclude patterns for large vendored directories.
+
+Evolution analysis is cached separately from the main dashboard data. If your repository HEAD changes, Evolution data is marked stale in the Evolution tab until you recompute it.
 
 ## Known Issues
 
