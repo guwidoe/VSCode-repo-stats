@@ -25,29 +25,6 @@ export interface FileCatalog {
   extensions: string[];
 }
 
-export type FileFilterMode = 'all' | 'only' | 'exclude';
-
-export interface FileFilterState {
-  query: string;
-  languages: string[];
-  extensions: string[];
-  locMin: number | null;
-  locMax: number | null;
-  bytesMin: number | null;
-  bytesMax: number | null;
-  complexityMin: number | null;
-  complexityMax: number | null;
-  commentMin: number | null;
-  commentMax: number | null;
-  blankMin: number | null;
-  blankMax: number | null;
-  modifiedAfter: string;
-  modifiedBefore: string;
-  generatedMode: FileFilterMode;
-  binaryMode: FileFilterMode;
-  codeOnly: boolean;
-}
-
 export type FileSortKey =
   | 'path'
   | 'name'
@@ -68,4 +45,44 @@ export type SortDirection = 'asc' | 'desc';
 export interface SortRule {
   key: FileSortKey;
   direction: SortDirection;
+}
+
+export type ColumnFilterKind = 'text' | 'number' | 'boolean' | 'date';
+
+export interface TextColumnFilter {
+  kind: 'text';
+  value: string;
+}
+
+export interface NumberColumnFilter {
+  kind: 'number';
+  min: string;
+  max: string;
+}
+
+export interface BooleanColumnFilter {
+  kind: 'boolean';
+  mode: 'all' | 'true' | 'false';
+}
+
+export interface DateColumnFilter {
+  kind: 'date';
+  from: string;
+  to: string;
+}
+
+export type ColumnFilter =
+  | TextColumnFilter
+  | NumberColumnFilter
+  | BooleanColumnFilter
+  | DateColumnFilter;
+
+export type ColumnFilters = Partial<Record<FileSortKey, ColumnFilter>>;
+
+export interface FileColumnConfig {
+  key: FileSortKey;
+  label: string;
+  width: number;
+  align?: 'left' | 'right';
+  filterKind: ColumnFilterKind;
 }

@@ -1,4 +1,14 @@
-import type { FileFilterState, FileRow, FileSortKey, SortDirection, SortRule } from './types';
+import type {
+  ColumnFilter,
+  ColumnFilters,
+  DateColumnFilter,
+  FileRow,
+  FileSortKey,
+  NumberColumnFilter,
+  SortDirection,
+  SortRule,
+  TextColumnFilter,
+} from './types';
 
 const collator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
 
@@ -21,6 +31,40 @@ const DEFAULT_DIRECTION_BY_KEY: Record<FileSortKey, SortDirection> = {
 export const DEFAULT_SORT_RULES: SortRule[] = [
   { key: 'lines', direction: 'desc' },
 ];
+
+export function createDefaultFilter(kind: ColumnFilter['kind']): ColumnFilter {
+  switch (kind) {
+    case 'text':
+      return { kind: 'text', value: '' };
+    case 'number':
+      return { kind: 'number', min: '', max: '' };
+    case 'boolean':
+      return { kind: 'boolean', mode: 'all' };
+    case 'date':
+      return { kind: 'date', from: '', to: '' };
+    default:
+      return { kind: 'text', value: '' };
+  }
+}
+
+export function isColumnFilterActive(filter: ColumnFilter | undefined): boolean {
+  if (!filter) {
+    return false;
+  }
+
+  switch (filter.kind) {
+    case 'text':
+      return filter.value.trim().length > 0;
+    case 'number':
+      return filter.min.trim().length > 0 || filter.max.trim().length > 0;
+    case 'boolean':
+      return filter.mode !== 'all';
+    case 'date':
+      return filter.from.length > 0 || filter.to.length > 0;
+    default:
+      return false;
+  }
+}
 
 function compareStrings(a: string, b: string): number {
   return collator.compare(a, b);
@@ -67,6 +111,138 @@ function compareByKey(a: FileRow, b: FileRow, key: FileSortKey): number {
   }
 }
 
+function getStringValue(row: FileRow, key: FileSortKey): string {
+  switch (key) {
+    case 'path':
+      return row.pathLower;
+    case 'name':
+      return row.nameLower;
+    case 'ext':
+      return row.ext.toLowerCase();
+    case 'language':
+      return row.language.toLowerCase();
+    default:
+      return '';
+  }
+}
+
+function getNumberValue(row: FileRow, key: FileSortKey): number {
+  switch (key) {
+    case 'lines':
+      return row.lines;
+    case 'bytes':
+      return row.bytes;
+    case 'complexity':
+      return row.complexity;
+    case 'commentLines':
+      return row.commentLines;
+    case 'blankLines':
+      return row.blankLines;
+    default:
+      return 0;
+  }
+}
+
+function getBooleanValue(row: FileRow, key: FileSortKey): boolean {
+  switch (key) {
+    case 'generated':
+      return row.generated;
+    case 'binary':
+      return row.binary;
+    case 'isCode':
+      return row.isCode;
+    default:
+      return false;
+  }
+}
+
+function matchesTextFilter(row: FileRow, key: FileSortKey, filter: TextColumnFilter): boolean {
+  const query = filter.value.trim().toLowerCase();
+  if (!query) {
+    return true;
+  }
+
+  return getStringValue(row, key).includes(query);
+}
+
+function matchesNumberFilter(row: FileRow, key: FileSortKey, filter: NumberColumnFilter): boolean {
+  const min = filter.min.trim().length > 0 ? Number(filter.min) : null;
+  const max = filter.max.trim().length > 0 ? Number(filter.max) : null;
+  const value = getNumberValue(row, key);
+
+  if (min !== null && Number.isFinite(min) && value < min) {
+    return false;
+  }
+
+  if (max !== null && Number.isFinite(max) && value > max) {
+    return false;
+  }
+
+  return true;
+}
+
+function matchesBooleanFilter(row: FileRow, key: FileSortKey, mode: 'all' | 'true' | 'false'): boolean {
+  if (mode === 'all') {
+    return true;
+  }
+
+  const value = getBooleanValue(row, key);
+  return mode === 'true' ? value : !value;
+}
+
+function matchesDateFilter(row: FileRow, filter: DateColumnFilter): boolean {
+  const fromEpoch = filter.from ? Date.parse(filter.from) : NaN;
+  const toEpoch = filter.to ? Date.parse(filter.to) : NaN;
+  const from = Number.isFinite(fromEpoch) ? fromEpoch : null;
+  const to = Number.isFinite(toEpoch) ? toEpoch + (24 * 60 * 60 * 1000) - 1 : null;
+
+  if (from !== null && row.lastModifiedEpoch < from) {
+    return false;
+  }
+
+  if (to !== null && row.lastModifiedEpoch > to) {
+    return false;
+  }
+
+  return true;
+}
+
+function rowMatchesFilter(row: FileRow, key: FileSortKey, filter: ColumnFilter): boolean {
+  switch (filter.kind) {
+    case 'text':
+      return matchesTextFilter(row, key, filter);
+    case 'number':
+      return matchesNumberFilter(row, key, filter);
+    case 'boolean':
+      return matchesBooleanFilter(row, key, filter.mode);
+    case 'date':
+      if (key !== 'lastModified') {
+        return true;
+      }
+      return matchesDateFilter(row, filter);
+    default:
+      return true;
+  }
+}
+
+export function filterFiles(rows: FileRow[], columnFilters: ColumnFilters): FileRow[] {
+  const activeFilters = Object.entries(columnFilters)
+    .filter(([, filter]) => isColumnFilterActive(filter as ColumnFilter)) as Array<[FileSortKey, ColumnFilter]>;
+
+  if (activeFilters.length === 0) {
+    return rows;
+  }
+
+  return rows.filter((row) => {
+    for (const [key, filter] of activeFilters) {
+      if (!rowMatchesFilter(row, key, filter)) {
+        return false;
+      }
+    }
+    return true;
+  });
+}
+
 export function sortFiles(rows: FileRow[], sortRules: SortRule[]): FileRow[] {
   const rules = sortRules.length > 0 ? sortRules : DEFAULT_SORT_RULES;
 
@@ -83,104 +259,6 @@ export function sortFiles(rows: FileRow[], sortRules: SortRule[]): FileRow[] {
       return a.originalIndex - b.originalIndex;
     })
     .map((entry) => entry.row);
-}
-
-function matchesQuery(row: FileRow, query: string): boolean {
-  if (!query) {
-    return true;
-  }
-  return row.pathLower.includes(query) || row.nameLower.includes(query);
-}
-
-function matchesRange(value: number, min: number | null, max: number | null): boolean {
-  if (min !== null && value < min) {
-    return false;
-  }
-  if (max !== null && value > max) {
-    return false;
-  }
-  return true;
-}
-
-function matchesMode(
-  flag: boolean,
-  mode: FileFilterState['generatedMode']
-): boolean {
-  if (mode === 'all') {
-    return true;
-  }
-  if (mode === 'only') {
-    return flag;
-  }
-  return !flag;
-}
-
-export function filterFiles(rows: FileRow[], filters: FileFilterState): FileRow[] {
-  const query = filters.query.trim().toLowerCase();
-  const languageSet = filters.languages.length > 0 ? new Set(filters.languages) : null;
-  const extensionSet = filters.extensions.length > 0 ? new Set(filters.extensions) : null;
-  const parsedAfter = filters.modifiedAfter ? Date.parse(filters.modifiedAfter) : NaN;
-  const parsedBefore = filters.modifiedBefore ? Date.parse(filters.modifiedBefore) : NaN;
-  const modifiedAfter = Number.isFinite(parsedAfter) ? parsedAfter : null;
-  const modifiedBefore = Number.isFinite(parsedBefore)
-    ? parsedBefore + (24 * 60 * 60 * 1000) - 1
-    : null;
-
-  return rows.filter((row) => {
-    if (!matchesQuery(row, query)) {
-      return false;
-    }
-
-    if (languageSet && !languageSet.has(row.language)) {
-      return false;
-    }
-
-    if (extensionSet && !extensionSet.has(row.ext)) {
-      return false;
-    }
-
-    if (!matchesRange(row.lines, filters.locMin, filters.locMax)) {
-      return false;
-    }
-
-    if (!matchesRange(row.bytes, filters.bytesMin, filters.bytesMax)) {
-      return false;
-    }
-
-    if (!matchesRange(row.complexity, filters.complexityMin, filters.complexityMax)) {
-      return false;
-    }
-
-    if (!matchesRange(row.commentLines, filters.commentMin, filters.commentMax)) {
-      return false;
-    }
-
-    if (!matchesRange(row.blankLines, filters.blankMin, filters.blankMax)) {
-      return false;
-    }
-
-    if (modifiedAfter !== null && row.lastModifiedEpoch < modifiedAfter) {
-      return false;
-    }
-
-    if (modifiedBefore !== null && row.lastModifiedEpoch > modifiedBefore) {
-      return false;
-    }
-
-    if (!matchesMode(row.generated, filters.generatedMode)) {
-      return false;
-    }
-
-    if (!matchesMode(row.binary, filters.binaryMode)) {
-      return false;
-    }
-
-    if (filters.codeOnly && !row.isCode) {
-      return false;
-    }
-
-    return true;
-  });
 }
 
 export function updateSortRules(

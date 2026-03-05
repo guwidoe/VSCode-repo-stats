@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+  createDefaultFilter,
   DEFAULT_SORT_RULES,
   filterFiles,
+  isColumnFilterActive,
   sortFiles,
   updateSortRules,
 } from './fileTableLogic';
-import type { FileFilterState, FileRow, SortRule } from './types';
+import type { ColumnFilters, FileRow, SortRule } from './types';
 
 const rows: FileRow[] = [
   {
@@ -64,27 +66,6 @@ const rows: FileRow[] = [
   },
 ];
 
-const emptyFilters: FileFilterState = {
-  query: '',
-  languages: [],
-  extensions: [],
-  locMin: null,
-  locMax: null,
-  bytesMin: null,
-  bytesMax: null,
-  complexityMin: null,
-  complexityMax: null,
-  commentMin: null,
-  commentMax: null,
-  blankMin: null,
-  blankMax: null,
-  modifiedAfter: '',
-  modifiedBefore: '',
-  generatedMode: 'all',
-  binaryMode: 'all',
-  codeOnly: false,
-};
-
 describe('fileTableLogic', () => {
   it('uses default LOC-desc sorting', () => {
     const sorted = sortFiles(rows, DEFAULT_SORT_RULES);
@@ -109,29 +90,27 @@ describe('fileTableLogic', () => {
     ]);
   });
 
-  it('filters by query, ranges, dates, and modes', () => {
-    const filtered = filterFiles(rows, {
-      ...emptyFilters,
-      query: 'bundle',
-      generatedMode: 'only',
-      locMin: 500,
-      bytesMax: 23000,
-      complexityMax: 1,
-      modifiedAfter: '2026-01-20',
-      modifiedBefore: '2026-02-28',
-    });
+  it('filters by text, range, date, and boolean column filters', () => {
+    const filters: ColumnFilters = {
+      name: { kind: 'text', value: 'bundle' },
+      generated: { kind: 'boolean', mode: 'true' },
+      lines: { kind: 'number', min: '500', max: '' },
+      bytes: { kind: 'number', min: '', max: '23000' },
+      lastModified: { kind: 'date', from: '2026-01-20', to: '2026-02-28' },
+    };
 
+    const filtered = filterFiles(rows, filters);
     expect(filtered.map((row) => row.path)).toEqual(['dist/bundle.generated.js']);
   });
 
-  it('filters by language/extension and code-only', () => {
-    const filtered = filterFiles(rows, {
-      ...emptyFilters,
-      languages: ['TypeScript'],
-      extensions: ['.ts'],
-      codeOnly: true,
-    });
+  it('supports combined language/extension text filters', () => {
+    const filters: ColumnFilters = {
+      language: { kind: 'text', value: 'type' },
+      ext: { kind: 'text', value: '.ts' },
+      isCode: { kind: 'boolean', mode: 'true' },
+    };
 
+    const filtered = filterFiles(rows, filters);
     expect(filtered).toHaveLength(1);
     expect(filtered[0].path).toBe('src/app.ts');
   });
@@ -145,5 +124,19 @@ describe('fileTableLogic', () => {
       { key: 'lines', direction: 'desc' },
       { key: 'bytes', direction: 'desc' },
     ]);
+  });
+
+  it('creates default filters and tracks active state', () => {
+    const text = createDefaultFilter('text');
+    const number = createDefaultFilter('number');
+    const bool = createDefaultFilter('boolean');
+
+    expect(isColumnFilterActive(text)).toBe(false);
+    expect(isColumnFilterActive(number)).toBe(false);
+    expect(isColumnFilterActive(bool)).toBe(false);
+
+    expect(isColumnFilterActive({ kind: 'text', value: 'abc' })).toBe(true);
+    expect(isColumnFilterActive({ kind: 'number', min: '1', max: '' })).toBe(true);
+    expect(isColumnFilterActive({ kind: 'boolean', mode: 'false' })).toBe(true);
   });
 });
