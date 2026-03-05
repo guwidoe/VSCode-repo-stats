@@ -129,6 +129,13 @@ body {
   overflow-y: auto;
 }
 
+/* Keep transient progress banners compact (avoid filling the viewport). */
+.app-content > .live-update-banner {
+  flex: 0 0 auto;
+  min-height: auto;
+  overflow: visible;
+}
+
 /* Loading state */
 .loading-state {
   display: flex;
