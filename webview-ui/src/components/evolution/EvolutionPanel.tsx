@@ -51,8 +51,8 @@ export function EvolutionPanel() {
       return null;
     }
 
-    return processEvolutionSeries(sourceData, maxSeries, normalize);
-  }, [sourceData, maxSeries, normalize]);
+    return processEvolutionSeries(sourceData, maxSeries, normalize, dimension);
+  }, [sourceData, maxSeries, normalize, dimension]);
 
   const runLabel = evolutionStatus === 'stale' ? 'Recompute Evolution' : 'Run Evolution Analysis';
 

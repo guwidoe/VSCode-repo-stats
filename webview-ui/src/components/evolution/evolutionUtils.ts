@@ -1,4 +1,4 @@
-import type { EvolutionTimeSeriesData } from '../../types';
+import type { EvolutionDimension, EvolutionTimeSeriesData } from '../../types';
 
 export interface ProcessedSeriesData {
   ts: string[];
@@ -9,7 +9,8 @@ export interface ProcessedSeriesData {
 export function processEvolutionSeries(
   data: EvolutionTimeSeriesData,
   maxSeries: number,
-  normalize: boolean
+  normalize: boolean,
+  dimension: EvolutionDimension
 ): ProcessedSeriesData {
   const ts = data.ts;
   const labels = [...data.labels];
@@ -22,10 +23,14 @@ export function processEvolutionSeries(
     latest: y[index]?.[y[index].length - 1] || 0,
   }));
 
-  indexed.sort((a, b) => b.max - a.max || b.latest - a.latest || a.label.localeCompare(b.label));
+  indexed.sort((a, b) => b.latest - a.latest || b.max - a.max || a.label.localeCompare(b.label));
 
   const top = indexed.slice(0, Math.max(1, maxSeries));
   const rest = indexed.slice(Math.max(1, maxSeries));
+
+  if (dimension === 'cohort') {
+    top.sort((a, b) => compareCohortLabels(a.label, b.label));
+  }
 
   const outLabels = top.map((entry) => entry.label);
   const outY = top.map((entry) => y[entry.index] || Array(ts.length).fill(0));
@@ -67,6 +72,38 @@ export function processEvolutionSeries(
     labels: outLabels,
     y: normalized,
   };
+}
+
+function compareCohortLabels(a: string, b: string): number {
+  const aKey = cohortSortKey(a);
+  const bKey = cohortSortKey(b);
+  if (aKey !== bKey) {
+    return aKey - bKey;
+  }
+  return a.localeCompare(b);
+}
+
+function cohortSortKey(label: string): number {
+  const yearWeekMatch = label.match(/^(\d{4})-W(\d{2})$/);
+  if (yearWeekMatch) {
+    const year = parseInt(yearWeekMatch[1], 10);
+    const week = parseInt(yearWeekMatch[2], 10);
+    return year * 100 + week;
+  }
+
+  const yearMonthMatch = label.match(/^(\d{4})-(\d{2})$/);
+  if (yearMonthMatch) {
+    const year = parseInt(yearMonthMatch[1], 10);
+    const month = parseInt(yearMonthMatch[2], 10);
+    return year * 100 + month;
+  }
+
+  const yearMatch = label.match(/^(\d{4})$/);
+  if (yearMatch) {
+    return parseInt(yearMatch[1], 10) * 100;
+  }
+
+  return Number.MAX_SAFE_INTEGER;
 }
 
 export function formatTimeLabel(isoDate: string): string {
