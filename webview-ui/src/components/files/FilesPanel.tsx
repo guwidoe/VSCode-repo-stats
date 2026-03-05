@@ -2,13 +2,15 @@
  * Files panel with virtualized table, header filters, and flexible column layout.
  */
 
-import { useDeferredValue, useMemo, useRef, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import type { MouseEvent as ReactMouseEvent } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useStore } from '../../store';
 import { useFileCatalog } from '../../hooks/useFileCatalog';
 import { useVsCodeApi } from '../../hooks/useVsCodeApi';
-import { DEFAULT_COLUMN_ORDER, getColumnConfig } from './columns';
+import { buildDefaultColumnWidths, DEFAULT_COLUMN_ORDER, getColumnConfig } from './columns';
 import { ColumnFilterPopover } from './ColumnFilterPopover';
+import { FilterIcon } from './FilterIcon';
 import { ColumnManagerPopover } from './ColumnManagerPopover';
 import { getCellContent, getCellTitle } from './fileCellFormatters';
 import {
@@ -41,16 +43,41 @@ export function FilesPanel() {
   const [sortRules, setSortRules] = useState<SortRule[]>(DEFAULT_SORT_RULES);
   const [columnFilters, setColumnFilters] = useState<ColumnFilters>({});
   const [columnOrder, setColumnOrder] = useState<FileSortKey[]>(DEFAULT_COLUMN_ORDER);
+  const [columnWidths, setColumnWidths] = useState<Record<FileSortKey, number>>(() => buildDefaultColumnWidths());
   const [hiddenColumns, setHiddenColumns] = useState<Set<FileSortKey>>(() => new Set());
   const [activeFilterColumn, setActiveFilterColumn] = useState<FileSortKey | null>(null);
   const [showColumnManager, setShowColumnManager] = useState(false);
 
   const deferredFilters = useDeferredValue(columnFilters);
+  const panelRef = useRef<HTMLDivElement>(null);
   const tableContainerRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    const onWindowMouseDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (!panelRef.current?.contains(target)) {
+        setShowColumnManager(false);
+        setActiveFilterColumn(null);
+      }
+    };
+
+    window.addEventListener('mousedown', onWindowMouseDown);
+    return () => {
+      window.removeEventListener('mousedown', onWindowMouseDown);
+    };
+  }, []);
+
   const visibleColumns = useMemo(
-    () => columnOrder.filter((key) => !hiddenColumns.has(key)).map((key) => getColumnConfig(key)),
-    [columnOrder, hiddenColumns]
+    () => columnOrder
+      .filter((key) => !hiddenColumns.has(key))
+      .map((key) => {
+        const config = getColumnConfig(key);
+        return {
+          ...config,
+          width: columnWidths[key] ?? config.width,
+        };
+      }),
+    [columnOrder, hiddenColumns, columnWidths]
   );
 
   const gridTemplateColumns = useMemo(
@@ -156,6 +183,39 @@ export function FilesPanel() {
     });
   };
 
+  const startColumnResize = (key: FileSortKey, event: ReactMouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const baseWidth = columnWidths[key] ?? getColumnConfig(key).width;
+    const startX = event.clientX;
+
+    const previousCursor = document.body.style.cursor;
+    const previousSelect = document.body.style.userSelect;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const delta = moveEvent.clientX - startX;
+      const nextWidth = Math.max(72, Math.min(900, baseWidth + delta));
+
+      setColumnWidths((prev) => ({
+        ...prev,
+        [key]: nextWidth,
+      }));
+    };
+
+    const onMouseUp = () => {
+      document.body.style.cursor = previousCursor;
+      document.body.style.userSelect = previousSelect;
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  };
+
   if (!catalog) {
     return (
       <div className="files-panel">
@@ -165,7 +225,7 @@ export function FilesPanel() {
   }
 
   return (
-    <div className="files-panel">
+    <div className="files-panel" ref={panelRef}>
       {data?.submodules && data.submodules.count > 0 && (
         <div className="submodule-note">
           {settings?.includeSubmodules
@@ -196,6 +256,7 @@ export function FilesPanel() {
                 onMoveColumn={moveColumn}
                 onResetColumns={() => {
                   setColumnOrder(DEFAULT_COLUMN_ORDER);
+                  setColumnWidths(buildDefaultColumnWidths());
                   setHiddenColumns(new Set());
                 }}
                 onClose={() => setShowColumnManager(false)}
@@ -249,29 +310,37 @@ export function FilesPanel() {
                     <span className="sort-indicator">{getSortIndicator(sortRules, column.key)}</span>
                   </button>
 
-                  <div className="header-filter-anchor">
-                    <button
-                      type="button"
-                      className={`header-filter-button ${isFilterActive ? 'active' : ''}`}
-                      title={`Filter ${column.label}`}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setShowColumnManager(false);
-                        setActiveFilterColumn((current) => current === column.key ? null : column.key);
-                      }}
-                    >
-                      ⚲
-                    </button>
+                  <div className="header-actions">
+                    <div className="header-filter-anchor">
+                      <button
+                        type="button"
+                        className={`header-filter-button ${isFilterActive ? 'active' : ''}`}
+                        title={`Filter ${column.label}`}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setShowColumnManager(false);
+                          setActiveFilterColumn((current) => current === column.key ? null : column.key);
+                        }}
+                      >
+                        <FilterIcon />
+                      </button>
 
-                    {activeFilterColumn === column.key && (
-                      <ColumnFilterPopover
-                        column={column}
-                        filter={columnFilters[column.key]}
-                        onChange={(filter) => setFilter(column.key, filter)}
-                        onClear={() => clearFilter(column.key)}
-                        onClose={() => setActiveFilterColumn(null)}
-                      />
-                    )}
+                      {activeFilterColumn === column.key && (
+                        <ColumnFilterPopover
+                          column={column}
+                          filter={columnFilters[column.key]}
+                          onChange={(filter) => setFilter(column.key, filter)}
+                          onClear={() => clearFilter(column.key)}
+                          onClose={() => setActiveFilterColumn(null)}
+                        />
+                      )}
+                    </div>
+
+                    <div
+                      className="header-resize-handle"
+                      onMouseDown={(event) => startColumnResize(column.key, event)}
+                      title="Drag to resize column"
+                    />
                   </div>
                 </div>
               );

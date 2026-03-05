@@ -25,6 +25,13 @@ export const FILE_COLUMNS: FileColumnConfig[] = [
 
 export const DEFAULT_COLUMN_ORDER: FileSortKey[] = FILE_COLUMNS.map((column) => column.key);
 
+export function buildDefaultColumnWidths(): Record<FileSortKey, number> {
+  return FILE_COLUMNS.reduce((acc, column) => {
+    acc[column.key] = column.width;
+    return acc;
+  }, {} as Record<FileSortKey, number>);
+}
+
 const columnMap = new Map<FileSortKey, FileColumnConfig>(
   FILE_COLUMNS.map((column) => [column.key, column])
 );
