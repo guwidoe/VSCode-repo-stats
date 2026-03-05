@@ -107,7 +107,7 @@ Configure exclude patterns, generated file patterns, binary extensions, max comm
 
 ## Requirements
 
-- **VS Code** 1.85.0 or higher
+- **VS Code** 1.109.0 or higher
 - **Git** must be installed and available in PATH
 - **scc** (Sloc Cloc and Code) - automatically downloaded if not found in PATH
 
