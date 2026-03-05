@@ -41,6 +41,10 @@ interface RepoStatsState {
   // Settings
   settings: ExtensionSettings | null;
 
+  // Staleness (tracked independently for core and evolution analyses)
+  coreStale: boolean;
+  evolutionStale: boolean;
+
   // UI State
   activeView: ViewType;
   timePeriod: TimePeriod;
@@ -73,6 +77,7 @@ interface RepoStatsState {
   setEvolutionError: (error: string | null) => void;
   setEvolutionLoading: (loading: Partial<LoadingState>) => void;
   setEvolutionStatus: (status: EvolutionStatus) => void;
+  setStaleness: (status: { coreStale: boolean; evolutionStale: boolean }) => void;
   setSettings: (settings: ExtensionSettings) => void;
   setActiveView: (view: ViewType) => void;
   setTimePeriod: (period: TimePeriod) => void;
@@ -112,6 +117,8 @@ const initialState = {
     progress: 0,
   },
   settings: null as ExtensionSettings | null,
+  coreStale: false,
+  evolutionStale: false,
   activeView: 'overview' as ViewType,
   timePeriod: 'all' as TimePeriod,
   frequencyGranularity: 'weekly' as FrequencyGranularity,
@@ -202,6 +209,7 @@ export const useStore = create<RepoStatsState>((set, get) => ({
       treemapPath: [],
       frequencyGranularity: defaultGranularity,
       contributorGranularity: defaultGranularity,
+      coreStale: false,
     });
   },
 
@@ -223,6 +231,7 @@ export const useStore = create<RepoStatsState>((set, get) => ({
       evolutionData: data,
       evolutionStatus: 'ready',
       evolutionError: null,
+      evolutionStale: false,
       evolutionLoading: { isLoading: false, phase: '', progress: 100 },
     });
   },
@@ -243,7 +252,18 @@ export const useStore = create<RepoStatsState>((set, get) => ({
   },
 
   setEvolutionStatus: (status: EvolutionStatus) => {
-    set({ evolutionStatus: status });
+    set({ evolutionStatus: status, evolutionStale: status === 'stale' });
+  },
+
+  setStaleness: ({ coreStale, evolutionStale }) => {
+    set((state) => ({
+      coreStale,
+      evolutionStale,
+      evolutionStatus:
+        evolutionStale && state.evolutionData && state.evolutionStatus === 'ready'
+          ? 'stale'
+          : state.evolutionStatus,
+    }));
   },
 
   setSettings: (settings: ExtensionSettings) => {

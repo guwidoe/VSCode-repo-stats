@@ -4,6 +4,7 @@
  */
 
 import * as crypto from 'crypto';
+import * as os from 'os';
 import * as path from 'path';
 import simpleGit from 'simple-git';
 import {
@@ -28,6 +29,11 @@ interface FileHistogram {
 interface SnapshotCommit {
   sha: string;
   timestamp: number;
+}
+
+interface DiffStatusEntry {
+  oldPath?: string;
+  newPath?: string;
 }
 
 interface BlameHunkMeta {
@@ -92,7 +98,7 @@ export class EvolutionAnalyzer {
     };
     const snapshotTimestamps: string[] = [];
 
-    let previousFileBlobs = new Map<string, string>();
+    let previousCommit: SnapshotCommit | null = null;
     const fileHistograms = new Map<string, FileHistogram>();
     const runningTotals = this.createEmptyHistogram();
 
@@ -104,28 +110,42 @@ export class EvolutionAnalyzer {
         progress
       );
 
-      const currentFileBlobs = await this.getFileBlobsAtCommit(commit.sha);
+      const changedPaths: string[] = [];
 
-      for (const [previousPath] of previousFileBlobs) {
-        if (!currentFileBlobs.has(previousPath)) {
-          const existing = fileHistograms.get(previousPath);
-          if (existing) {
-            this.mergeHistogram(runningTotals, existing, -1);
-            fileHistograms.delete(previousPath);
+      if (!previousCommit) {
+        const initialPaths = await this.getTrackedPathsAtCommit(commit.sha);
+        for (const filePath of initialPaths) {
+          changedPaths.push(filePath);
+        }
+      } else {
+        const diffEntries = await this.getDiffStatusBetweenCommits(previousCommit.sha, commit.sha);
+
+        for (const diff of diffEntries) {
+          if (diff.oldPath && diff.oldPath !== diff.newPath) {
+            const removedHistogram = fileHistograms.get(diff.oldPath);
+            if (removedHistogram) {
+              this.mergeHistogram(runningTotals, removedHistogram, -1);
+              fileHistograms.delete(diff.oldPath);
+            }
+          }
+
+          if (diff.newPath) {
+            if (this.shouldAnalyzeFile(diff.newPath)) {
+              changedPaths.push(diff.newPath);
+            } else {
+              const removedHistogram = fileHistograms.get(diff.newPath);
+              if (removedHistogram) {
+                this.mergeHistogram(runningTotals, removedHistogram, -1);
+                fileHistograms.delete(diff.newPath);
+              }
+            }
           }
         }
       }
 
-      const changedPaths: string[] = [];
-      for (const [filePath, blobSha] of currentFileBlobs) {
-        const previousBlob = previousFileBlobs.get(filePath);
-        if (previousBlob !== blobSha) {
-          changedPaths.push(filePath);
-        }
-      }
-
-      const maxFilesPerSnapshot = 250;
-      const selectedChangedPaths = changedPaths.slice(0, maxFilesPerSnapshot);
+      const maxFilesPerSnapshot = 500;
+      const deduplicatedChangedPaths = Array.from(new Set(changedPaths));
+      const selectedChangedPaths = deduplicatedChangedPaths.slice(0, maxFilesPerSnapshot);
 
       const updatedHistograms = await this.computeHistogramsForFiles(
         selectedChangedPaths,
@@ -143,7 +163,7 @@ export class EvolutionAnalyzer {
         this.mergeHistogram(runningTotals, histogram, 1);
       }
 
-      previousFileBlobs = currentFileBlobs;
+      previousCommit = commit;
       snapshotTimestamps.push(new Date(commit.timestamp * 1000).toISOString());
       snapshotTotals.cohort.push({ ...runningTotals.cohort });
       snapshotTotals.author.push({ ...runningTotals.author });
@@ -248,9 +268,26 @@ export class EvolutionAnalyzer {
     return downsampled;
   }
 
-  private async getFileBlobsAtCommit(commitSha: string): Promise<Map<string, string>> {
-    const output = await this.git.raw(['ls-tree', '-r', commitSha]);
-    const fileBlobs = new Map<string, string>();
+  private async getTrackedPathsAtCommit(commitSha: string): Promise<string[]> {
+    const output = await this.git.raw(['ls-tree', '-r', '--name-only', commitSha]);
+    return output
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+      .filter((line) => this.shouldAnalyzeFile(line));
+  }
+
+  private async getDiffStatusBetweenCommits(previousSha: string, currentSha: string): Promise<DiffStatusEntry[]> {
+    const output = await this.git.raw([
+      'diff-tree',
+      '--no-commit-id',
+      '--name-status',
+      '-r',
+      previousSha,
+      currentSha,
+    ]);
+
+    const entries: DiffStatusEntry[] = [];
 
     for (const line of output.split('\n')) {
       const trimmed = line.trim();
@@ -258,22 +295,29 @@ export class EvolutionAnalyzer {
         continue;
       }
 
-      // Format: <mode> <type> <sha>\t<path>
-      const match = trimmed.match(/^\d+\s+\w+\s+([0-9a-f]{40})\t(.+)$/);
-      if (!match) {
+      const parts = trimmed.split('\t');
+      if (parts.length < 2) {
         continue;
       }
 
-      const blobSha = match[1];
-      const filePath = match[2];
-      if (!this.shouldAnalyzeFile(filePath)) {
+      const status = parts[0];
+
+      if (status.startsWith('R') || status.startsWith('C')) {
+        if (parts.length >= 3) {
+          entries.push({ oldPath: parts[1], newPath: parts[2] });
+        }
         continue;
       }
 
-      fileBlobs.set(filePath, blobSha);
+      if (status === 'D') {
+        entries.push({ oldPath: parts[1] });
+        continue;
+      }
+
+      entries.push({ oldPath: parts[1], newPath: parts[1] });
     }
 
-    return fileBlobs;
+    return entries;
   }
 
   private shouldAnalyzeFile(filePath: string): boolean {
@@ -299,7 +343,8 @@ export class EvolutionAnalyzer {
     defaultTimestamp: number
   ): Promise<Map<string, FileHistogram>> {
     const result = new Map<string, FileHistogram>();
-    const concurrency = 4;
+    const cpuCount = os.cpus().length;
+    const concurrency = Math.max(2, Math.min(12, cpuCount));
     let index = 0;
 
     const workers = Array.from({ length: Math.min(concurrency, paths.length) }, async () => {

@@ -54,6 +54,7 @@ export function useVsCodeApi() {
     setEvolutionError,
     setEvolutionLoading,
     setEvolutionStatus,
+    setStaleness,
   } = useStore();
 
   // Handle messages from extension
@@ -110,6 +111,13 @@ export function useVsCodeApi() {
           setEvolutionStatus('stale');
           break;
 
+        case 'stalenessStatus':
+          setStaleness({
+            coreStale: message.coreStale,
+            evolutionStale: message.evolutionStale,
+          });
+          break;
+
         case 'incrementalUpdate': {
           // Handle incremental updates (merge with existing data)
           const currentData = useStore.getState().data;
@@ -133,8 +141,16 @@ export function useVsCodeApi() {
     // Request settings on mount
     console.log('[RepoStats Webview] Requesting settings...');
     getVsCodeApi().postMessage({ type: 'getSettings' });
+    getVsCodeApi().postMessage({ type: 'checkStaleness' });
 
-    return () => window.removeEventListener('message', handleMessage);
+    const stalenessTimer = window.setInterval(() => {
+      getVsCodeApi().postMessage({ type: 'checkStaleness' });
+    }, 15000);
+
+    return () => {
+      window.clearInterval(stalenessTimer);
+      window.removeEventListener('message', handleMessage);
+    };
   }, [
     setData,
     setError,
@@ -144,6 +160,7 @@ export function useVsCodeApi() {
     setEvolutionError,
     setEvolutionLoading,
     setEvolutionStatus,
+    setStaleness,
   ]);
 
   // Actions

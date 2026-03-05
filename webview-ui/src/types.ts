@@ -169,6 +169,7 @@ export type ExtensionMessage =
   | { type: 'evolutionComplete'; data: EvolutionResult }
   | { type: 'evolutionError'; error: string }
   | { type: 'evolutionStale'; reason: string }
+  | { type: 'stalenessStatus'; coreStale: boolean; evolutionStale: boolean }
   | { type: 'settingsLoaded'; settings: ExtensionSettings };
 
 export type WebviewMessage =
@@ -176,6 +177,7 @@ export type WebviewMessage =
   | { type: 'requestRefresh' }
   | { type: 'requestEvolutionAnalysis' }
   | { type: 'requestEvolutionRefresh' }
+  | { type: 'checkStaleness' }
   | { type: 'openFile'; path: string }
   | { type: 'revealInExplorer'; path: string }
   | { type: 'copyPath'; path: string }

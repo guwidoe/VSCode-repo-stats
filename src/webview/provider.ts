@@ -7,6 +7,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as crypto from 'crypto';
+import simpleGit from 'simple-git';
 import {
   ExtensionMessage,
   WebviewMessage,
@@ -45,6 +46,9 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
   private extensionUri: vscode.Uri;
   private workspaceState: vscode.Memento;
   private globalStoragePath: string;
+  private lastCoreHeadSha: string | null = null;
+  private lastEvolutionHeadSha: string | null = null;
+  private lastEvolutionSettingsHash: string | null = null;
 
   constructor(
     extensionUri: vscode.Uri,
@@ -162,6 +166,10 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
         await this.runEvolutionAnalysis(webview, true);
         break;
 
+      case 'checkStaleness':
+        await this.sendStalenessStatus(webview);
+        break;
+
       case 'openFile': {
         const repoPath = this.getWorkspacePath();
         if (repoPath) {
@@ -275,10 +283,12 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       if (cached) {
         // Update with fresh repo info
         cached.repository = repoInfo;
+        this.lastCoreHeadSha = cached.repository.headSha;
         this.sendMessage(webview, {
           type: 'analysisComplete',
           data: cached,
         });
+        await this.sendStalenessStatus(webview);
         return;
       }
 
@@ -296,10 +306,12 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       // Save to cache
       cacheManager.save(result);
 
+      this.lastCoreHeadSha = result.repository.headSha;
       this.sendMessage(webview, {
         type: 'analysisComplete',
         data: result,
       });
+      await this.sendStalenessStatus(webview);
     } catch (error) {
       let errorMessage = 'An unexpected error occurred during analysis.';
 
@@ -342,16 +354,21 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       );
 
       if (validCached && !forceRefresh) {
+        this.lastEvolutionHeadSha = validCached.headSha;
+        this.lastEvolutionSettingsHash = validCached.settingsHash;
         this.sendMessage(webview, {
           type: 'evolutionComplete',
           data: validCached,
         });
+        await this.sendStalenessStatus(webview);
         return;
       }
 
       if (!forceRefresh) {
         const latestCached = evolutionCacheManager.getLatest();
         if (latestCached) {
+          this.lastEvolutionHeadSha = latestCached.headSha;
+          this.lastEvolutionSettingsHash = latestCached.settingsHash;
           this.sendMessage(webview, {
             type: 'evolutionComplete',
             data: latestCached,
@@ -367,6 +384,8 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
               reason: 'Repository HEAD or Evolution settings changed since the last run.',
             });
           }
+
+          await this.sendStalenessStatus(webview);
 
           if (!settings.evolution.autoRun) {
             return;
@@ -389,10 +408,13 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
 
       evolutionCacheManager.save(result, repoPath);
 
+      this.lastEvolutionHeadSha = result.headSha;
+      this.lastEvolutionSettingsHash = result.settingsHash;
       this.sendMessage(webview, {
         type: 'evolutionComplete',
         data: result,
       });
+      await this.sendStalenessStatus(webview);
     } catch (error) {
       let errorMessage = 'An unexpected error occurred during evolution analysis.';
 
@@ -406,6 +428,39 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
         type: 'evolutionError',
         error: errorMessage,
       });
+    }
+  }
+
+  private async sendStalenessStatus(webview: vscode.Webview): Promise<void> {
+    const repoPath = this.getWorkspacePath();
+    if (!repoPath) {
+      this.sendMessage(webview, {
+        type: 'stalenessStatus',
+        coreStale: false,
+        evolutionStale: false,
+      });
+      return;
+    }
+
+    try {
+      const git = simpleGit(repoPath);
+      const currentHeadSha = (await git.revparse(['HEAD'])).trim();
+      const currentSettingsHash = createEvolutionSettingsHash(this.getSettings());
+
+      const coreStale = this.lastCoreHeadSha !== null && this.lastCoreHeadSha !== currentHeadSha;
+
+      const evolutionStaleByHead = this.lastEvolutionHeadSha !== null && this.lastEvolutionHeadSha !== currentHeadSha;
+      const evolutionStaleBySettings =
+        this.lastEvolutionSettingsHash !== null &&
+        this.lastEvolutionSettingsHash !== currentSettingsHash;
+
+      this.sendMessage(webview, {
+        type: 'stalenessStatus',
+        coreStale,
+        evolutionStale: evolutionStaleByHead || evolutionStaleBySettings,
+      });
+    } catch {
+      // Best effort only; don't block UX if staleness check fails.
     }
   }
 

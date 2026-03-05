@@ -20,7 +20,7 @@ import { LimitWarning } from './components/common/LimitWarning';
 import './App.css';
 
 export function App() {
-  const { activeView, loading, error, data } = useStore();
+  const { activeView, loading, error, data, coreStale, evolutionStale } = useStore();
   const { requestRefresh } = useVsCodeApi();
 
   // Request initial analysis on mount
@@ -40,13 +40,20 @@ export function App() {
             </span>
           )}
         </div>
-        <button
-          className="refresh-button"
-          onClick={requestRefresh}
-          disabled={loading.isLoading}
-        >
-          Refresh
-        </button>
+        <div className="header-actions">
+          {(coreStale || evolutionStale) && (
+            <span className="stale-indicator">
+              Stale: {coreStale && 'Core'}{coreStale && evolutionStale && ' + '}{evolutionStale && 'Evolution'}
+            </span>
+          )}
+          <button
+            className="refresh-button"
+            onClick={requestRefresh}
+            disabled={loading.isLoading}
+          >
+            Refresh
+          </button>
+        </div>
       </header>
 
       <Navigation />

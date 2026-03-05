@@ -97,16 +97,17 @@ describe('EvolutionAnalyzer', () => {
     );
 
     git.setRawResponse(
-      ['ls-tree', '-r', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
-      '100644 blob 1111111111111111111111111111111111111111\tsrc/app.ts\n'
+      ['ls-tree', '-r', '--name-only', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
+      'src/app.ts\n'
+    );
+
+    git.setRawResponse(
+      ['diff-tree', '--no-commit-id', '--name-status', '-r', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'],
+      ''
     );
     git.setRawResponse(
-      ['ls-tree', '-r', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'],
-      '100644 blob 1111111111111111111111111111111111111111\tsrc/app.ts\n'
-    );
-    git.setRawResponse(
-      ['ls-tree', '-r', 'cccccccccccccccccccccccccccccccccccccccc'],
-      '100644 blob 2222222222222222222222222222222222222222\tsrc/app.ts\n'
+      ['diff-tree', '--no-commit-id', '--name-status', '-r', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'cccccccccccccccccccccccccccccccccccccccc'],
+      'M\tsrc/app.ts\n'
     );
 
     git.setRawResponse(
@@ -162,8 +163,8 @@ describe('EvolutionAnalyzer', () => {
       const sha = `${i}`.repeat(40).slice(0, 40);
       commits.push(`${sha}|${1700000000 + (i * 86400)}`);
       git.setRawResponse(
-        ['ls-tree', '-r', sha],
-        `100644 blob ${sha}\tsrc/file${i}.ts\n`
+        ['ls-tree', '-r', '--name-only', sha],
+        `src/file${i}.ts\n`
       );
       git.setRawResponse(
         ['blame', sha, '--line-porcelain', '--', `src/file${i}.ts`],

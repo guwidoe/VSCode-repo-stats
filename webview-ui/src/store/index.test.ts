@@ -363,6 +363,16 @@ describe('evolution state', () => {
     expect(useStore.getState().evolutionStatus).toBe('idle');
   });
 
+  it('should track staleness flags independently', () => {
+    useStore.getState().setStaleness({ coreStale: true, evolutionStale: false });
+    expect(useStore.getState().coreStale).toBe(true);
+    expect(useStore.getState().evolutionStale).toBe(false);
+
+    useStore.getState().setStaleness({ coreStale: true, evolutionStale: true });
+    expect(useStore.getState().coreStale).toBe(true);
+    expect(useStore.getState().evolutionStale).toBe(true);
+  });
+
   it('should update evolution loading and status', () => {
     useStore.getState().setEvolutionLoading({
       isLoading: true,
