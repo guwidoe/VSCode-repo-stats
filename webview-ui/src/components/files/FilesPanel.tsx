@@ -4,6 +4,7 @@
 
 import { useDeferredValue, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import { useStore } from '../../store';
 import { useFileCatalog } from '../../hooks/useFileCatalog';
 import { useVsCodeApi } from '../../hooks/useVsCodeApi';
 import { formatBytes, formatRelativeTime } from '../../utils/colors';
@@ -70,6 +71,8 @@ function parseNullableNumber(value: string): number | null {
 
 export function FilesPanel() {
   const catalog = useFileCatalog();
+  const settings = useStore((state) => state.settings);
+  const data = useStore((state) => state.data);
   const { openFile } = useVsCodeApi();
 
   const [filters, setFilters] = useState<FileFilterState>(INITIAL_FILTERS);
@@ -133,6 +136,14 @@ export function FilesPanel() {
 
   return (
     <div className="files-panel">
+      {data?.submodules && data.submodules.count > 0 && (
+        <div className="submodule-note">
+          {settings?.includeSubmodules
+            ? 'Submodule files are included in this tab. Re-analyze after toggling the setting to refresh this list.'
+            : 'Submodule files are currently excluded from this tab. Enable "Include Git Submodules in File Analysis" and re-analyze to include them.'}
+        </div>
+      )}
+
       <div className="files-controls">
         <div className="files-controls-row">
           <label className="control-field search-field">

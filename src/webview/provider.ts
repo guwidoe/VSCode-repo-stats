@@ -205,16 +205,21 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       }
 
       case 'updateSettings': {
-        await this.updateSettings(message.settings);
+        const shouldPromptReanalysis = await this.updateSettings(message.settings);
         const settings = this.getSettings();
         this.sendMessage(webview, { type: 'settingsLoaded', settings });
+
+        if (shouldPromptReanalysis) {
+          await this.promptReanalysisForFileScopeSetting(webview);
+        }
         break;
       }
     }
   }
 
-  private async updateSettings(settings: Partial<ExtensionSettings>): Promise<void> {
+  private async updateSettings(settings: Partial<ExtensionSettings>): Promise<boolean> {
     const config = vscode.workspace.getConfiguration('repoStats');
+    let shouldPromptReanalysis = false;
 
     if (settings.excludePatterns !== undefined) {
       await config.update('excludePatterns', settings.excludePatterns, vscode.ConfigurationTarget.Global);
@@ -235,7 +240,11 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       await config.update('locExcludedExtensions', settings.locExcludedExtensions, vscode.ConfigurationTarget.Global);
     }
     if (settings.includeSubmodules !== undefined) {
+      const currentValue = config.get<boolean>('includeSubmodules', false);
       await config.update('includeSubmodules', settings.includeSubmodules, vscode.ConfigurationTarget.Global);
+      if (currentValue !== settings.includeSubmodules) {
+        shouldPromptReanalysis = true;
+      }
     }
     if (settings.showEmptyTimePeriods !== undefined) {
       await config.update('showEmptyTimePeriods', settings.showEmptyTimePeriods, vscode.ConfigurationTarget.Global);
@@ -258,6 +267,19 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       await config.update('evolution.maxSnapshots', settings.evolution.maxSnapshots, vscode.ConfigurationTarget.Global);
       await config.update('evolution.maxSeries', settings.evolution.maxSeries, vscode.ConfigurationTarget.Global);
       await config.update('evolution.cohortFormat', settings.evolution.cohortFormat, vscode.ConfigurationTarget.Global);
+    }
+
+    return shouldPromptReanalysis;
+  }
+
+  private async promptReanalysisForFileScopeSetting(webview: vscode.Webview): Promise<void> {
+    const action = await vscode.window.showInformationMessage(
+      'Include Git Submodules in File Analysis changed. Re-analyze to update Overview, Files, and Treemap.',
+      'Re-analyze now'
+    );
+
+    if (action === 'Re-analyze now') {
+      await this.runAnalysis(webview);
     }
   }
 
