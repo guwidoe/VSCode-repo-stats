@@ -47,10 +47,19 @@ function flattenTree(
       complexity: node.complexity || 0,
       commentLines: node.commentLines || 0,
       blankLines: node.blankLines || 0,
+      blamedLines: node.blamedLines || 0,
+      lineAgeAvgDays: node.lineAgeAvgDays || 0,
+      lineAgeMinDays: node.lineAgeMinDays || 0,
+      lineAgeMaxDays: node.lineAgeMaxDays || 0,
+      topOwnerAuthor: node.topOwnerAuthor || '',
+      topOwnerEmail: node.topOwnerEmail || '',
+      topOwnerLines: node.topOwnerLines || 0,
+      topOwnerShare: node.topOwnerShare || 0,
       lastModified: node.lastModified,
       lastModifiedEpoch: toEpoch(node.lastModified),
       pathLower: node.path.toLowerCase(),
       nameLower: node.name.toLowerCase(),
+      topOwnerAuthorLower: (node.topOwnerAuthor || '').toLowerCase(),
     };
 
     rows.push(row);

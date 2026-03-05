@@ -23,10 +23,19 @@ const rows: FileRow[] = [
     complexity: 12,
     commentLines: 25,
     blankLines: 20,
+    blamedLines: 200,
+    lineAgeAvgDays: 45,
+    lineAgeMinDays: 2,
+    lineAgeMaxDays: 200,
+    topOwnerAuthor: 'Alice',
+    topOwnerEmail: 'alice@example.com',
+    topOwnerLines: 120,
+    topOwnerShare: 0.6,
     lastModified: '2026-03-01T10:00:00.000Z',
     lastModifiedEpoch: Date.parse('2026-03-01T10:00:00.000Z'),
     pathLower: 'src/app.ts',
     nameLower: 'app.ts',
+    topOwnerAuthorLower: 'alice',
   },
   {
     path: 'dist/bundle.generated.js',
@@ -41,10 +50,19 @@ const rows: FileRow[] = [
     complexity: 0,
     commentLines: 2,
     blankLines: 3,
+    blamedLines: 580,
+    lineAgeAvgDays: 12,
+    lineAgeMinDays: 1,
+    lineAgeMaxDays: 60,
+    topOwnerAuthor: 'Build Bot',
+    topOwnerEmail: 'bot@example.com',
+    topOwnerLines: 540,
+    topOwnerShare: 0.931,
     lastModified: '2026-02-01T10:00:00.000Z',
     lastModifiedEpoch: Date.parse('2026-02-01T10:00:00.000Z'),
     pathLower: 'dist/bundle.generated.js',
     nameLower: 'bundle.generated.js',
+    topOwnerAuthorLower: 'build bot',
   },
   {
     path: 'assets/logo.png',
@@ -59,10 +77,19 @@ const rows: FileRow[] = [
     complexity: 0,
     commentLines: 0,
     blankLines: 0,
+    blamedLines: 0,
+    lineAgeAvgDays: 0,
+    lineAgeMinDays: 0,
+    lineAgeMaxDays: 0,
+    topOwnerAuthor: '',
+    topOwnerEmail: '',
+    topOwnerLines: 0,
+    topOwnerShare: 0,
     lastModified: undefined,
     lastModifiedEpoch: 0,
     pathLower: 'assets/logo.png',
     nameLower: 'logo.png',
+    topOwnerAuthorLower: '',
   },
 ];
 
@@ -113,6 +140,17 @@ describe('fileTableLogic', () => {
     const filtered = filterFiles(rows, filters);
     expect(filtered).toHaveLength(1);
     expect(filtered[0].path).toBe('src/app.ts');
+  });
+
+  it('filters top owner and owner share percent', () => {
+    const filters: ColumnFilters = {
+      topOwnerAuthor: { kind: 'text', value: 'build' },
+      topOwnerShare: { kind: 'number', min: '90', max: '100' },
+    };
+
+    const filtered = filterFiles(rows, filters);
+    expect(filtered).toHaveLength(1);
+    expect(filtered[0].path).toBe('dist/bundle.generated.js');
   });
 
   it('updates sort rules for single and multi-column mode', () => {

@@ -50,13 +50,16 @@ Results are cached based on the current Git HEAD, so subsequent opens are instan
 
 - Total files, lines of code, and language distribution
 - Donut charts for LOC by language and files by type
-- Generated file and binary file detection
+- HEAD blame charts for line ownership by contributor and line age buckets
+- Generated file, binary file, and blame-analysis coverage indicators
 
 ### Files Explorer
 
-- Full repository file list with metadata columns
-- Sortable columns (default: LOC descending)
-- Filter by search, language, extension, size, LOC, generated/binary flags
+- Full repository file list with rich metadata columns
+- Header-level per-column filtering (text, number range, boolean, date)
+- Column manager for show/hide and reordering
+- Sortable columns (default: LOC descending, supports multi-column sort)
+- Includes blame-derived file metadata (blamed LOC, line-age stats, top owner)
 - Virtualized rendering for smooth performance on large repositories
 
 ### Contributors Dashboard

@@ -4,7 +4,7 @@
 
 import { useMemo } from 'react';
 import { useStore } from '../store';
-import type { TreemapNode } from '../types';
+import type { BlameMetrics, TreemapNode } from '../types';
 import {
   isBinaryFile,
   isCodeLanguage,
@@ -53,6 +53,7 @@ export interface OverviewStats {
     total: number;
     byCategory: BinaryStats[];
   };
+  blame: BlameMetrics;
   submodules: {
     count: number;
     paths: string[];
@@ -239,6 +240,7 @@ export function useOverviewStats(): OverviewStats | null {
         total: state.binaryFileCount,
         byCategory,
       },
+      blame: data.blameMetrics,
       submodules: data.submodules
         ? { count: data.submodules.count, paths: data.submodules.paths }
         : null,

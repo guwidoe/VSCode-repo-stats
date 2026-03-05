@@ -71,6 +71,16 @@ export interface TreemapNode {
   commentLines?: number; // Comment line count
   blankLines?: number; // Blank line count
 
+  // File-level blame metrics (present on files, undefined for folders)
+  blamedLines?: number;
+  lineAgeAvgDays?: number;
+  lineAgeMinDays?: number;
+  lineAgeMaxDays?: number;
+  topOwnerAuthor?: string;
+  topOwnerEmail?: string;
+  topOwnerLines?: number;
+  topOwnerShare?: number;
+
   // Folder-only aggregates (undefined for files)
   complexityAvg?: number; // Average complexity per file in subtree
   complexityMax?: number; // Maximum file complexity in subtree
@@ -95,6 +105,24 @@ export interface SubmoduleInfo {
   count: number;
 }
 
+export interface BlameOwnershipEntry {
+  author: string;
+  email: string;
+  lines: number;
+}
+
+export interface BlameMetrics {
+  analyzedAt: string;
+  maxAgeDays: number;
+  ageByDay: number[];
+  ownershipByAuthor: BlameOwnershipEntry[];
+  totals: {
+    totalBlamedLines: number;
+    filesAnalyzed: number;
+    filesSkipped: number;
+  };
+}
+
 export interface AnalysisResult {
   repository: RepositoryInfo;
   contributors: ContributorStats[];
@@ -107,6 +135,8 @@ export interface AnalysisResult {
   limitReached: boolean;
   // SCC tool info
   sccInfo: SccInfo;
+  // HEAD-only blame metrics for current line ownership/age
+  blameMetrics: BlameMetrics;
   // Detected submodule info
   submodules?: SubmoduleInfo;
 }

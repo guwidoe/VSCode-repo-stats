@@ -24,6 +24,7 @@ export interface GitClient {
   getFileModificationDates(): Promise<Map<string, string>>;
   getTrackedFiles(): Promise<string[]>;
   getSubmodulePaths(): Promise<string[]>;
+  raw(args: string[]): Promise<string>;
 }
 
 // ============================================================================
@@ -364,6 +365,14 @@ export class GitAnalyzer implements GitClient {
       console.error('Failed to get submodule paths:', error);
       return [];
     }
+  }
+
+  async raw(args: string[]): Promise<string> {
+    if (!(await this.isRepo())) {
+      throw new NotAGitRepoError(this.repoPath);
+    }
+
+    return this.git.raw(args);
   }
 
   private parseStatLine(line: string): { additions: number; deletions: number } {

@@ -44,6 +44,14 @@ const mockAnalysisResult: AnalysisResult = {
   analyzedCommitCount: 50,
   maxCommitsLimit: 10000,
   limitReached: false,
+  sccInfo: { version: '3.5.0', source: 'system' },
+  blameMetrics: {
+    analyzedAt: '2024-12-01T00:00:00Z',
+    maxAgeDays: 90,
+    ageByDay: [10, 8, 5],
+    ownershipByAuthor: [{ author: 'Test User', email: 'test@example.com', lines: 23 }],
+    totals: { totalBlamedLines: 23, filesAnalyzed: 1, filesSkipped: 0 },
+  },
 };
 
 describe('useStore', () => {

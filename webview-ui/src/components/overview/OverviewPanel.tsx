@@ -2,11 +2,22 @@
  * Overview Panel - Dashboard showing repository statistics at a glance.
  */
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useStore } from '../../store';
 import { useOverviewStats } from '../../hooks/useOverviewStats';
+import { getAvatarColor } from '../../utils/colors';
+import { bucketizeAgeByDay, type AgeBucketDefinition } from '../../utils/ageBuckets';
 import { DonutChart } from './DonutChart';
 import './OverviewPanel.css';
+
+const DEFAULT_AGE_BUCKETS: AgeBucketDefinition[] = [
+  { label: '0-30d', min: 0, max: 30, color: '#4caf50' },
+  { label: '31-90d', min: 31, max: 90, color: '#8bc34a' },
+  { label: '91-180d', min: 91, max: 180, color: '#ffeb3b' },
+  { label: '181-365d', min: 181, max: 365, color: '#ff9800' },
+  { label: '1-2y', min: 366, max: 730, color: '#ff7043' },
+  { label: '>2y', min: 731, max: Number.MAX_SAFE_INTEGER, color: '#e53935' },
+];
 
 export function OverviewPanel() {
   const stats = useOverviewStats();
@@ -41,6 +52,33 @@ export function OverviewPanel() {
     color: extensionColors[i % extensionColors.length],
   }));
 
+  const contributorSegments = useMemo(() => {
+    const byAuthor = new Map<string, { lines: number; email: string }>();
+
+    for (const owner of stats.blame.ownershipByAuthor) {
+      const existing = byAuthor.get(owner.author);
+      if (!existing) {
+        byAuthor.set(owner.author, { lines: owner.lines, email: owner.email });
+      } else {
+        existing.lines += owner.lines;
+      }
+    }
+
+    return Array.from(byAuthor.entries())
+      .map(([author, entry]) => ({
+        label: author,
+        value: entry.lines,
+        color: getAvatarColor(entry.email),
+      }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 25);
+  }, [stats.blame.ownershipByAuthor]);
+
+  const ageBucketSegments = useMemo(
+    () => bucketizeAgeByDay(stats.blame.ageByDay, DEFAULT_AGE_BUCKETS),
+    [stats.blame.ageByDay]
+  );
+
   return (
     <div className="overview-panel">
       {/* Charts Row */}
@@ -62,6 +100,32 @@ export function OverviewPanel() {
             thickness={40}
             defaultDisplayMode={defaultDisplayMode}
           />
+        </div>
+        <div className="chart-section">
+          {contributorSegments.length > 0 ? (
+            <DonutChart
+              segments={contributorSegments}
+              title="Line Ownership by Contributor (HEAD)"
+              size={200}
+              thickness={40}
+              defaultDisplayMode={defaultDisplayMode}
+            />
+          ) : (
+            <div className="chart-empty">No blame ownership data available</div>
+          )}
+        </div>
+        <div className="chart-section">
+          {ageBucketSegments.length > 0 ? (
+            <DonutChart
+              segments={ageBucketSegments}
+              title="Line Age by Last Commit (git blame)"
+              size={200}
+              thickness={40}
+              defaultDisplayMode={defaultDisplayMode}
+            />
+          ) : (
+            <div className="chart-empty">No line-age data available</div>
+          )}
         </div>
       </div>
 
@@ -112,6 +176,16 @@ export function OverviewPanel() {
             </div>
           </div>
         )}
+
+        <div className="info-section">
+          <h3 className="section-title">
+            Blame Metrics
+            <span className="section-count">{stats.blame.totals.totalBlamedLines.toLocaleString()} LOC</span>
+          </h3>
+          <p className="section-description">
+            Files analyzed: {stats.blame.totals.filesAnalyzed.toLocaleString()} · Files skipped: {stats.blame.totals.filesSkipped.toLocaleString()}
+          </p>
+        </div>
 
         {stats.submodules && stats.submodules.count > 0 && (
           <div className="info-section submodules-notice">

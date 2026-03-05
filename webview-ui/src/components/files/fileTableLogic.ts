@@ -25,6 +25,13 @@ const DEFAULT_DIRECTION_BY_KEY: Record<FileSortKey, SortDirection> = {
   complexity: 'desc',
   commentLines: 'desc',
   blankLines: 'desc',
+  blamedLines: 'desc',
+  lineAgeAvgDays: 'desc',
+  lineAgeMinDays: 'desc',
+  lineAgeMaxDays: 'desc',
+  topOwnerAuthor: 'asc',
+  topOwnerLines: 'desc',
+  topOwnerShare: 'desc',
   lastModified: 'desc',
 };
 
@@ -104,6 +111,20 @@ function compareByKey(a: FileRow, b: FileRow, key: FileSortKey): number {
       return compareNumbers(a.commentLines, b.commentLines);
     case 'blankLines':
       return compareNumbers(a.blankLines, b.blankLines);
+    case 'blamedLines':
+      return compareNumbers(a.blamedLines, b.blamedLines);
+    case 'lineAgeAvgDays':
+      return compareNumbers(a.lineAgeAvgDays, b.lineAgeAvgDays);
+    case 'lineAgeMinDays':
+      return compareNumbers(a.lineAgeMinDays, b.lineAgeMinDays);
+    case 'lineAgeMaxDays':
+      return compareNumbers(a.lineAgeMaxDays, b.lineAgeMaxDays);
+    case 'topOwnerAuthor':
+      return compareStrings(a.topOwnerAuthorLower, b.topOwnerAuthorLower);
+    case 'topOwnerLines':
+      return compareNumbers(a.topOwnerLines, b.topOwnerLines);
+    case 'topOwnerShare':
+      return compareNumbers(a.topOwnerShare, b.topOwnerShare);
     case 'lastModified':
       return compareNumbers(a.lastModifiedEpoch, b.lastModifiedEpoch);
     default:
@@ -121,6 +142,8 @@ function getStringValue(row: FileRow, key: FileSortKey): string {
       return row.ext.toLowerCase();
     case 'language':
       return row.language.toLowerCase();
+    case 'topOwnerAuthor':
+      return row.topOwnerAuthorLower;
     default:
       return '';
   }
@@ -138,6 +161,18 @@ function getNumberValue(row: FileRow, key: FileSortKey): number {
       return row.commentLines;
     case 'blankLines':
       return row.blankLines;
+    case 'blamedLines':
+      return row.blamedLines;
+    case 'lineAgeAvgDays':
+      return row.lineAgeAvgDays;
+    case 'lineAgeMinDays':
+      return row.lineAgeMinDays;
+    case 'lineAgeMaxDays':
+      return row.lineAgeMaxDays;
+    case 'topOwnerLines':
+      return row.topOwnerLines;
+    case 'topOwnerShare':
+      return row.topOwnerShare * 100;
     default:
       return 0;
   }

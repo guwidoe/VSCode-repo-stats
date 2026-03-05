@@ -13,6 +13,13 @@ export const FILE_COLUMNS: FileColumnConfig[] = [
   { key: 'complexity', label: 'Complexity', width: 100, align: 'right', filterKind: 'number' },
   { key: 'commentLines', label: 'Comment', width: 90, align: 'right', filterKind: 'number' },
   { key: 'blankLines', label: 'Blank', width: 80, align: 'right', filterKind: 'number' },
+  { key: 'blamedLines', label: 'Blamed LOC', width: 110, align: 'right', filterKind: 'number' },
+  { key: 'lineAgeAvgDays', label: 'Age Avg (d)', width: 105, align: 'right', filterKind: 'number' },
+  { key: 'lineAgeMinDays', label: 'Age Min (d)', width: 105, align: 'right', filterKind: 'number' },
+  { key: 'lineAgeMaxDays', label: 'Age Max (d)', width: 105, align: 'right', filterKind: 'number' },
+  { key: 'topOwnerAuthor', label: 'Top Owner', width: 170, filterKind: 'text' },
+  { key: 'topOwnerLines', label: 'Owner LOC', width: 100, align: 'right', filterKind: 'number' },
+  { key: 'topOwnerShare', label: 'Owner %', width: 90, align: 'right', filterKind: 'number' },
   { key: 'lastModified', label: 'Last Modified', width: 150, filterKind: 'date' },
 ];
 

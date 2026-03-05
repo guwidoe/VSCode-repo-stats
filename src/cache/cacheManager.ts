@@ -14,7 +14,7 @@ import {
 // Cache Version - Bump this when cache structure changes
 // ============================================================================
 
-const CACHE_VERSION = '1.1.0'; // Bumped for complexity metrics in TreemapNode
+const CACHE_VERSION = '1.2.0'; // Bumped for HEAD-only blame metrics in analysis result
 
 // ============================================================================
 // Storage Interface (for dependency injection)
@@ -75,6 +75,7 @@ export class CacheManager {
       maxCommitsLimit: 0, // Will be refreshed from current analysis
       limitReached: false, // Will be refreshed from current analysis
       sccInfo: { version: '', source: 'none' }, // Not cached, determined at runtime
+      blameMetrics: cache.blameMetrics,
     };
   }
 
@@ -90,6 +91,7 @@ export class CacheManager {
       contributors: result.contributors,
       codeFrequency: result.codeFrequency,
       fileTree: result.fileTree,
+      blameMetrics: result.blameMetrics,
       fileLOC: this.buildFileLOCMap(result.fileTree),
     };
 

@@ -13,6 +13,7 @@ import {
   TreemapNode,
   ExtensionSettings,
 } from '../types/index.js';
+import { analyzeHeadBlameMetrics, createEmptyBlameMetrics } from './blameMetrics.js';
 import { GitClient, createGitAnalyzer } from './gitAnalyzer.js';
 import {
   LOCClient,
@@ -122,7 +123,23 @@ export class AnalysisCoordinator {
     // Phase 8: Enrich tree with modification dates and file sizes
     onProgress?.('Enriching file data', 95);
     await this.enrichTreeWithMetadata(fileTree, fileModDates);
-    onProgress?.('File data enriched', 98);
+    onProgress?.('File data enriched', 97);
+
+    // Phase 9: HEAD-only blame metrics (line ownership + line age)
+    onProgress?.('Analyzing line ownership and age', 98);
+    const blameTargets = this.collectBlameTargets(fileTree);
+    const blameMetrics = await analyzeHeadBlameMetrics({
+      headSha: repository.headSha,
+      fileTargets: blameTargets,
+      runGitRaw: (args) => this.gitClient.raw(args),
+      onProgress: (processed, total) => {
+        const percent = total > 0 ? processed / total : 1;
+        onProgress?.(
+          `Analyzing line ownership and age (${processed}/${total})`,
+          98 + (percent * 1.5)
+        );
+      },
+    }).catch(() => createEmptyBlameMetrics());
 
     // Complete
     onProgress?.('Analysis complete', 100);
@@ -146,6 +163,7 @@ export class AnalysisCoordinator {
       maxCommitsLimit,
       limitReached,
       sccInfo,
+      blameMetrics,
       submodules: submodulePaths.length > 0
         ? { paths: submodulePaths, count: submodulePaths.length }
         : undefined,
@@ -237,6 +255,28 @@ export class AnalysisCoordinator {
       this.collectFilePaths(child, paths);
     }
     return paths;
+  }
+
+  /**
+   * Collect file nodes that should be included in HEAD-only blame analysis.
+   */
+  private collectBlameTargets(
+    node: TreemapNode,
+    targets: Array<{ path: string; node: TreemapNode }> = []
+  ): Array<{ path: string; node: TreemapNode }> {
+    if (node.type === 'file') {
+      const lines = node.lines || 0;
+      if (!node.binary && lines > 0) {
+        targets.push({ path: node.path, node });
+      }
+      return targets;
+    }
+
+    for (const child of node.children || []) {
+      this.collectBlameTargets(child, targets);
+    }
+
+    return targets;
   }
 
   /**

@@ -164,6 +164,13 @@ describe('EvolutionPanel', () => {
       maxCommitsLimit: 1000,
       limitReached: false,
       sccInfo: { version: '1.0.0', source: 'system' },
+      blameMetrics: {
+        analyzedAt: '2026-03-05T00:00:00.000Z',
+        maxAgeDays: 14,
+        ageByDay: [10, 5],
+        ownershipByAuthor: [],
+        totals: { totalBlamedLines: 15, filesAnalyzed: 1, filesSkipped: 0 },
+      },
     };
 
     render(<EvolutionPanel />);

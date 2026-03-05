@@ -50,6 +50,19 @@ describe('CacheManager', () => {
     maxCommitsLimit: 10000,
     limitReached: false,
     sccInfo: { version: '3.5.0', source: 'system' },
+    blameMetrics: {
+      analyzedAt: '2024-12-01T00:00:00Z',
+      maxAgeDays: 30,
+      ageByDay: [10, 5, 1],
+      ownershipByAuthor: [
+        { author: 'Test User', email: 'test@example.com', lines: 16 },
+      ],
+      totals: {
+        totalBlamedLines: 16,
+        filesAnalyzed: 1,
+        filesSkipped: 0,
+      },
+    },
   };
 
   beforeEach(() => {
@@ -82,6 +95,7 @@ describe('CacheManager', () => {
       expect(cached?.contributors).toHaveLength(1);
       expect(cached?.contributors[0].name).toBe('Test User');
       expect(cached?.codeFrequency).toHaveLength(1);
+      expect(cached?.blameMetrics.totals.totalBlamedLines).toBe(16);
     });
 
     it('should return null for invalid SHA', () => {

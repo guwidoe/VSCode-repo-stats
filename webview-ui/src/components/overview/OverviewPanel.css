@@ -78,6 +78,18 @@
   overflow: hidden;
 }
 
+.chart-empty {
+  height: 100%;
+  min-height: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--vscode-descriptionForeground);
+  font-size: 13px;
+  padding: 20px;
+}
+
 .donut-chart {
   padding: 20px;
 }

@@ -78,6 +78,7 @@ describe('buildFileCatalog', () => {
     const generated = catalog.rows.find((row) => row.path === 'src/bundle.generated.js');
     expect(generated?.generated).toBe(true);
     expect(generated?.isCode).toBe(true);
+    expect(generated?.blamedLines).toBe(0);
 
     const binary = catalog.rows.find((row) => row.path === 'assets/logo.png');
     expect(binary?.binary).toBe(true);

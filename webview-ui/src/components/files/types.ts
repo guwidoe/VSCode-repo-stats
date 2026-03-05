@@ -11,12 +11,21 @@ export interface FileRow {
   complexity: number;
   commentLines: number;
   blankLines: number;
+  blamedLines: number;
+  lineAgeAvgDays: number;
+  lineAgeMinDays: number;
+  lineAgeMaxDays: number;
+  topOwnerAuthor: string;
+  topOwnerEmail: string;
+  topOwnerLines: number;
+  topOwnerShare: number; // 0..1
   lastModified?: string;
   lastModifiedEpoch: number;
 
   // Normalized fields for faster filtering/sorting
   pathLower: string;
   nameLower: string;
+  topOwnerAuthorLower: string;
 }
 
 export interface FileCatalog {
@@ -38,6 +47,13 @@ export type FileSortKey =
   | 'complexity'
   | 'commentLines'
   | 'blankLines'
+  | 'blamedLines'
+  | 'lineAgeAvgDays'
+  | 'lineAgeMinDays'
+  | 'lineAgeMaxDays'
+  | 'topOwnerAuthor'
+  | 'topOwnerLines'
+  | 'topOwnerShare'
   | 'lastModified';
 
 export type SortDirection = 'asc' | 'desc';

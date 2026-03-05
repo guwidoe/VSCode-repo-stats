@@ -83,6 +83,16 @@ export interface TreemapNode {
   commentLines?: number; // Comment line count
   blankLines?: number; // Blank line count
 
+  // File-level blame metrics (present on files, undefined for folders)
+  blamedLines?: number; // Number of lines counted by git blame
+  lineAgeAvgDays?: number; // Weighted average age of lines (days)
+  lineAgeMinDays?: number; // Youngest line age (days)
+  lineAgeMaxDays?: number; // Oldest line age (days)
+  topOwnerAuthor?: string; // Author with most owned lines in this file
+  topOwnerEmail?: string; // Email of top owner
+  topOwnerLines?: number; // Owned lines of top owner
+  topOwnerShare?: number; // topOwnerLines / blamedLines (0..1)
+
   // Folder-only aggregates (undefined for files)
   complexityAvg?: number; // Average complexity per file in subtree
   complexityMax?: number; // Maximum file complexity in subtree
@@ -111,6 +121,24 @@ export interface SubmoduleInfo {
   count: number;
 }
 
+export interface BlameOwnershipEntry {
+  author: string;
+  email: string;
+  lines: number;
+}
+
+export interface BlameMetrics {
+  analyzedAt: string; // ISO date string
+  maxAgeDays: number;
+  ageByDay: number[]; // ageByDay[days] = LOC
+  ownershipByAuthor: BlameOwnershipEntry[];
+  totals: {
+    totalBlamedLines: number;
+    filesAnalyzed: number;
+    filesSkipped: number;
+  };
+}
+
 export interface AnalysisResult {
   repository: RepositoryInfo;
   contributors: ContributorStats[];
@@ -123,6 +151,8 @@ export interface AnalysisResult {
   limitReached: boolean;
   // SCC tool info
   sccInfo: SccInfo;
+  // HEAD-only blame metrics for current line ownership/age
+  blameMetrics: BlameMetrics;
   // Detected submodule info
   submodules?: SubmoduleInfo;
 }
@@ -145,6 +175,7 @@ export interface CacheStructure {
   contributors: ContributorStats[];
   codeFrequency: CodeFrequency[];
   fileTree: TreemapNode;
+  blameMetrics: BlameMetrics;
   fileLOC: Record<string, FileLOCEntry>;
 }
 
