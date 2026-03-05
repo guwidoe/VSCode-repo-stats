@@ -63,8 +63,11 @@ export function App() {
         {activeView === 'settings' && <SettingsPanel />}
         {activeView === 'about' && <AboutPanel />}
 
-        {/* Other views require data */}
-        {activeView !== 'settings' && activeView !== 'about' && (
+        {/* Evolution is intentionally on-demand and independent from global analysis loading */}
+        {activeView === 'evolution' && <EvolutionPanel />}
+
+        {/* Core views depend on global analysis */}
+        {activeView !== 'settings' && activeView !== 'about' && activeView !== 'evolution' && (
           <>
             {loading.isLoading && <LoadingState phase={loading.phase} progress={loading.progress} />}
             {error && <ErrorState message={error} onRetry={requestRefresh} />}
@@ -73,7 +76,6 @@ export function App() {
                 {activeView === 'overview' && <OverviewPanel />}
                 {activeView === 'contributors' && <ContributorsPanel />}
                 {activeView === 'frequency' && <CodeFrequencyPanel />}
-                {activeView === 'evolution' && <EvolutionPanel />}
                 {activeView === 'treemap' && <TreemapPanel />}
               </>
             )}

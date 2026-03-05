@@ -138,6 +138,9 @@
 
 .evolution-state-view .evolution-run-button {
   align-self: flex-start;
+  display: inline-flex;
+  width: auto;
+  max-width: 100%;
 }
 
 .evolution-progress-track {
