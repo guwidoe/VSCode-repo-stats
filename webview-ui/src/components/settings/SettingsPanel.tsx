@@ -9,6 +9,7 @@ import { SettingsTabs, type SettingsTab } from './SettingsTabs';
 import { GeneralSettings } from './GeneralSettings';
 import { OverviewSettings } from './OverviewSettings';
 import { ChartsSettings } from './ChartsSettings';
+import { EvolutionSettings } from './EvolutionSettings';
 import { TreemapSettings } from './TreemapSettings';
 import './SettingsPanel.css';
 
@@ -54,6 +55,10 @@ export function SettingsPanel() {
 
         {activeTab === 'charts' && (
           <ChartsSettings settings={settings} updateSettings={updateSettings} />
+        )}
+
+        {activeTab === 'evolution' && (
+          <EvolutionSettings settings={settings} updateSettings={updateSettings} />
         )}
 
         {activeTab === 'treemap' && (

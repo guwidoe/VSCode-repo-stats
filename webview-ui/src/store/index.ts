@@ -5,6 +5,8 @@
 import { create } from 'zustand';
 import type {
   AnalysisResult,
+  EvolutionResult,
+  EvolutionStatus,
   ViewType,
   TimePeriod,
   FrequencyGranularity,
@@ -27,8 +29,14 @@ interface RepoStatsState {
   data: AnalysisResult | null;
   error: string | null;
 
+  // Evolution data (on-demand analysis)
+  evolutionData: EvolutionResult | null;
+  evolutionStatus: EvolutionStatus;
+  evolutionError: string | null;
+
   // Loading state
   loading: LoadingState;
+  evolutionLoading: LoadingState;
 
   // Settings
   settings: ExtensionSettings | null;
@@ -61,6 +69,10 @@ interface RepoStatsState {
   setData: (data: AnalysisResult) => void;
   setError: (error: string | null) => void;
   setLoading: (loading: Partial<LoadingState>) => void;
+  setEvolutionData: (data: EvolutionResult) => void;
+  setEvolutionError: (error: string | null) => void;
+  setEvolutionLoading: (loading: Partial<LoadingState>) => void;
+  setEvolutionStatus: (status: EvolutionStatus) => void;
   setSettings: (settings: ExtensionSettings) => void;
   setActiveView: (view: ViewType) => void;
   setTimePeriod: (period: TimePeriod) => void;
@@ -86,7 +98,15 @@ interface RepoStatsState {
 const initialState = {
   data: null,
   error: null,
+  evolutionData: null,
+  evolutionStatus: 'idle' as EvolutionStatus,
+  evolutionError: null,
   loading: {
+    isLoading: false,
+    phase: '',
+    progress: 0,
+  },
+  evolutionLoading: {
     isLoading: false,
     phase: '',
     progress: 0,
@@ -196,6 +216,34 @@ export const useStore = create<RepoStatsState>((set, get) => ({
     set((state) => ({
       loading: { ...state.loading, ...loading },
     }));
+  },
+
+  setEvolutionData: (data: EvolutionResult) => {
+    set({
+      evolutionData: data,
+      evolutionStatus: 'ready',
+      evolutionError: null,
+      evolutionLoading: { isLoading: false, phase: '', progress: 100 },
+    });
+  },
+
+  setEvolutionError: (error: string | null) => {
+    set({
+      evolutionError: error,
+      evolutionStatus: error ? 'error' : 'idle',
+      evolutionLoading: { isLoading: false, phase: '', progress: 0 },
+    });
+  },
+
+  setEvolutionLoading: (loading: Partial<LoadingState>) => {
+    set((state) => ({
+      evolutionLoading: { ...state.evolutionLoading, ...loading },
+      evolutionStatus: loading.isLoading ? 'loading' : state.evolutionStatus,
+    }));
+  },
+
+  setEvolutionStatus: (status: EvolutionStatus) => {
+    set({ evolutionStatus: status });
   },
 
   setSettings: (settings: ExtensionSettings) => {

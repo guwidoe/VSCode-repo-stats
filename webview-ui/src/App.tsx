@@ -10,6 +10,7 @@ import { OverviewPanel } from './components/overview/OverviewPanel';
 import { ContributorsPanel } from './components/contributors/ContributorsPanel';
 import { CodeFrequencyPanel } from './components/frequency/CodeFrequencyPanel';
 import { TreemapPanel } from './components/treemap/TreemapPanel';
+import { EvolutionPanel } from './components/evolution/EvolutionPanel';
 import { SettingsPanel } from './components/settings/SettingsPanel';
 import { AboutPanel } from './components/about/AboutPanel';
 import { LoadingState } from './components/common/LoadingState';
@@ -72,6 +73,7 @@ export function App() {
                 {activeView === 'overview' && <OverviewPanel />}
                 {activeView === 'contributors' && <ContributorsPanel />}
                 {activeView === 'frequency' && <CodeFrequencyPanel />}
+                {activeView === 'evolution' && <EvolutionPanel />}
                 {activeView === 'treemap' && <TreemapPanel />}
               </>
             )}

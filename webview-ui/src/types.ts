@@ -33,6 +33,28 @@ export interface CodeFrequency {
   netChange: number;
 }
 
+export type EvolutionDimension = 'cohort' | 'author' | 'ext' | 'dir' | 'domain';
+
+export interface EvolutionTimeSeriesData {
+  ts: string[];
+  labels: string[];
+  y: number[][];
+}
+
+export interface EvolutionResult {
+  generatedAt: string;
+  headSha: string;
+  branch: string;
+  settingsHash: string;
+  cohorts: EvolutionTimeSeriesData;
+  authors: EvolutionTimeSeriesData;
+  exts: EvolutionTimeSeriesData;
+  dirs: EvolutionTimeSeriesData;
+  domains: EvolutionTimeSeriesData;
+}
+
+export type EvolutionStatus = 'idle' | 'loading' | 'ready' | 'error' | 'stale';
+
 export interface TreemapNode {
   name: string;
   path: string;
@@ -106,6 +128,14 @@ export interface TooltipSettings {
   showFileCount: boolean;
 }
 
+export interface EvolutionSettings {
+  autoRun: boolean;
+  snapshotIntervalDays: number;
+  maxSnapshots: number;
+  maxSeries: number;
+  cohortFormat: string;
+}
+
 export interface ExtensionSettings {
   excludePatterns: string[];
   maxCommitsToAnalyze: number;
@@ -120,6 +150,8 @@ export interface ExtensionSettings {
   overviewDisplayMode: 'percent' | 'count'; // Default display mode for donut charts
   // Treemap tooltip settings
   tooltipSettings: TooltipSettings;
+  // Evolution settings (on-demand analysis)
+  evolution: EvolutionSettings;
 }
 
 // ============================================================================
@@ -132,11 +164,18 @@ export type ExtensionMessage =
   | { type: 'analysisComplete'; data: AnalysisResult }
   | { type: 'analysisError'; error: string }
   | { type: 'incrementalUpdate'; data: Partial<AnalysisResult> }
+  | { type: 'evolutionStarted' }
+  | { type: 'evolutionProgress'; phase: string; progress: number }
+  | { type: 'evolutionComplete'; data: EvolutionResult }
+  | { type: 'evolutionError'; error: string }
+  | { type: 'evolutionStale'; reason: string }
   | { type: 'settingsLoaded'; settings: ExtensionSettings };
 
 export type WebviewMessage =
   | { type: 'requestAnalysis' }
   | { type: 'requestRefresh' }
+  | { type: 'requestEvolutionAnalysis' }
+  | { type: 'requestEvolutionRefresh' }
   | { type: 'openFile'; path: string }
   | { type: 'revealInExplorer'; path: string }
   | { type: 'copyPath'; path: string }
@@ -147,7 +186,7 @@ export type WebviewMessage =
 // UI State Types
 // ============================================================================
 
-export type ViewType = 'overview' | 'contributors' | 'frequency' | 'treemap' | 'settings' | 'about';
+export type ViewType = 'overview' | 'contributors' | 'frequency' | 'evolution' | 'treemap' | 'settings' | 'about';
 
 export type TimePeriod = 'all' | 'year' | '6months' | '3months' | 'month';
 

@@ -45,7 +45,16 @@ function getVsCodeApi(): VsCodeApi {
 // ============================================================================
 
 export function useVsCodeApi() {
-  const { setData, setError, setLoading, setSettings } = useStore();
+  const {
+    setData,
+    setError,
+    setLoading,
+    setSettings,
+    setEvolutionData,
+    setEvolutionError,
+    setEvolutionLoading,
+    setEvolutionStatus,
+  } = useStore();
 
   // Handle messages from extension
   useEffect(() => {
@@ -74,6 +83,33 @@ export function useVsCodeApi() {
           setError(message.error);
           break;
 
+        case 'evolutionStarted':
+          setEvolutionLoading({ isLoading: true, phase: 'Starting evolution analysis...', progress: 0 });
+          setEvolutionStatus('loading');
+          setEvolutionError(null);
+          break;
+
+        case 'evolutionProgress':
+          setEvolutionLoading({
+            isLoading: true,
+            phase: message.phase,
+            progress: message.progress,
+          });
+          setEvolutionStatus('loading');
+          break;
+
+        case 'evolutionComplete':
+          setEvolutionData(message.data);
+          break;
+
+        case 'evolutionError':
+          setEvolutionError(message.error);
+          break;
+
+        case 'evolutionStale':
+          setEvolutionStatus('stale');
+          break;
+
         case 'incrementalUpdate': {
           // Handle incremental updates (merge with existing data)
           const currentData = useStore.getState().data;
@@ -99,7 +135,16 @@ export function useVsCodeApi() {
     getVsCodeApi().postMessage({ type: 'getSettings' });
 
     return () => window.removeEventListener('message', handleMessage);
-  }, [setData, setError, setLoading, setSettings]);
+  }, [
+    setData,
+    setError,
+    setLoading,
+    setSettings,
+    setEvolutionData,
+    setEvolutionError,
+    setEvolutionLoading,
+    setEvolutionStatus,
+  ]);
 
   // Actions
   const requestAnalysis = useCallback(() => {
@@ -108,6 +153,14 @@ export function useVsCodeApi() {
 
   const requestRefresh = useCallback(() => {
     getVsCodeApi().postMessage({ type: 'requestRefresh' });
+  }, []);
+
+  const requestEvolutionAnalysis = useCallback(() => {
+    getVsCodeApi().postMessage({ type: 'requestEvolutionAnalysis' });
+  }, []);
+
+  const requestEvolutionRefresh = useCallback(() => {
+    getVsCodeApi().postMessage({ type: 'requestEvolutionRefresh' });
   }, []);
 
   const openFile = useCallback((path: string) => {
@@ -129,6 +182,8 @@ export function useVsCodeApi() {
   return {
     requestAnalysis,
     requestRefresh,
+    requestEvolutionAnalysis,
+    requestEvolutionRefresh,
     openFile,
     revealInExplorer,
     copyPath,
