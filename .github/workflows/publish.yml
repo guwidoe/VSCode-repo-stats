@@ -60,15 +60,15 @@ jobs:
         if: github.event_name != 'push' || steps.version_check.outputs.changed == 'true'
         run: npm ci
 
+      - name: Install webview dependencies
+        if: github.event_name != 'push' || steps.version_check.outputs.changed == 'true'
+        run: cd webview-ui && npm ci
+
       - name: Run validation gate
         if: github.event_name != 'push' || steps.version_check.outputs.changed == 'true'
         run: xvfb-run -a npm run typecheck && npm run lint && npm run test
         env:
           DISPLAY: ':99.0'
-
-      - name: Install webview dependencies
-        if: github.event_name != 'push' || steps.version_check.outputs.changed == 'true'
-        run: cd webview-ui && npm ci
 
       - name: Package extension
         if: github.event_name != 'push' || steps.version_check.outputs.changed == 'true'

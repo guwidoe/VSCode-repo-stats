@@ -174,7 +174,7 @@ export class SccBinaryManager {
     onProgress?.(90);
     try {
       await execAsync(`"${binaryPath}" --version`);
-    } catch (error) {
+    } catch {
       throw new Error(
         `Downloaded scc binary failed verification. ` +
           'Please install scc manually: https://github.com/boyter/scc#install'
