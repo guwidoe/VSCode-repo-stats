@@ -123,7 +123,7 @@ body {
 }
 
 /* Default panel styles - most panels should scroll their content */
-.app-content > div {
+.app-content > div:not(.live-update-banner) {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
