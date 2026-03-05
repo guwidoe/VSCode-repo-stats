@@ -53,7 +53,7 @@ export function GeneralSettings({ settings, data, updateSettings, requestRefresh
 
         <SelectSetting
           title="Include Git Submodules in File Analysis"
-          description="When enabled, submodule files are included in LOC and file-tree analysis (Overview + Treemap only). Contributors, Code Frequency, and Evolution remain parent-repo only."
+          description="When enabled, submodule files are included in LOC and file-tree analysis (Overview + Files + Treemap). Contributors, Code Frequency, and Evolution remain parent-repo only."
           value={settings.includeSubmodules ? 'enabled' : 'disabled'}
           options={[
             { value: 'disabled', label: 'Disabled' },
@@ -64,7 +64,7 @@ export function GeneralSettings({ settings, data, updateSettings, requestRefresh
 
         <PatternListSetting
           title="Generated File Patterns"
-          description="Patterns to identify generated files (excluded from 'Largest Files' and marked separately)"
+          description="Patterns to identify generated files (flagged in file metadata and overview stats)"
           patterns={settings.generatedPatterns}
           onChange={(patterns) => updateSettings({ generatedPatterns: patterns })}
           placeholder="e.g., **/dist/**, *.min.js"

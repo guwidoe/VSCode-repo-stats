@@ -8,6 +8,7 @@ import { useVsCodeApi } from './hooks/useVsCodeApi';
 import { Navigation } from './components/Navigation';
 import { OverviewPanel } from './components/overview/OverviewPanel';
 import { ContributorsPanel } from './components/contributors/ContributorsPanel';
+import { FilesPanel } from './components/files/FilesPanel';
 import { CodeFrequencyPanel } from './components/frequency/CodeFrequencyPanel';
 import { TreemapPanel } from './components/treemap/TreemapPanel';
 import { EvolutionPanel } from './components/evolution/EvolutionPanel';
@@ -81,6 +82,7 @@ export function App() {
             {!loading.isLoading && !error && data && (
               <>
                 {activeView === 'overview' && <OverviewPanel />}
+                {activeView === 'files' && <FilesPanel />}
                 {activeView === 'contributors' && <ContributorsPanel />}
                 {activeView === 'frequency' && <CodeFrequencyPanel />}
                 {activeView === 'treemap' && <TreemapPanel />}

@@ -50,8 +50,14 @@ Results are cached based on the current Git HEAD, so subsequent opens are instan
 
 - Total files, lines of code, and language distribution
 - Donut charts for LOC by language and files by type
-- Largest files in the codebase (excluding generated)
 - Generated file and binary file detection
+
+### Files Explorer
+
+- Full repository file list with metadata columns
+- Sortable columns (default: LOC descending)
+- Filter by search, language, extension, size, LOC, generated/binary flags
+- Virtualized rendering for smooth performance on large repositories
 
 ### Contributors Dashboard
 
@@ -130,7 +136,7 @@ This extension uses [scc](https://github.com/boyter/scc) for accurate lines-of-c
 | `repoStats.generatedPatterns`    | See below    | Glob patterns to identify generated files           |
 | `repoStats.binaryExtensions`     | See below    | File extensions considered binary for classification and binary-focused views |
 | `repoStats.locExcludedExtensions`| `[]`         | File extensions excluded from LOC counting          |
-| `repoStats.includeSubmodules`    | `false`      | Include submodule files in file analysis (Overview + Treemap only) |
+| `repoStats.includeSubmodules`    | `false`      | Include submodule files in file analysis (Overview + Files + Treemap) |
 | `repoStats.evolution.autoRun`    | `false`      | Auto-run evolution analysis when data is stale/missing |
 | `repoStats.evolution.snapshotIntervalDays` | `30` | Days between analyzed evolution snapshots           |
 | `repoStats.evolution.maxSnapshots` | `80`       | Maximum historical snapshots in evolution analysis  |
@@ -139,7 +145,7 @@ This extension uses [scc](https://github.com/boyter/scc) for accurate lines-of-c
 
 Tip: If assets like `.svg` files inflate LOC totals for your project, add `.svg` to `repoStats.locExcludedExtensions`.
 
-`repoStats.includeSubmodules` only affects file-based analysis (Overview + Treemap). Contributors, Code Frequency, and Evolution continue to use parent-repo history only.
+`repoStats.includeSubmodules` only affects file-based analysis (Overview + Files + Treemap). Contributors, Code Frequency, and Evolution continue to use parent-repo history only.
 
 <details>
 <summary>Default Generated Patterns</summary>
@@ -180,7 +186,7 @@ Evolution analysis is cached separately from the main dashboard data. If your re
 ## Known Issues
 
 - **Large monorepos**: First analysis may take longer; subsequent loads are cached
-- **Submodules**: Excluded by default; enable `repoStats.includeSubmodules` to include them in Overview + Treemap (history-based tabs are parent-repo only)
+- **Submodules**: Excluded by default; enable `repoStats.includeSubmodules` to include them in Overview + Files + Treemap (history-based tabs are parent-repo only)
 - **Binary files**: Shown in treemap with 0 LOC; use "Size (Bytes)" mode to see their actual size
 
 ## Contributing

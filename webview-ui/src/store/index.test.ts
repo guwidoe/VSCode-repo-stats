@@ -123,6 +123,9 @@ describe('useStore', () => {
 
   describe('view navigation', () => {
     it('should change active view', () => {
+      useStore.getState().setActiveView('files');
+      expect(useStore.getState().activeView).toBe('files');
+
       useStore.getState().setActiveView('frequency');
       expect(useStore.getState().activeView).toBe('frequency');
 

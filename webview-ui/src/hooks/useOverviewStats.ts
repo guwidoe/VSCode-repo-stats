@@ -10,6 +10,7 @@ import {
   isCodeLanguage,
   buildBinaryExtensionSet,
 } from '../utils/fileTypes';
+import { DEFAULT_GENERATED_PATTERNS, getFileExtension, isGeneratedFile } from '../utils/fileClassification';
 import { getLanguageColor } from '../utils/colors';
 
 export interface ExtensionStats {
@@ -22,13 +23,6 @@ export interface LanguageStats {
   lines: number;
   color: string;
   fileCount: number;
-}
-
-export interface LargestFile {
-  path: string;
-  name: string;
-  lines: number;
-  language: string;
 }
 
 export interface BinaryStats {
@@ -54,7 +48,6 @@ export interface OverviewStats {
     count: number;
     codeLanguages: number;
   };
-  largestFiles: LargestFile[];
   unknownExtensions: ExtensionStats[];
   binary: {
     total: number;
@@ -64,70 +57,6 @@ export interface OverviewStats {
     count: number;
     paths: string[];
   } | null;
-}
-
-function getFileExtension(filename: string): string {
-  const lastDot = filename.lastIndexOf('.');
-  if (lastDot === -1 || lastDot === 0) {
-    return '(no ext)';
-  }
-  return filename.slice(lastDot).toLowerCase();
-}
-
-// Default patterns (fallback if settings not loaded)
-const DEFAULT_GENERATED_PATTERNS = [
-  '**/generated/**',
-  '**/gen/**',
-  '**/__generated__/**',
-  '**/dist/**',
-  '**/build/**',
-  '**/*.generated.*',
-  '**/*.g.ts',
-  '**/*.g.js',
-  '**/*.g.dart',
-  '**/*.min.js',
-  '**/*.min.css',
-  '**/package-lock.json',
-  '**/yarn.lock',
-  '**/*-lock.*',
-];
-
-/**
- * Convert a glob pattern to a regex pattern.
- * Supports: ** (any path), * (any chars except /), ? (single char)
- */
-function globToRegex(glob: string): RegExp {
-  let regex = glob
-    // Escape special regex chars except * and ?
-    .replace(/[.+^${}()|[\]\\]/g, '\\$&')
-    // Convert ** to match any path segment
-    .replace(/\*\*/g, '.*')
-    // Convert * to match anything except /
-    .replace(/\*/g, '[^/]*')
-    // Convert ? to match single char
-    .replace(/\?/g, '.');
-
-  // If pattern doesn't start with **, match from start or after /
-  if (!glob.startsWith('**')) {
-    regex = '(^|/)' + regex;
-  }
-
-  // If pattern doesn't end with **, match to end or before /
-  if (!glob.endsWith('**')) {
-    regex = regex + '($|/)';
-  }
-
-  return new RegExp(regex, 'i');
-}
-
-/**
- * Check if a path matches any of the generated file patterns.
- */
-function isGeneratedFile(path: string, patterns: string[]): boolean {
-  return patterns.some(pattern => {
-    const regex = globToRegex(pattern);
-    return regex.test(path);
-  });
 }
 
 // Binary file categories
@@ -156,7 +85,6 @@ interface TraversalState {
   languageMap: Map<string, { lines: number; fileCount: number }>;
   unknownExtMap: Map<string, number>;
   binaryCategoryMap: Map<string, Set<string>>;
-  allCodeFiles: LargestFile[];
   codeFileCount: number;
   generatedFileCount: number;
   generatedLines: number;
@@ -214,15 +142,9 @@ function traverseTree(
         state.generatedLines += lines;
       }
 
-      // Track code files for largest files list
+      // Track non-generated code files
       if (isCodeLanguage(language) && !isGenerated) {
         state.codeFileCount++;
-        state.allCodeFiles.push({
-          path: node.path,
-          name: node.name,
-          lines,
-          language,
-        });
       }
     }
   } else if (node.children) {
@@ -250,7 +172,6 @@ export function useOverviewStats(): OverviewStats | null {
       languageMap: new Map(),
       unknownExtMap: new Map(),
       binaryCategoryMap: new Map(),
-      allCodeFiles: [],
       codeFileCount: 0,
       generatedFileCount: 0,
       generatedLines: 0,
@@ -291,11 +212,6 @@ export function useOverviewStats(): OverviewStats | null {
     // Code-only languages (filter out Unknown, JSON, YAML, etc.)
     const codeLanguages = byLanguage.filter((l) => isCodeLanguage(l.language));
 
-    // Sort files by lines descending and take top 10
-    const largestFiles = state.allCodeFiles
-      .sort((a, b) => b.lines - a.lines)
-      .slice(0, 10);
-
     // Calculate totals
     const totalFiles = Array.from(state.extensionMap.values()).reduce((a, b) => a + b, 0);
     const totalLoc = byLanguage.reduce((sum, item) => sum + item.lines, 0);
@@ -318,7 +234,6 @@ export function useOverviewStats(): OverviewStats | null {
         count: byLanguage.length,
         codeLanguages: codeLanguages.length,
       },
-      largestFiles,
       unknownExtensions,
       binary: {
         total: state.binaryFileCount,

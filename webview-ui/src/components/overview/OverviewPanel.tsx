@@ -6,7 +6,6 @@ import { useState } from 'react';
 import { useStore } from '../../store';
 import { useOverviewStats } from '../../hooks/useOverviewStats';
 import { DonutChart } from './DonutChart';
-import { getLanguageColor } from '../../utils/colors';
 import './OverviewPanel.css';
 
 export function OverviewPanel() {
@@ -122,8 +121,8 @@ export function OverviewPanel() {
             </h3>
             <p className="section-description">
               {settings?.includeSubmodules
-                ? 'Submodule files are included in file analysis (Overview + Treemap). Contributors, Code Frequency, and Evolution still use parent-repo history only.'
-                : 'Submodule files are excluded from file analysis. Enable "Include Git Submodules in File Analysis" in Settings to include them in Overview + Treemap.'}
+                ? 'Submodule files are included in file analysis (Overview + Files + Treemap). Contributors, Code Frequency, and Evolution still use parent-repo history only.'
+                : 'Submodule files are excluded from file analysis. Enable "Include Git Submodules in File Analysis" in Settings to include them in Overview + Files + Treemap.'}
             </p>
             <div className="submodule-list">
               {stats.submodules.paths.map((path) => (
@@ -136,34 +135,6 @@ export function OverviewPanel() {
         )}
       </div>
 
-      {/* Largest Files Section */}
-      <div className="largest-files-section">
-        <h3 className="section-title">
-          Largest Code Files
-          <span className="section-subtitle">(excluding generated)</span>
-        </h3>
-        <div className="largest-files-list">
-          {stats.largestFiles.map((file, index) => (
-            <div key={file.path} className="file-row">
-              <span className="file-rank">{index + 1}</span>
-              <span
-                className="file-language-dot"
-                style={{ backgroundColor: getLanguageColor(file.language) }}
-                title={file.language}
-              />
-              <span className="file-path" title={file.path}>
-                {file.path}
-              </span>
-              <span className="file-lines">
-                {file.lines.toLocaleString()} lines
-              </span>
-            </div>
-          ))}
-          {stats.largestFiles.length === 0 && (
-            <div className="empty-files">No code files found</div>
-          )}
-        </div>
-      </div>
     </div>
   );
 }

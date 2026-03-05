@@ -32,7 +32,14 @@ export function AboutPanel() {
               <span className="feature-icon">📋</span>
               <div>
                 <strong>Overview</strong>
-                <p>Get a quick summary of your repository: files, languages, and largest files.</p>
+                <p>Get a quick summary of your repository: file types, languages, binaries, and submodules.</p>
+              </div>
+            </li>
+            <li>
+              <span className="feature-icon">📄</span>
+              <div>
+                <strong>Files</strong>
+                <p>Browse all repository files with metadata columns, filtering, and sortable metrics.</p>
               </div>
             </li>
             <li>
