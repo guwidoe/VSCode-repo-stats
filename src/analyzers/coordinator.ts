@@ -7,6 +7,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import {
   AnalysisResult,
+  BlameFileCacheEntry,
   RepositoryInfo,
   ContributorStats,
   CodeFrequency,
@@ -37,18 +38,23 @@ export class AnalysisCoordinator {
   private locClient: LOCClient;
   private settings: ExtensionSettings;
   private repoPath: string;
+  private previousBlameFileCache: Record<string, BlameFileCacheEntry>;
+  private latestBlameFileCache: Record<string, BlameFileCacheEntry>;
 
   constructor(
     repoPath: string,
     settings: ExtensionSettings,
     sccStoragePath: string,
     gitClient?: GitClient,
-    locClient?: LOCClient
+    locClient?: LOCClient,
+    previousBlameFileCache: Record<string, BlameFileCacheEntry> = {}
   ) {
     this.repoPath = repoPath;
     this.settings = settings;
     this.gitClient = gitClient || createGitAnalyzer(repoPath);
     this.locClient = locClient || createLOCCounter(repoPath, sccStoragePath);
+    this.previousBlameFileCache = previousBlameFileCache;
+    this.latestBlameFileCache = {};
   }
 
   async analyze(onProgress?: ProgressCallback): Promise<AnalysisResult> {
@@ -128,9 +134,14 @@ export class AnalysisCoordinator {
     // Phase 9: HEAD-only blame metrics (line ownership + line age)
     onProgress?.('Analyzing line ownership and age', 98);
     const blameTargets = this.collectBlameTargets(fileTree);
-    const blameMetrics = await analyzeHeadBlameMetrics({
+    const headBlobShas = await this.gitClient.getHeadBlobShas(
+      blameTargets.map((target) => target.path)
+    );
+    const blameAnalysis = await analyzeHeadBlameMetrics({
       headSha: repository.headSha,
       fileTargets: blameTargets,
+      headBlobShas,
+      previousFileCache: this.previousBlameFileCache,
       runGitRaw: (args) => this.gitClient.raw(args),
       onProgress: (processed, total) => {
         const percent = total > 0 ? processed / total : 1;
@@ -140,6 +151,8 @@ export class AnalysisCoordinator {
         );
       },
     });
+    const blameMetrics = blameAnalysis.metrics;
+    this.latestBlameFileCache = blameAnalysis.fileCache;
 
     // Complete
     onProgress?.('Analysis complete', 100);
@@ -451,6 +464,10 @@ export class AnalysisCoordinator {
       this.settings.locExcludedExtensions
     );
   }
+
+  getLatestBlameFileCache(): Record<string, BlameFileCacheEntry> {
+    return this.latestBlameFileCache;
+  }
 }
 
 // ============================================================================
@@ -460,7 +477,15 @@ export class AnalysisCoordinator {
 export function createAnalysisCoordinator(
   repoPath: string,
   settings: ExtensionSettings,
-  sccStoragePath: string
+  sccStoragePath: string,
+  previousBlameFileCache: Record<string, BlameFileCacheEntry> = {}
 ): AnalysisCoordinator {
-  return new AnalysisCoordinator(repoPath, settings, sccStoragePath);
+  return new AnalysisCoordinator(
+    repoPath,
+    settings,
+    sccStoragePath,
+    undefined,
+    undefined,
+    previousBlameFileCache
+  );
 }

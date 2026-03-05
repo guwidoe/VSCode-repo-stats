@@ -50,7 +50,7 @@ const mockAnalysisResult: AnalysisResult = {
     maxAgeDays: 90,
     ageByDay: [10, 8, 5],
     ownershipByAuthor: [{ author: 'Test User', email: 'test@example.com', lines: 23 }],
-    totals: { totalBlamedLines: 23, filesAnalyzed: 1, filesSkipped: 0 },
+    totals: { totalBlamedLines: 23, filesAnalyzed: 1, filesSkipped: 0, cacheHits: 0 },
   },
 };
 

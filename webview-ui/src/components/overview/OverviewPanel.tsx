@@ -70,8 +70,7 @@ export function OverviewPanel() {
         value: entry.lines,
         color: getAvatarColor(entry.email),
       }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 25);
+      .sort((a, b) => b.value - a.value);
   }, [stats.blame.ownershipByAuthor]);
 
   const ageBucketSegments = useMemo(
@@ -183,7 +182,10 @@ export function OverviewPanel() {
             <span className="section-count">{stats.blame.totals.totalBlamedLines.toLocaleString()} LOC</span>
           </h3>
           <p className="section-description">
-            Files analyzed: {stats.blame.totals.filesAnalyzed.toLocaleString()} · Files skipped: {stats.blame.totals.filesSkipped.toLocaleString()}
+            Files analyzed: {stats.blame.totals.filesAnalyzed.toLocaleString()} · Files skipped: {stats.blame.totals.filesSkipped.toLocaleString()} · Cache hits: {stats.blame.totals.cacheHits.toLocaleString()}
+          </p>
+          <p className="section-description">
+            Blame charts use physical line ownership (including comments/blank lines). The language LOC donut uses scc code-line metrics, so totals can differ.
           </p>
         </div>
 

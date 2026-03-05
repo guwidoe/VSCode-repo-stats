@@ -120,6 +120,7 @@ export interface BlameMetrics {
     totalBlamedLines: number;
     filesAnalyzed: number;
     filesSkipped: number;
+    cacheHits: number;
   };
 }
 

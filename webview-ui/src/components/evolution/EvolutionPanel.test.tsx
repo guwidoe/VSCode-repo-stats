@@ -169,7 +169,7 @@ describe('EvolutionPanel', () => {
         maxAgeDays: 14,
         ageByDay: [10, 5],
         ownershipByAuthor: [],
-        totals: { totalBlamedLines: 15, filesAnalyzed: 1, filesSkipped: 0 },
+        totals: { totalBlamedLines: 15, filesAnalyzed: 1, filesSkipped: 0, cacheHits: 0 },
       },
     };
 

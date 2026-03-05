@@ -5,19 +5,18 @@ import type { TreemapNode } from '../types/index';
 const NOW_UNIX_SECONDS = 1_800_000_000;
 
 describe('parseBlamePorcelain', () => {
-  it('parses hunk ownership and age distribution', () => {
+  it('parses incremental blame ownership and age distribution', () => {
     const output = [
       'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 1 1 2',
       'author Alice',
       'author-mail <alice@example.com>',
       'author-time 1799990000',
-      '\tline a',
-      '\tline b',
+      'filename src/a.ts',
       'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb 3 3 1',
       'author Bob',
       'author-mail <bob@example.com>',
       'author-time 1799000000',
-      '\tline c',
+      'filename src/a.ts',
       '',
     ].join('\n');
 
@@ -58,8 +57,7 @@ describe('analyzeHeadBlameMetrics', () => {
           'author Alice',
           'author-mail <alice@example.com>',
           'author-time 1799990000',
-          '\tline a',
-          '\tline b',
+          'filename src/a.ts',
           '',
         ].join('\n'),
       ],
@@ -70,19 +68,25 @@ describe('analyzeHeadBlameMetrics', () => {
           'author Bob',
           'author-mail <bob@example.com>',
           'author-time 1799900000',
-          '\tline c',
+          'filename src/b.ts',
           '',
         ].join('\n'),
       ],
     ]);
 
-    const metrics = await analyzeHeadBlameMetrics({
+    let commandCount = 0;
+    const firstRun = await analyzeHeadBlameMetrics({
       headSha: 'head123',
       fileTargets: [
         { path: 'src/a.ts', node: nodeA },
         { path: 'src/b.ts', node: nodeB },
       ],
+      headBlobShas: new Map([
+        ['src/a.ts', 'sha-a'],
+        ['src/b.ts', 'sha-b'],
+      ]),
       runGitRaw: async (args) => {
+        commandCount++;
         const path = args[args.length - 1];
         const output = blameMap.get(path);
         if (!output) {
@@ -92,13 +96,37 @@ describe('analyzeHeadBlameMetrics', () => {
       },
     });
 
-    expect(metrics.totals.filesAnalyzed).toBe(2);
-    expect(metrics.totals.filesSkipped).toBe(0);
-    expect(metrics.totals.totalBlamedLines).toBe(3);
-    expect(metrics.ownershipByAuthor[0].author).toBe('Alice');
+    expect(firstRun.metrics.totals.filesAnalyzed).toBe(2);
+    expect(firstRun.metrics.totals.filesSkipped).toBe(0);
+    expect(firstRun.metrics.totals.totalBlamedLines).toBe(3);
+    expect(firstRun.metrics.totals.cacheHits).toBe(0);
+    expect(firstRun.metrics.ownershipByAuthor[0].author).toBe('Alice');
     expect(nodeA.blamedLines).toBe(2);
     expect(nodeA.topOwnerAuthor).toBe('Alice');
     expect(nodeB.blamedLines).toBe(1);
     expect(nodeB.topOwnerAuthor).toBe('Bob');
+
+    const nodeA2: TreemapNode = {
+      name: 'a.ts',
+      path: 'src/a.ts',
+      type: 'file',
+      lines: 2,
+      language: 'TypeScript',
+    };
+
+    const secondRun = await analyzeHeadBlameMetrics({
+      headSha: 'head456',
+      fileTargets: [{ path: 'src/a.ts', node: nodeA2 }],
+      headBlobShas: new Map([['src/a.ts', 'sha-a']]),
+      previousFileCache: firstRun.fileCache,
+      runGitRaw: async () => {
+        throw new Error('Should not execute blame command for cached blob');
+      },
+    });
+
+    expect(commandCount).toBe(2);
+    expect(secondRun.metrics.totals.cacheHits).toBe(1);
+    expect(secondRun.metrics.totals.filesAnalyzed).toBe(1);
+    expect(nodeA2.blamedLines).toBe(2);
   });
 });

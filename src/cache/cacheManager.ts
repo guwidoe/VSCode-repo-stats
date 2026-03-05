@@ -5,6 +5,7 @@
 
 import * as crypto from 'crypto';
 import {
+  BlameFileCacheEntry,
   CacheStructure,
   AnalysisResult,
   TreemapNode,
@@ -14,7 +15,7 @@ import {
 // Cache Version - Bump this when cache structure changes
 // ============================================================================
 
-const CACHE_VERSION = '1.2.0'; // Bumped for HEAD-only blame metrics in analysis result
+const CACHE_VERSION = '1.3.0'; // Bumped for persisted per-file blame cache entries
 
 // ============================================================================
 // Storage Interface (for dependency injection)
@@ -80,9 +81,20 @@ export class CacheManager {
   }
 
   /**
+   * Returns the latest persisted per-file blame cache (may be from stale HEAD).
+   */
+  getBlameFileCache(): Record<string, BlameFileCacheEntry> {
+    const cache = this.getCache();
+    return cache?.blameFileCache || {};
+  }
+
+  /**
    * Save analysis result to cache.
    */
-  save(result: AnalysisResult): void {
+  save(
+    result: AnalysisResult,
+    blameFileCache: Record<string, BlameFileCacheEntry> = {}
+  ): void {
     const cache: CacheStructure = {
       version: CACHE_VERSION,
       repoPath: result.repository.path,
@@ -92,6 +104,7 @@ export class CacheManager {
       codeFrequency: result.codeFrequency,
       fileTree: result.fileTree,
       blameMetrics: result.blameMetrics,
+      blameFileCache,
       fileLOC: this.buildFileLOCMap(result.fileTree),
     };
 

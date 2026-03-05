@@ -136,7 +136,22 @@ export interface BlameMetrics {
     totalBlamedLines: number;
     filesAnalyzed: number;
     filesSkipped: number;
+    cacheHits: number;
   };
+}
+
+export interface BlameFileCacheEntry {
+  blobSha: string;
+  totalLines: number;
+  ageCounts: Array<[number, number]>;
+  ownership: BlameOwnershipEntry[];
+  minAgeDays: number;
+  maxAgeDays: number;
+  avgAgeDays: number;
+  topOwnerAuthor: string;
+  topOwnerEmail: string;
+  topOwnerLines: number;
+  topOwnerShare: number;
 }
 
 export interface AnalysisResult {
@@ -176,6 +191,7 @@ export interface CacheStructure {
   codeFrequency: CodeFrequency[];
   fileTree: TreemapNode;
   blameMetrics: BlameMetrics;
+  blameFileCache: Record<string, BlameFileCacheEntry>;
   fileLOC: Record<string, FileLOCEntry>;
 }
 

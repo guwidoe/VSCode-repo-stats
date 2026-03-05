@@ -61,6 +61,7 @@ describe('CacheManager', () => {
         totalBlamedLines: 16,
         filesAnalyzed: 1,
         filesSkipped: 0,
+        cacheHits: 0,
       },
     },
   };
@@ -113,6 +114,29 @@ describe('CacheManager', () => {
 
       cacheManager.clear();
       expect(cacheManager.isValid('abc123')).toBe(false);
+    });
+  });
+
+  describe('getBlameFileCache', () => {
+    it('should return cached blame file entries when available', () => {
+      cacheManager.save(mockResult, {
+        'src/a.ts': {
+          blobSha: 'blob-a',
+          totalLines: 10,
+          ageCounts: [[1, 10]],
+          ownership: [{ author: 'Test User', email: 'test@example.com', lines: 10 }],
+          minAgeDays: 1,
+          maxAgeDays: 1,
+          avgAgeDays: 1,
+          topOwnerAuthor: 'Test User',
+          topOwnerEmail: 'test@example.com',
+          topOwnerLines: 10,
+          topOwnerShare: 1,
+        },
+      });
+
+      const fileCache = cacheManager.getBlameFileCache();
+      expect(fileCache['src/a.ts']?.blobSha).toBe('blob-a');
     });
   });
 

@@ -4,7 +4,12 @@
  */
 
 import * as os from 'os';
-import type { BlameMetrics, BlameOwnershipEntry, TreemapNode } from '../types/index.js';
+import type {
+  BlameFileCacheEntry,
+  BlameMetrics,
+  BlameOwnershipEntry,
+  TreemapNode,
+} from '../types/index.js';
 
 const UNKNOWN_AUTHOR = 'Unknown';
 const UNKNOWN_EMAIL = 'unknown@unknown.local';
@@ -44,10 +49,105 @@ export interface BlameFileTarget {
 export interface AnalyzeHeadBlameOptions {
   headSha: string;
   fileTargets: BlameFileTarget[];
+  headBlobShas?: Map<string, string>;
+  previousFileCache?: Record<string, BlameFileCacheEntry>;
   runGitRaw: (args: string[]) => Promise<string>;
   onProgress?: (processed: number, total: number) => void;
 }
 
+interface AnalyzeHeadBlameResult {
+  metrics: BlameMetrics;
+  fileCache: Record<string, BlameFileCacheEntry>;
+}
+
+function applyOwnerContribution(
+  globalOwnership: Map<string, BlameOwnershipEntry>,
+  owner: OwnerCounter
+): void {
+  const ownerKey = `${owner.author}\u0000${owner.email}`;
+  const existing = globalOwnership.get(ownerKey) || {
+    author: owner.author,
+    email: owner.email,
+    lines: 0,
+  };
+  existing.lines += owner.lines;
+  globalOwnership.set(ownerKey, existing);
+}
+
+function applyStatsToNode(node: TreemapNode, stats: ParsedBlameFileStats): void {
+  node.blamedLines = stats.totalLines;
+  node.lineAgeAvgDays = Math.round(stats.avgAgeDays);
+  node.lineAgeMinDays = stats.minAgeDays;
+  node.lineAgeMaxDays = stats.maxAgeDays;
+  node.topOwnerAuthor = stats.topOwnerAuthor;
+  node.topOwnerEmail = stats.topOwnerEmail;
+  node.topOwnerLines = stats.topOwnerLines;
+  node.topOwnerShare = stats.topOwnerShare;
+}
+
+function applyStatsToGlobal(
+  stats: ParsedBlameFileStats,
+  globalAgeByDay: number[],
+  globalOwnership: Map<string, BlameOwnershipEntry>
+): void {
+  for (const [ageDays, count] of stats.ageCounts.entries()) {
+    globalAgeByDay[ageDays] = (globalAgeByDay[ageDays] || 0) + count;
+  }
+
+  for (const owner of stats.ownership.values()) {
+    applyOwnerContribution(globalOwnership, owner);
+  }
+}
+
+function cacheEntryToStats(entry: BlameFileCacheEntry): ParsedBlameFileStats {
+  const ageCounts = new Map<number, number>(entry.ageCounts);
+  const ownership = new Map<string, OwnerCounter>();
+
+  for (const owner of entry.ownership) {
+    ownership.set(`${owner.author}\u0000${owner.email}`, {
+      author: owner.author,
+      email: owner.email,
+      lines: owner.lines,
+    });
+  }
+
+  return {
+    totalLines: entry.totalLines,
+    ageCounts,
+    ownership,
+    minAgeDays: entry.minAgeDays,
+    maxAgeDays: entry.maxAgeDays,
+    avgAgeDays: entry.avgAgeDays,
+    topOwnerAuthor: entry.topOwnerAuthor,
+    topOwnerEmail: entry.topOwnerEmail,
+    topOwnerLines: entry.topOwnerLines,
+    topOwnerShare: entry.topOwnerShare,
+  };
+}
+
+function statsToCacheEntry(blobSha: string, stats: ParsedBlameFileStats): BlameFileCacheEntry {
+  return {
+    blobSha,
+    totalLines: stats.totalLines,
+    ageCounts: Array.from(stats.ageCounts.entries()),
+    ownership: Array.from(stats.ownership.values()).map((owner) => ({
+      author: owner.author,
+      email: owner.email,
+      lines: owner.lines,
+    })),
+    minAgeDays: stats.minAgeDays,
+    maxAgeDays: stats.maxAgeDays,
+    avgAgeDays: stats.avgAgeDays,
+    topOwnerAuthor: stats.topOwnerAuthor,
+    topOwnerEmail: stats.topOwnerEmail,
+    topOwnerLines: stats.topOwnerLines,
+    topOwnerShare: stats.topOwnerShare,
+  };
+}
+
+/**
+ * Parses `git blame --incremental` output.
+ */
 export function parseBlamePorcelain(
   porcelainOutput: string,
   nowUnixSeconds: number
@@ -123,7 +223,8 @@ export function parseBlamePorcelain(
       continue;
     }
 
-    if (line.startsWith('\t')) {
+    // End-of-hunk marker in --incremental output
+    if (line.startsWith('filename ')) {
       applyCurrent();
     }
   }
@@ -161,6 +262,7 @@ export function createEmptyBlameMetrics(): BlameMetrics {
       totalBlamedLines: 0,
       filesAnalyzed: 0,
       filesSkipped: 0,
+      cacheHits: 0,
     },
   };
 }
@@ -180,68 +282,79 @@ function trimTrailingZeroes(values: number[]): number[] {
 
 export async function analyzeHeadBlameMetrics(
   options: AnalyzeHeadBlameOptions
-): Promise<BlameMetrics> {
-  const { headSha, fileTargets, runGitRaw, onProgress } = options;
+): Promise<AnalyzeHeadBlameResult> {
+  const {
+    headSha,
+    fileTargets,
+    headBlobShas,
+    previousFileCache,
+    runGitRaw,
+    onProgress,
+  } = options;
 
   if (fileTargets.length === 0) {
-    return createEmptyBlameMetrics();
+    return {
+      metrics: createEmptyBlameMetrics(),
+      fileCache: {},
+    };
   }
 
   const nowUnixSeconds = Math.floor(Date.now() / 1000);
   const globalAgeByDay: number[] = [];
   const globalOwnership = new Map<string, BlameOwnershipEntry>();
 
+  const reusableCache = previousFileCache || {};
+  const fileCache: Record<string, BlameFileCacheEntry> = {};
+
   let filesAnalyzed = 0;
   let filesSkipped = 0;
+  let cacheHits = 0;
   let totalBlamedLines = 0;
   let processed = 0;
   let index = 0;
 
   const cpuCount = os.cpus().length;
-  const concurrency = Math.max(2, Math.min(8, cpuCount, fileTargets.length));
+  const concurrency = Math.max(2, Math.min(12, cpuCount, fileTargets.length));
 
   const workers = Array.from({ length: concurrency }, async () => {
     while (index < fileTargets.length) {
       const currentIndex = index;
       index += 1;
-
       const target = fileTargets[currentIndex];
+      const blobSha = headBlobShas?.get(target.path);
 
       try {
-        const porcelain = await runGitRaw([
+        if (blobSha) {
+          const cachedEntry = reusableCache[target.path];
+          if (cachedEntry && cachedEntry.blobSha === blobSha) {
+            const cachedStats = cacheEntryToStats(cachedEntry);
+            applyStatsToGlobal(cachedStats, globalAgeByDay, globalOwnership);
+            applyStatsToNode(target.node, cachedStats);
+            fileCache[target.path] = cachedEntry;
+            totalBlamedLines += cachedStats.totalLines;
+            filesAnalyzed += 1;
+            cacheHits += 1;
+            continue;
+          }
+        }
+
+        const incremental = await runGitRaw([
           'blame',
-          '--line-porcelain',
+          '--incremental',
           headSha,
           '--',
           target.path,
         ]);
 
-        const stats = parseBlamePorcelain(porcelain, nowUnixSeconds);
+        const stats = parseBlamePorcelain(incremental, nowUnixSeconds);
 
         if (stats.totalLines > 0) {
-          for (const [ageDays, count] of stats.ageCounts.entries()) {
-            globalAgeByDay[ageDays] = (globalAgeByDay[ageDays] || 0) + count;
-          }
+          applyStatsToGlobal(stats, globalAgeByDay, globalOwnership);
+          applyStatsToNode(target.node, stats);
 
-          for (const owner of stats.ownership.values()) {
-            const ownerKey = `${owner.author}\u0000${owner.email}`;
-            const existing = globalOwnership.get(ownerKey) || {
-              author: owner.author,
-              email: owner.email,
-              lines: 0,
-            };
-            existing.lines += owner.lines;
-            globalOwnership.set(ownerKey, existing);
+          if (blobSha) {
+            fileCache[target.path] = statsToCacheEntry(blobSha, stats);
           }
-
-          target.node.blamedLines = stats.totalLines;
-          target.node.lineAgeAvgDays = Math.round(stats.avgAgeDays);
-          target.node.lineAgeMinDays = stats.minAgeDays;
-          target.node.lineAgeMaxDays = stats.maxAgeDays;
-          target.node.topOwnerAuthor = stats.topOwnerAuthor;
-          target.node.topOwnerEmail = stats.topOwnerEmail;
-          target.node.topOwnerLines = stats.topOwnerLines;
-          target.node.topOwnerShare = stats.topOwnerShare;
 
           totalBlamedLines += stats.totalLines;
           filesAnalyzed += 1;
@@ -264,14 +377,18 @@ export async function analyzeHeadBlameMetrics(
     .sort((a, b) => b.lines - a.lines);
 
   return {
-    analyzedAt: new Date().toISOString(),
-    maxAgeDays: Math.max(0, ageByDay.length - 1),
-    ageByDay,
-    ownershipByAuthor,
-    totals: {
-      totalBlamedLines,
-      filesAnalyzed,
-      filesSkipped,
+    metrics: {
+      analyzedAt: new Date().toISOString(),
+      maxAgeDays: Math.max(0, ageByDay.length - 1),
+      ageByDay,
+      ownershipByAuthor,
+      totals: {
+        totalBlamedLines,
+        filesAnalyzed,
+        filesSkipped,
+        cacheHits,
+      },
     },
+    fileCache,
   };
 }

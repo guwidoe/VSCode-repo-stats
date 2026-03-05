@@ -24,6 +24,7 @@ export interface GitClient {
   getFileModificationDates(): Promise<Map<string, string>>;
   getTrackedFiles(): Promise<string[]>;
   getSubmodulePaths(): Promise<string[]>;
+  getHeadBlobShas(paths?: string[]): Promise<Map<string, string>>;
   raw(args: string[]): Promise<string>;
 }
 
@@ -351,11 +352,56 @@ export class GitAnalyzer implements GitClient {
     return paths;
   }
 
-  async raw(args: string[]): Promise<string> {
+  async getHeadBlobShas(paths?: string[]): Promise<Map<string, string>> {
     if (!(await this.isRepo())) {
       throw new NotAGitRepoError(this.repoPath);
     }
 
+    const filterSet = paths && paths.length > 0 ? new Set(paths) : null;
+    const result = new Map<string, string>();
+
+    try {
+      const output = await this.git.raw(['ls-tree', '-r', '--full-tree', 'HEAD']);
+
+      for (const line of output.split('\n')) {
+        const trimmed = line.trim();
+        if (!trimmed) {
+          continue;
+        }
+
+        const tabIndex = trimmed.indexOf('\t');
+        if (tabIndex === -1) {
+          continue;
+        }
+
+        const metadata = trimmed.slice(0, tabIndex);
+        const filePath = trimmed.slice(tabIndex + 1);
+        if (!filePath) {
+          continue;
+        }
+
+        if (filterSet && !filterSet.has(filePath)) {
+          continue;
+        }
+
+        const parts = metadata.split(/\s+/);
+        // Format: <mode> <type> <sha>
+        if (parts.length < 3 || parts[1] !== 'blob') {
+          continue;
+        }
+
+        result.set(filePath, parts[2]);
+      }
+    } catch (error) {
+      console.error('Failed to get HEAD blob SHAs:', error);
+    }
+
+    return result;
+  }
+
+  async raw(args: string[]): Promise<string> {
+    // Performance-critical code paths (e.g. blame loops) call this frequently.
+    // Repo validity is checked once at analyzer entry points, so avoid repeated checks here.
     return this.git.raw(args);
   }
 

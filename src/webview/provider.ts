@@ -298,8 +298,16 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       const settings = this.getSettings();
       const storage = new WorkspaceStateStorage(this.workspaceState);
       const cacheManager = new CacheManager(storage, repoPath);
+      const previousBlameFileCache = cacheManager.getBlameFileCache();
       const sccStoragePath = path.join(this.globalStoragePath, 'scc');
-      const coordinator = new AnalysisCoordinator(repoPath, settings, sccStoragePath);
+      const coordinator = new AnalysisCoordinator(
+        repoPath,
+        settings,
+        sccStoragePath,
+        undefined,
+        undefined,
+        previousBlameFileCache
+      );
 
       // Check if we have a valid cache
       const repoInfo = await coordinator.getRepositoryInfo();
@@ -329,7 +337,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       });
 
       // Save to cache
-      cacheManager.save(result);
+      cacheManager.save(result, coordinator.getLatestBlameFileCache());
 
       this.lastCoreHeadSha = result.repository.headSha;
       this.sendMessage(webview, {
