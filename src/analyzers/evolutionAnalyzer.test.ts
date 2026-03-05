@@ -44,6 +44,7 @@ function createSettings(overrides?: Partial<ExtensionSettings['evolution']>): Ex
     defaultColorMode: 'language',
     generatedPatterns: [],
     binaryExtensions: ['.png', '.jpg'],
+    locExcludedExtensions: [],
     showEmptyTimePeriods: true,
     defaultGranularityMode: 'auto',
     autoGranularityThreshold: 20,

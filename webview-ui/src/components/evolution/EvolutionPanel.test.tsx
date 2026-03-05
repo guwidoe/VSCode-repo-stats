@@ -63,6 +63,7 @@ function createSettings(): ExtensionSettings {
     defaultColorMode: 'language',
     generatedPatterns: [],
     binaryExtensions: ['.png'],
+    locExcludedExtensions: [],
     showEmptyTimePeriods: true,
     defaultGranularityMode: 'auto',
     autoGranularityThreshold: 20,
