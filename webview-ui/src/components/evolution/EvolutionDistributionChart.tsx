@@ -7,18 +7,19 @@ interface Props {
 
 export function EvolutionDistributionChart({ data }: Props) {
   const latestValues = data.labels.map((label, index) => ({
-    label,
+    label: String(label),
     value: data.y[index]?.[data.y[index].length - 1] || 0,
   }));
 
   latestValues.sort((a, b) => b.value - a.value || a.label.localeCompare(b.label));
+  const categoryLabels = latestValues.map((entry) => entry.label);
 
   return (
     <Plot
       data={[
         {
           type: 'bar',
-          x: latestValues.map((entry) => entry.label),
+          x: categoryLabels,
           y: latestValues.map((entry) => entry.value),
           marker: {
             color: latestValues.map((entry) => entry.value),
@@ -40,6 +41,9 @@ export function EvolutionDistributionChart({ data }: Props) {
           color: 'var(--vscode-foreground)',
         },
         xaxis: {
+          type: 'category',
+          categoryorder: 'array',
+          categoryarray: categoryLabels,
           tickangle: -40,
           gridcolor: 'var(--vscode-panel-border)',
         },
