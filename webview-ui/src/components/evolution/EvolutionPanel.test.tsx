@@ -1,4 +1,3 @@
-/* eslint-disable react/no-multi-comp */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import type { AnalysisResult, EvolutionResult, ExtensionSettings } from '../../types';
@@ -40,19 +39,19 @@ vi.mock('../../hooks/useVsCodeApi', () => ({
 }));
 
 vi.mock('./EvolutionControls', () => ({
-  EvolutionControls: () => <div>EvolutionControls</div>,
+  EvolutionControls: vi.fn(() => null),
 }));
 
 vi.mock('./EvolutionStackChart', () => ({
-  EvolutionStackChart: () => <div>EvolutionStackChart</div>,
+  EvolutionStackChart: vi.fn(() => null),
 }));
 
 vi.mock('./EvolutionLineChart', () => ({
-  EvolutionLineChart: () => <div>EvolutionLineChart</div>,
+  EvolutionLineChart: vi.fn(() => null),
 }));
 
 vi.mock('./EvolutionDistributionChart', () => ({
-  EvolutionDistributionChart: () => <div>EvolutionDistributionChart</div>,
+  EvolutionDistributionChart: vi.fn(() => null),
 }));
 
 import { EvolutionPanel } from './EvolutionPanel';

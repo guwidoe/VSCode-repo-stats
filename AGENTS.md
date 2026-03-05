@@ -16,3 +16,4 @@ VSCode extension for repo statistics: contributors, code frequency, and treemap 
 - Handle missing scc binary gracefully
 - Zustand for webview state (not Redux/Context)
 - No `import * as vscode` in core logic—only in integration layer
+- Treat ESLint rules as guardrails: avoid `eslint-disable` comments unless truly exceptional; prefer refactors, and document justification when disabling is unavoidable
