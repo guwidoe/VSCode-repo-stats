@@ -57,6 +57,13 @@ export function AboutPanel() {
               </div>
             </li>
             <li>
+              <span className="feature-icon">🧬</span>
+              <div>
+                <strong>Evolution</strong>
+                <p>Analyze blame-based ownership over time by cohort, author, extension, directory, or domain.</p>
+              </div>
+            </li>
+            <li>
               <span className="feature-icon">🗂️</span>
               <div>
                 <strong>Treemap</strong>
@@ -64,6 +71,32 @@ export function AboutPanel() {
               </div>
             </li>
           </ul>
+        </section>
+
+        <section className="about-section">
+          <h2>Evolution Tab</h2>
+          <div className="info-card">
+            <p className="info-note">
+              Evolution is an on-demand analysis that reconstructs historical ownership snapshots from git blame data.
+              It is useful for understanding how the current codebase is distributed over time.
+            </p>
+            <div className="info-row">
+              <span className="info-label">Available breakdowns</span>
+              <span className="info-value">Cohort, author, extension, directory, domain</span>
+            </div>
+            <div className="info-row">
+              <span className="info-label">Charts</span>
+              <span className="info-value">Stacked history, trend lines, latest distribution</span>
+            </div>
+            <div className="info-row">
+              <span className="info-label">Notes</span>
+              <span className="info-value">Runs on demand, can be slower on large repos</span>
+            </div>
+            <p className="info-note">
+              If the repository changes or related settings are updated, the tab marks its cached data as stale and lets
+              you recompute it. When submodules are enabled, Evolution still reflects parent-repository history only.
+            </p>
+          </div>
         </section>
 
         {/* Tool Info */}
