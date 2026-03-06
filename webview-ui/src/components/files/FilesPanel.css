@@ -328,6 +328,27 @@
   white-space: nowrap;
 }
 
+.files-link {
+  display: inline-block;
+  max-width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--vscode-textLink-foreground);
+  font: inherit;
+  text-align: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.files-link:hover {
+  color: var(--vscode-textLink-activeForeground);
+}
+
 .files-cell.monospace {
   font-family: var(--vscode-editor-font-family), monospace;
 }

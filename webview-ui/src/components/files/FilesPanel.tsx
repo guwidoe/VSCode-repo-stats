@@ -9,10 +9,9 @@ import { useStore } from '../../store';
 import { useFileCatalog } from '../../hooks/useFileCatalog';
 import { useVsCodeApi } from '../../hooks/useVsCodeApi';
 import { buildDefaultColumnWidths, DEFAULT_COLUMN_ORDER, getColumnConfig } from './columns';
-import { ColumnFilterPopover } from './ColumnFilterPopover';
-import { FilterIcon } from './FilterIcon';
 import { ColumnManagerPopover } from './ColumnManagerPopover';
-import { getCellContent, getCellTitle } from './fileCellFormatters';
+import { FilesHeaderCell } from './FilesHeaderCell';
+import { FilesTableRow } from './FilesTableRow';
 import {
   DEFAULT_SORT_RULES,
   filterFiles,
@@ -23,22 +22,11 @@ import {
 import type { ColumnFilter, ColumnFilters, FileSortKey, SortRule } from './types';
 import './FilesPanel.css';
 
-function getSortIndicator(sortRules: SortRule[], key: FileSortKey): string {
-  const index = sortRules.findIndex((rule) => rule.key === key);
-  if (index === -1) {
-    return '';
-  }
-
-  const rule = sortRules[index];
-  const arrow = rule.direction === 'asc' ? '▲' : '▼';
-  return sortRules.length > 1 ? `${arrow}${index + 1}` : arrow;
-}
-
 export function FilesPanel() {
   const catalog = useFileCatalog();
   const settings = useStore((state) => state.settings);
   const data = useStore((state) => state.data);
-  const { openFile } = useVsCodeApi();
+  const { openFile, revealInExplorer } = useVsCodeApi();
 
   const [sortRules, setSortRules] = useState<SortRule[]>(DEFAULT_SORT_RULES);
   const [columnFilters, setColumnFilters] = useState<ColumnFilters>({});
@@ -325,59 +313,23 @@ export function FilesPanel() {
       <div className="files-table-shell">
         <div className="files-table" style={{ minWidth: `${minTableWidth}px` }}>
           <div className="files-table-header" role="row" style={{ gridTemplateColumns }}>
-            {visibleColumns.map((column) => {
-              const isFilterActive = isColumnFilterActive(columnFilters[column.key]);
-
-              return (
-                <div
-                  key={column.key}
-                  className={`files-header-cell ${column.align === 'right' ? 'numeric' : ''}`}
-                  role="columnheader"
-                  onMouseDownCapture={(event) => handleHeaderMouseDown(column.key, event)}
-                  onMouseMove={handleHeaderMouseMove}
-                  onMouseLeave={handleHeaderMouseLeave}
-                >
-                  <button
-                    type="button"
-                    className={`header-sort-button ${column.align === 'right' ? 'numeric' : ''}`}
-                    onClick={(event) => handleSort(column.key, event.shiftKey)}
-                    title="Click to sort. Shift+click to add as secondary sort key."
-                  >
-                    <span>{column.label}</span>
-                    <span className="sort-indicator">{getSortIndicator(sortRules, column.key)}</span>
-                  </button>
-
-                  <div className="header-actions">
-                    <div className="header-filter-anchor">
-                      <button
-                        type="button"
-                        className={`header-filter-button ${isFilterActive ? 'active' : ''}`}
-                        title={`Filter ${column.label}`}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setShowColumnManager(false);
-                          setActiveFilterColumn((current) => current === column.key ? null : column.key);
-                        }}
-                      >
-                        <FilterIcon />
-                      </button>
-
-                      {activeFilterColumn === column.key && (
-                        <ColumnFilterPopover
-                          column={column}
-                          filter={columnFilters[column.key]}
-                          onChange={(filter) => setFilter(column.key, filter)}
-                          onClear={() => clearFilter(column.key)}
-                          onClose={() => setActiveFilterColumn(null)}
-                        />
-                      )}
-                    </div>
-
-                    <div className="header-resize-hint" title="Drag right edge to resize column" />
-                  </div>
-                </div>
-              );
-            })}
+            {visibleColumns.map((column) => (
+              <FilesHeaderCell
+                key={column.key}
+                column={column}
+                sortRules={sortRules}
+                activeFilterColumn={activeFilterColumn}
+                filter={columnFilters[column.key]}
+                onSort={handleSort}
+                onSetActiveFilterColumn={setActiveFilterColumn}
+                onHeaderMouseDown={handleHeaderMouseDown}
+                onHeaderMouseMove={handleHeaderMouseMove}
+                onHeaderMouseLeave={handleHeaderMouseLeave}
+                onFilterChange={setFilter}
+                onFilterClear={clearFilter}
+                onCloseColumnManager={() => setShowColumnManager(false)}
+              />
+            ))}
           </div>
 
           <div className="files-table-body" ref={tableContainerRef}>
@@ -392,24 +344,15 @@ export function FilesPanel() {
                   const row = sortedRows[virtualRow.index];
 
                   return (
-                    <div
+                    <FilesTableRow
                       key={row.path}
-                      className="files-table-row"
-                      style={{ transform: `translateY(${virtualRow.start}px)`, gridTemplateColumns }}
-                      role="row"
-                      onDoubleClick={() => openFile(row.path)}
-                      title="Double click to open file"
-                    >
-                      {visibleColumns.map((column) => (
-                        <div
-                          key={column.key}
-                          className={`files-cell ${column.align === 'right' ? 'numeric' : ''} ${column.key === 'path' || column.key === 'ext' ? 'monospace' : ''}`}
-                          title={getCellTitle(row, column.key)}
-                        >
-                          {getCellContent(row, column.key)}
-                        </div>
-                      ))}
-                    </div>
+                      row={row}
+                      columns={visibleColumns}
+                      gridTemplateColumns={gridTemplateColumns}
+                      start={virtualRow.start}
+                      onOpenFile={openFile}
+                      onRevealInExplorer={revealInExplorer}
+                    />
                   );
                 })}
               </div>
