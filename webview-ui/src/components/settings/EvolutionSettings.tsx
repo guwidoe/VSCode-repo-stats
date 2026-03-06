@@ -2,6 +2,7 @@
  * Evolution Settings - Configuration for on-demand evolution analysis.
  */
 
+import { useState } from 'react';
 import type { ExtensionSettings } from '../../types';
 import { SelectSetting } from './SelectSetting';
 import { NumberSetting } from './NumberSetting';
@@ -11,7 +12,27 @@ interface Props {
   updateSettings: (settings: Partial<ExtensionSettings>) => void;
 }
 
+const SNAPSHOT_GRANULARITY_OPTIONS = [
+  { value: 'daily', label: 'Daily', days: 1 },
+  { value: 'weekly', label: 'Weekly', days: 7 },
+  { value: 'biweekly', label: 'Biweekly', days: 14 },
+  { value: 'monthly', label: 'Monthly', days: 30 },
+  { value: 'quarterly', label: 'Quarterly', days: 90 },
+  { value: 'yearly', label: 'Yearly', days: 365 },
+] as const;
+
+function getSnapshotGranularity(snapshotIntervalDays: number): string {
+  return SNAPSHOT_GRANULARITY_OPTIONS.find((option) => option.days === snapshotIntervalDays)?.value ?? 'custom';
+}
+
 export function EvolutionSettings({ settings, updateSettings }: Props) {
+  const [preferCustomSnapshotInterval, setPreferCustomSnapshotInterval] = useState(false);
+  const derivedSnapshotGranularity = getSnapshotGranularity(settings.evolution.snapshotIntervalDays);
+  const snapshotGranularity =
+    preferCustomSnapshotInterval || derivedSnapshotGranularity === 'custom'
+      ? 'custom'
+      : derivedSnapshotGranularity;
+
   return (
     <div className="settings-sections">
       <SelectSetting
@@ -32,22 +53,53 @@ export function EvolutionSettings({ settings, updateSettings }: Props) {
         }
       />
 
-      <NumberSetting
-        title="Snapshot Interval (Days)"
-        description="Minimum time between analyzed snapshots. Higher values speed up analysis on large repositories."
-        value={settings.evolution.snapshotIntervalDays}
-        onChange={(value) =>
+      <SelectSetting
+        title="Snapshot Granularity"
+        description="How densely Evolution samples repository history. Finer granularity gives more detail, but analysis takes longer."
+        value={snapshotGranularity}
+        options={[
+          ...SNAPSHOT_GRANULARITY_OPTIONS.map((option) => ({ value: option.value, label: option.label })),
+          { value: 'custom', label: 'Custom' },
+        ]}
+        onChange={(value) => {
+          if (value === 'custom') {
+            setPreferCustomSnapshotInterval(true);
+            return;
+          }
+
+          const selected = SNAPSHOT_GRANULARITY_OPTIONS.find((option) => option.value === value);
+          if (!selected) {
+            return;
+          }
+
+          setPreferCustomSnapshotInterval(false);
           updateSettings({
             evolution: {
               ...settings.evolution,
-              snapshotIntervalDays: value,
+              snapshotIntervalDays: selected.days,
             },
-          })
-        }
-        min={1}
-        max={365}
-        step={1}
+          });
+        }}
       />
+
+      {snapshotGranularity === 'custom' && (
+        <NumberSetting
+          title="Custom Snapshot Interval (Days)"
+          description="Exact minimum time between analyzed snapshots. Use this if the presets are too coarse or too fine for your repository."
+          value={settings.evolution.snapshotIntervalDays}
+          onChange={(value) =>
+            updateSettings({
+              evolution: {
+                ...settings.evolution,
+                snapshotIntervalDays: value,
+              },
+            })
+          }
+          min={1}
+          max={365}
+          step={1}
+        />
+      )}
 
       <NumberSetting
         title="Maximum Snapshots"
