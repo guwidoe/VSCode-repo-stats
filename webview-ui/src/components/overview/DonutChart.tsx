@@ -6,6 +6,8 @@
 
 import { useMemo, useState } from 'react';
 
+const FULL_CIRCLE_ANGLE_THRESHOLD = 359.999;
+
 export interface DonutSegment {
   label: string;
   value: number;
@@ -23,6 +25,35 @@ interface DonutChartProps {
 }
 
 const OTHER_COLOR = '#666666';
+
+function buildArcPath(center: number, radius: number, startAngle: number, angle: number): string {
+  const startRad = (startAngle * Math.PI) / 180;
+  const startX = center + radius * Math.cos(startRad);
+  const startY = center + radius * Math.sin(startRad);
+
+  if (angle >= FULL_CIRCLE_ANGLE_THRESHOLD) {
+    const midRad = ((startAngle + 180) * Math.PI) / 180;
+    const midX = center + radius * Math.cos(midRad);
+    const midY = center + radius * Math.sin(midRad);
+
+    return [
+      `M ${startX} ${startY}`,
+      `A ${radius} ${radius} 0 1 1 ${midX} ${midY}`,
+      `A ${radius} ${radius} 0 1 1 ${startX} ${startY}`,
+    ].join(' ');
+  }
+
+  const endAngle = startAngle + angle;
+  const endRad = (endAngle * Math.PI) / 180;
+  const endX = center + radius * Math.cos(endRad);
+  const endY = center + radius * Math.sin(endRad);
+  const largeArcFlag = angle > 180 ? 1 : 0;
+
+  return [
+    `M ${startX} ${startY}`,
+    `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${endX} ${endY}`,
+  ].join(' ');
+}
 
 export function DonutChart({
   segments,
@@ -44,8 +75,10 @@ export function DonutChart({
       return { allSegments: [], total: 0 };
     }
 
-    // Sort by value descending
-    const sorted = [...segments].sort((a, b) => b.value - a.value);
+    // Sort by value descending and ignore empty slices
+    const sorted = [...segments]
+      .filter((segment) => segment.value > 0)
+      .sort((a, b) => b.value - a.value);
     const allSegments = sorted.map((seg) => ({
       ...seg,
       percentage: seg.value / total,
@@ -99,26 +132,10 @@ export function DonutChart({
       const percentage = segment.value / total;
       const angle = percentage * 360;
       const startAngle = currentAngle;
-      const endAngle = currentAngle + angle;
-      currentAngle = endAngle;
-
-      const startRad = (startAngle * Math.PI) / 180;
-      const endRad = (endAngle * Math.PI) / 180;
-
-      const x1 = center + radius * Math.cos(startRad);
-      const y1 = center + radius * Math.sin(startRad);
-      const x2 = center + radius * Math.cos(endRad);
-      const y2 = center + radius * Math.sin(endRad);
-
-      const largeArcFlag = angle > 180 ? 1 : 0;
-
-      const d = [
-        `M ${x1} ${y1}`,
-        `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
-      ].join(' ');
+      currentAngle += angle;
 
       return {
-        d,
+        d: buildArcPath(center, radius, startAngle, angle),
         color: segment.color,
         label: segment.label,
         value: segment.value,
