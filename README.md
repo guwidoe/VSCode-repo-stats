@@ -28,14 +28,24 @@ Results are cached based on the current Git HEAD, so subsequent opens are instan
       <br/><em>Overview Dashboard</em>
     </td>
     <td width="50%">
-      <img src="media/screenshot-contributors.png" alt="Contributors"/>
-      <br/><em>Contributors Panel</em>
+      <img src="media/screenshot-files.png" alt="Files Panel"/>
+      <br/><em>Files Panel</em>
     </td>
   </tr>
   <tr>
     <td width="50%">
+      <img src="media/screenshot-contributors.png" alt="Contributors"/>
+      <br/><em>Contributors Panel</em>
+    </td>
+    <td width="50%">
       <img src="media/screenshot-frequency.png" alt="Code Frequency"/>
       <br/><em>Code Frequency</em>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="media/screenshot-evolution.png" alt="Evolution"/>
+      <br/><em>Evolution Analysis</em>
     </td>
     <td width="50%">
       <img src="media/screenshot-treemap.png" alt="Treemap"/>
@@ -82,12 +92,11 @@ Results are cached based on the current Git HEAD, so subsequent opens are instan
 - **Chart suite**: Stacked ownership view, line trends, and latest distribution
 - **On-demand execution** with dedicated cache, stale-state detection, and recompute button
 - **Performance controls**: Snapshot interval, max snapshots, cohort format, and max displayed series
-- _Evolution screenshot coming soon_
 
 ### Repository Treemap
 
 - **WizTree-inspired design** with nested hierarchy and vignette shading
-- **Color modes**: By language (GitHub Linguist colors) or by file age (heat map)
+- **Color modes**: By language (GitHub Linguist colors), file age, complexity, or code density
 - **Size modes**: Lines of code, file size in bytes, or file count
 - **Adjustable nesting depth** (1-10 levels)
 - **Smart filtering**: Presets for All, No Binary, Code Only, or custom language selection
@@ -96,7 +105,7 @@ Results are cached based on the current Git HEAD, so subsequent opens are instan
 
 ### Settings Panel
 
-Configure exclude patterns, submodule inclusion for file analysis, generated file patterns, binary extensions, max commits to analyze, and default color mode.
+Configure analysis scope, chart granularity, overview display mode, treemap tooltip fields, generated file patterns, binary extensions, submodule inclusion, and Evolution sampling controls.
 
 ## Installation
 
@@ -130,21 +139,25 @@ This extension uses [scc](https://github.com/boyter/scc) for accurate lines-of-c
 
 ## Extension Settings
 
-| Setting                          | Default      | Description                                         |
-| -------------------------------- | ------------ | --------------------------------------------------- |
-| `repoStats.excludePatterns`      | `[]`         | Additional directories to exclude beyond .gitignore |
-| `repoStats.maxCommitsToAnalyze`  | `10000`      | Maximum commits to analyze (for performance)        |
-| `repoStats.defaultColorMode`     | `"language"` | Default treemap color mode (`language` or `age`)    |
-| `repoStats.showEmptyTimePeriods` | `true`       | Show weeks/months with no activity in charts        |
-| `repoStats.generatedPatterns`    | See below    | Glob patterns to identify generated files           |
-| `repoStats.binaryExtensions`     | See below    | File extensions considered binary for classification and binary-focused views |
-| `repoStats.locExcludedExtensions`| `[]`         | File extensions excluded from LOC counting          |
-| `repoStats.includeSubmodules`    | `false`      | Include submodule files in file analysis (Overview + Files + Treemap) |
-| `repoStats.evolution.autoRun`    | `false`      | Auto-run evolution analysis when data is stale/missing |
-| `repoStats.evolution.snapshotIntervalDays` | `30` | Days between analyzed evolution snapshots           |
-| `repoStats.evolution.maxSnapshots` | `80`       | Maximum historical snapshots in evolution analysis  |
-| `repoStats.evolution.maxSeries`  | `20`         | Default max visible series in evolution charts      |
-| `repoStats.evolution.cohortFormat` | `"%Y"`    | Cohort grouping format (`%Y`, `%Y-%m`, `%Y-W%W`)    |
+| Setting | Default | Description |
+| --- | --- | --- |
+| `repoStats.excludePatterns` | `[]` | Additional directories to exclude beyond `.gitignore` |
+| `repoStats.maxCommitsToAnalyze` | `10000` | Maximum commits to analyze for history-based views |
+| `repoStats.defaultColorMode` | `"language"` | Default treemap color mode (`language`, `age`, `complexity`, or `density`) |
+| `repoStats.showEmptyTimePeriods` | `true` | Show weeks/months with no activity in charts |
+| `repoStats.defaultGranularityMode` | `"auto"` | Default chart granularity (`auto`, `weekly`, or `monthly`) |
+| `repoStats.autoGranularityThreshold` | `20` | Weekly/monthly cutoff used when granularity is `auto` |
+| `repoStats.overviewDisplayMode` | `"percent"` | Display overview values as percentages or counts |
+| `repoStats.generatedPatterns` | See below | Glob patterns used to identify generated files |
+| `repoStats.binaryExtensions` | See below | File extensions treated as binary |
+| `repoStats.locExcludedExtensions` | `[]` | File extensions excluded from LOC counting |
+| `repoStats.includeSubmodules` | `false` | Include submodule files in Overview, Files, and Treemap |
+| `repoStats.tooltipSettings` | See `package.json` | Configure which metrics appear in treemap tooltips |
+| `repoStats.evolution.autoRun` | `false` | Auto-run evolution analysis when data is stale or missing |
+| `repoStats.evolution.snapshotIntervalDays` | `30` | Days between sampled evolution snapshots |
+| `repoStats.evolution.maxSnapshots` | `80` | Maximum historical snapshots analyzed in Evolution |
+| `repoStats.evolution.maxSeries` | `20` | Default maximum visible series in Evolution charts |
+| `repoStats.evolution.cohortFormat` | `"%Y"` | Cohort grouping format (`%Y`, `%Y-%m`, `%Y-W%W`) |
 
 Tip: If assets like `.svg` files inflate LOC totals for your project, add `.svg` to `repoStats.locExcludedExtensions`.
 
@@ -214,22 +227,6 @@ npm run watch
 npm run test
 npm run package
 ```
-
-## Release Notes
-
-### 1.0.0
-
-**First stable release!**
-
-- **Show Empty Time Periods**: Charts now display weeks/months with no activity by default, showing the true timeline with gaps. Toggle in Settings to hide empty periods.
-- **Improved Chart Zoom**: Removed ability to zoom out beyond 100% for better UX
-- **Full feature set**: Overview, Contributors, Code Frequency, Treemap, and Settings panels
-- **Auto-download scc**: Binary automatically downloaded if not in PATH
-- **Smart caching**: Results cached by Git HEAD SHA
-
-### 0.0.1
-
-Initial release with Overview, Contributors, Code Frequency, Treemap, and Settings panels.
 
 ## License
 
