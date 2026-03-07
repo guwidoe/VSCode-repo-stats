@@ -279,4 +279,37 @@ describe('EvolutionAnalyzer', () => {
     expect(result.exts.y[0]).toEqual([1]);
     expect(git.blameCallCount).toBe(1);
   });
+
+  it('normalizes binary extension settings before filtering evolution files', async () => {
+    const git = new FakeGitClient(true);
+    const settings = createSettings({ snapshotIntervalDays: 30, maxSnapshots: 10 });
+    settings.binaryExtensions = ['PNG'];
+
+    git.setRevparseResponse(['--abbrev-ref', 'HEAD'], 'main\n');
+    git.setRevparseResponse(['HEAD'], 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n');
+    git.setRawResponse(
+      ['log', '--first-parent', '--reverse', '--format=%H|%ct', 'main'],
+      'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa|1577836800'
+    );
+    git.setRawResponse(
+      ['ls-tree', '-r', '--name-only', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
+      ['assets/logo.png', 'src/app.ts'].join('\n')
+    );
+    git.setRawResponse(
+      ['blame', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', '--line-porcelain', '--', 'src/app.ts'],
+      [
+        'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 1 1 1',
+        'author Alice',
+        'author-mail <alice@example.com>',
+        'author-time 1577836800',
+        '\tline',
+      ].join('\n')
+    );
+
+    const analyzer = new EvolutionAnalyzer('/tmp/repo', settings, git);
+    const result = await analyzer.analyze();
+
+    expect(result.exts.labels).toEqual(['.ts']);
+    expect(git.blameCallCount).toBe(1);
+  });
 });

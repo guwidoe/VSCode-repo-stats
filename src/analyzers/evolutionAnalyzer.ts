@@ -13,6 +13,7 @@ import {
   ExtensionSettings,
   NotAGitRepoError,
 } from '../types/index.js';
+import { normalizeExtensionForFilter } from './locCounter.js';
 import { createPathPatternMatcher } from './pathMatching.js';
 
 export type EvolutionProgressCallback = (phase: string, progress: number) => void;
@@ -61,6 +62,7 @@ export class EvolutionAnalyzer {
   private readonly repoPath: string;
   private readonly settings: ExtensionSettings;
   private readonly shouldExcludePath: (filePath: string) => boolean;
+  private readonly binaryExtensions: Set<string>;
   private expectedBlameMisses = 0;
 
   constructor(repoPath: string, settings: ExtensionSettings, gitClient?: EvolutionGitClient) {
@@ -68,6 +70,11 @@ export class EvolutionAnalyzer {
     this.settings = settings;
     this.git = gitClient ?? simpleGit(repoPath);
     this.shouldExcludePath = createPathPatternMatcher(settings.excludePatterns);
+    this.binaryExtensions = new Set(
+      settings.binaryExtensions
+        .map((extension) => normalizeExtensionForFilter(extension))
+        .filter((extension): extension is string => extension !== null)
+    );
   }
 
   async analyze(onProgress?: EvolutionProgressCallback): Promise<EvolutionResult> {
@@ -328,7 +335,7 @@ export class EvolutionAnalyzer {
     const normalizedPath = filePath.replace(/\\/g, '/');
 
     const ext = path.extname(normalizedPath).toLowerCase();
-    if (ext && this.settings.binaryExtensions.includes(ext)) {
+    if (ext && this.binaryExtensions.has(ext)) {
       return false;
     }
 
