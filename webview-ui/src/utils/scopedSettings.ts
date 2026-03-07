@@ -1,6 +1,7 @@
 import type {
   ExtensionSettings,
   RepoScopableSettingKey,
+  RepoScopableSettingValueMap,
   RepoScopedSettings,
   ScopedSettingSource,
   SettingWriteTarget,
@@ -19,44 +20,93 @@ function getSource<T>(setting: {
   return 'default';
 }
 
+function setScopedSettingValue<K extends RepoScopableSettingKey>(
+  settings: ExtensionSettings,
+  key: K,
+  value: RepoScopableSettingValueMap[K]
+): ExtensionSettings {
+  switch (key) {
+    case 'evolution.snapshotIntervalDays':
+      return {
+        ...settings,
+        evolution: {
+          ...settings.evolution,
+          snapshotIntervalDays: value as number,
+        },
+      };
+    case 'evolution.maxSnapshots':
+      return {
+        ...settings,
+        evolution: {
+          ...settings.evolution,
+          maxSnapshots: value as number,
+        },
+      };
+    case 'evolution.maxSeries':
+      return {
+        ...settings,
+        evolution: {
+          ...settings.evolution,
+          maxSeries: value as number,
+        },
+      };
+    case 'evolution.cohortFormat':
+      return {
+        ...settings,
+        evolution: {
+          ...settings.evolution,
+          cohortFormat: value as string,
+        },
+      };
+    default:
+      return {
+        ...settings,
+        [key]: value,
+      } as ExtensionSettings;
+  }
+}
+
 export function getScopedSettingDisplayValue<K extends RepoScopableSettingKey>(
   scopedSettings: RepoScopedSettings,
   key: K,
   target: SettingWriteTarget
-): ExtensionSettings[K] {
+): RepoScopableSettingValueMap[K] {
   const setting = scopedSettings[key];
   if (target === 'repo') {
-    return (setting.repoValue ?? setting.globalValue ?? setting.defaultValue) as ExtensionSettings[K];
+    return (setting.repoValue ?? setting.globalValue ?? setting.defaultValue) as RepoScopableSettingValueMap[K];
   }
 
-  return (setting.globalValue ?? setting.defaultValue) as ExtensionSettings[K];
+  return (setting.globalValue ?? setting.defaultValue) as RepoScopableSettingValueMap[K];
 }
 
 export function applyScopedSettingUpdate<K extends RepoScopableSettingKey>(
   currentSettings: ExtensionSettings,
   currentScopedSettings: RepoScopedSettings,
   key: K,
-  value: ExtensionSettings[K],
+  value: RepoScopableSettingValueMap[K],
   target: SettingWriteTarget
 ): { settings: ExtensionSettings; scopedSettings: RepoScopedSettings } {
-  const nextScopedSettings: RepoScopedSettings = {
-    ...currentScopedSettings,
-    [key]: {
-      ...currentScopedSettings[key],
+  const nextEntry = {
+    ...currentScopedSettings[key],
+    globalValue: target === 'global' ? value : currentScopedSettings[key].globalValue,
+    repoValue: target === 'repo' ? value : currentScopedSettings[key].repoValue,
+    source: getSource({
       globalValue: target === 'global' ? value : currentScopedSettings[key].globalValue,
       repoValue: target === 'repo' ? value : currentScopedSettings[key].repoValue,
-      source: getSource({
-        globalValue: target === 'global' ? value : currentScopedSettings[key].globalValue,
-        repoValue: target === 'repo' ? value : currentScopedSettings[key].repoValue,
-      }),
-    },
+    }),
+  };
+
+  const nextScopedSettings: RepoScopedSettings = {
+    ...currentScopedSettings,
+    [key]: nextEntry,
   };
 
   return {
-    settings: {
-      ...currentSettings,
-      [key]: getScopedSettingDisplayValue(nextScopedSettings, key, 'repo'),
-    },
+    settings: setScopedSettingValue(
+      currentSettings,
+      key,
+      getScopedSettingDisplayValue(nextScopedSettings, key, 'repo')
+    ),
     scopedSettings: nextScopedSettings,
   };
 }
@@ -66,22 +116,25 @@ export function resetRepoScopedSettingOverride<K extends RepoScopableSettingKey>
   currentScopedSettings: RepoScopedSettings,
   key: K
 ): { settings: ExtensionSettings; scopedSettings: RepoScopedSettings } {
+  const nextEntry = {
+    ...currentScopedSettings[key],
+    repoValue: undefined,
+    source: getSource({
+      globalValue: currentScopedSettings[key].globalValue,
+    }),
+  };
+
   const nextScopedSettings: RepoScopedSettings = {
     ...currentScopedSettings,
-    [key]: {
-      ...currentScopedSettings[key],
-      repoValue: undefined,
-      source: getSource({
-        globalValue: currentScopedSettings[key].globalValue,
-      }),
-    },
+    [key]: nextEntry,
   };
 
   return {
-    settings: {
-      ...currentSettings,
-      [key]: getScopedSettingDisplayValue(nextScopedSettings, key, 'repo'),
-    },
+    settings: setScopedSettingValue(
+      currentSettings,
+      key,
+      getScopedSettingDisplayValue(nextScopedSettings, key, 'repo')
+    ),
     scopedSettings: nextScopedSettings,
   };
 }

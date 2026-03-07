@@ -191,15 +191,33 @@ export interface ExtensionSettings {
   evolution: EvolutionSettings;
 }
 
+export interface RepoScopableSettingValueMap {
+  excludePatterns: string[];
+  generatedPatterns: string[];
+  binaryExtensions: string[];
+  locExcludedExtensions: string[];
+  includeSubmodules: boolean;
+  maxCommitsToAnalyze: number;
+  'evolution.snapshotIntervalDays': number;
+  'evolution.maxSnapshots': number;
+  'evolution.maxSeries': number;
+  'evolution.cohortFormat': string;
+}
+
 export const REPO_SCOPABLE_SETTING_KEYS = [
   'excludePatterns',
   'generatedPatterns',
   'binaryExtensions',
   'locExcludedExtensions',
   'includeSubmodules',
-] as const;
+  'maxCommitsToAnalyze',
+  'evolution.snapshotIntervalDays',
+  'evolution.maxSnapshots',
+  'evolution.maxSeries',
+  'evolution.cohortFormat',
+] as const satisfies readonly (keyof RepoScopableSettingValueMap)[];
 
-export type RepoScopableSettingKey = typeof REPO_SCOPABLE_SETTING_KEYS[number];
+export type RepoScopableSettingKey = keyof RepoScopableSettingValueMap;
 export type SettingWriteTarget = 'global' | 'repo';
 export type ScopedSettingSource = 'default' | 'global' | 'repo';
 
@@ -211,7 +229,7 @@ export interface ScopedSettingValue<T> {
 }
 
 export type RepoScopedSettings = {
-  [K in RepoScopableSettingKey]: ScopedSettingValue<ExtensionSettings[K]>;
+  [K in RepoScopableSettingKey]: ScopedSettingValue<RepoScopableSettingValueMap[K]>;
 };
 
 // ============================================================================
@@ -243,6 +261,12 @@ export type WebviewMessage =
   | { type: 'copyPath'; path: string }
   | { type: 'getSettings' }
   | { type: 'updateSettings'; settings: Partial<ExtensionSettings>; target?: SettingWriteTarget }
+  | {
+      type: 'updateScopedSetting';
+      key: RepoScopableSettingKey;
+      value: RepoScopableSettingValueMap[RepoScopableSettingKey];
+      target: SettingWriteTarget;
+    }
   | { type: 'resetScopedSetting'; key: RepoScopableSettingKey };
 
 // ============================================================================

@@ -8,6 +8,7 @@ import type {
   ExtensionMessage,
   ExtensionSettings,
   RepoScopableSettingKey,
+  RepoScopableSettingValueMap,
   SettingWriteTarget,
 } from '../types';
 import { useStore } from '../store';
@@ -233,7 +234,7 @@ export function useVsCodeApi() {
   const updateScopedSetting = useCallback(
     <K extends RepoScopableSettingKey>(
       key: K,
-      value: ExtensionSettings[K],
+      value: RepoScopableSettingValueMap[K],
       target: SettingWriteTarget
     ) => {
       const state = useStore.getState();
@@ -247,11 +248,24 @@ export function useVsCodeApi() {
         );
         state.setSettings(next.settings);
         state.setScopedSettings(next.scopedSettings);
+        state.setStaleness(
+          getOptimisticStalenessForSettingsChange({
+            currentSettings: state.settings,
+            nextSettings: next.settings,
+            hasCoreData: state.data !== null,
+            hasEvolutionData: state.evolutionData !== null,
+            currentStaleness: {
+              coreStale: state.coreStale,
+              evolutionStale: state.evolutionStale,
+            },
+          })
+        );
       }
 
       getVsCodeApi().postMessage({
-        type: 'updateSettings',
-        settings: { [key]: value } as Partial<ExtensionSettings>,
+        type: 'updateScopedSetting',
+        key,
+        value,
         target,
       });
     },
@@ -264,6 +278,18 @@ export function useVsCodeApi() {
       const next = resetRepoScopedSettingOverride(state.settings, state.scopedSettings, key);
       state.setSettings(next.settings);
       state.setScopedSettings(next.scopedSettings);
+      state.setStaleness(
+        getOptimisticStalenessForSettingsChange({
+          currentSettings: state.settings,
+          nextSettings: next.settings,
+          hasCoreData: state.data !== null,
+          hasEvolutionData: state.evolutionData !== null,
+          currentStaleness: {
+            coreStale: state.coreStale,
+            evolutionStale: state.evolutionStale,
+          },
+        })
+      );
     }
 
     getVsCodeApi().postMessage({ type: 'resetScopedSetting', key });

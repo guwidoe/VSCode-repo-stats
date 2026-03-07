@@ -44,10 +44,8 @@ export function SettingsPanel() {
       <div className="settings-content">
         {activeTab === 'general' && (
           <GeneralSettings
-            settings={settings}
             scopedSettings={scopedSettings}
             data={data}
-            updateSettings={updateSettings}
             updateScopedSetting={updateScopedSetting}
             resetScopedSetting={resetScopedSetting}
             requestRefresh={requestRefresh}
@@ -63,7 +61,13 @@ export function SettingsPanel() {
         )}
 
         {activeTab === 'evolution' && (
-          <EvolutionSettings settings={settings} updateSettings={updateSettings} />
+          <EvolutionSettings
+            settings={settings}
+            scopedSettings={scopedSettings}
+            updateSettings={updateSettings}
+            updateScopedSetting={updateScopedSetting}
+            resetScopedSetting={resetScopedSetting}
+          />
         )}
 
         {activeTab === 'treemap' && (

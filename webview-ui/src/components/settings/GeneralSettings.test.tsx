@@ -1,42 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import type { AnalysisResult, ExtensionSettings, RepoScopedSettings } from '../../types';
+import type { AnalysisResult, RepoScopedSettings } from '../../types';
 import { GeneralSettings } from './GeneralSettings';
-
-function createSettings(): ExtensionSettings {
-  return {
-    excludePatterns: ['fixtures'],
-    maxCommitsToAnalyze: 1000,
-    defaultColorMode: 'language',
-    generatedPatterns: ['**/generated/**'],
-    binaryExtensions: ['.png'],
-    locExcludedExtensions: [],
-    includeSubmodules: false,
-    showEmptyTimePeriods: true,
-    defaultGranularityMode: 'auto',
-    autoGranularityThreshold: 20,
-    overviewDisplayMode: 'percent',
-    tooltipSettings: {
-      showLinesOfCode: true,
-      showFileSize: true,
-      showLanguage: true,
-      showLastModified: true,
-      showComplexity: false,
-      showCommentLines: false,
-      showCommentRatio: false,
-      showBlankLines: false,
-      showCodeDensity: false,
-      showFileCount: true,
-    },
-    evolution: {
-      autoRun: false,
-      snapshotIntervalDays: 30,
-      maxSnapshots: 80,
-      maxSeries: 20,
-      cohortFormat: '%Y',
-    },
-  };
-}
 
 function createScopedSettings(): RepoScopedSettings {
   return {
@@ -60,6 +25,27 @@ function createScopedSettings(): RepoScopedSettings {
     },
     includeSubmodules: {
       defaultValue: false,
+      source: 'default',
+    },
+    maxCommitsToAnalyze: {
+      defaultValue: 10000,
+      globalValue: 1000,
+      source: 'global',
+    },
+    'evolution.snapshotIntervalDays': {
+      defaultValue: 30,
+      source: 'default',
+    },
+    'evolution.maxSnapshots': {
+      defaultValue: 80,
+      source: 'default',
+    },
+    'evolution.maxSeries': {
+      defaultValue: 20,
+      source: 'default',
+    },
+    'evolution.cohortFormat': {
+      defaultValue: '%Y',
       source: 'default',
     },
   };
@@ -96,10 +82,8 @@ describe('GeneralSettings', () => {
   it('shows repo-scoped value by default and can switch to global value', () => {
     render(
       <GeneralSettings
-        settings={createSettings()}
         scopedSettings={createScopedSettings()}
         data={createData()}
-        updateSettings={vi.fn()}
         updateScopedSetting={vi.fn()}
         resetScopedSetting={vi.fn()}
         requestRefresh={vi.fn()}
@@ -120,10 +104,8 @@ describe('GeneralSettings', () => {
 
     render(
       <GeneralSettings
-        settings={createSettings()}
         scopedSettings={createScopedSettings()}
         data={createData()}
-        updateSettings={vi.fn()}
         updateScopedSetting={vi.fn()}
         resetScopedSetting={resetScopedSetting}
         requestRefresh={vi.fn()}

@@ -4,9 +4,9 @@
 
 import { useMemo, useState } from 'react';
 import type {
-  ExtensionSettings,
   AnalysisResult,
   RepoScopableSettingKey,
+  RepoScopableSettingValueMap,
   RepoScopedSettings,
   SettingWriteTarget,
 } from '../../types';
@@ -17,13 +17,11 @@ import { ScopedSettingHeader } from './ScopedSettingHeader';
 import { getScopedSettingDisplayValue } from '../../utils/scopedSettings';
 
 interface Props {
-  settings: ExtensionSettings;
   scopedSettings: RepoScopedSettings;
   data: AnalysisResult | null;
-  updateSettings: (settings: Partial<ExtensionSettings>) => void;
   updateScopedSetting: <K extends RepoScopableSettingKey>(
     key: K,
-    value: ExtensionSettings[K],
+    value: RepoScopableSettingValueMap[K],
     target: SettingWriteTarget
   ) => void;
   resetScopedSetting: (key: RepoScopableSettingKey) => void;
@@ -37,14 +35,17 @@ function getInitialTargets(scopedSettings: RepoScopedSettings): Record<RepoScopa
     binaryExtensions: scopedSettings.binaryExtensions.source === 'repo' ? 'repo' : 'global',
     locExcludedExtensions: scopedSettings.locExcludedExtensions.source === 'repo' ? 'repo' : 'global',
     includeSubmodules: scopedSettings.includeSubmodules.source === 'repo' ? 'repo' : 'global',
+    maxCommitsToAnalyze: scopedSettings.maxCommitsToAnalyze.source === 'repo' ? 'repo' : 'global',
+    'evolution.snapshotIntervalDays': scopedSettings['evolution.snapshotIntervalDays'].source === 'repo' ? 'repo' : 'global',
+    'evolution.maxSnapshots': scopedSettings['evolution.maxSnapshots'].source === 'repo' ? 'repo' : 'global',
+    'evolution.maxSeries': scopedSettings['evolution.maxSeries'].source === 'repo' ? 'repo' : 'global',
+    'evolution.cohortFormat': scopedSettings['evolution.cohortFormat'].source === 'repo' ? 'repo' : 'global',
   };
 }
 
 export function GeneralSettings({
-  settings,
   scopedSettings,
   data,
-  updateSettings,
   updateScopedSetting,
   resetScopedSetting,
   requestRefresh,
@@ -158,11 +159,14 @@ export function GeneralSettings({
         <NumberSetting
           title="Max Commits to Analyze"
           description="Performance limit for large repositories. Higher values give more complete data but take longer."
-          value={settings.maxCommitsToAnalyze}
-          onChange={(value) => updateSettings({ maxCommitsToAnalyze: value })}
+          value={getScopedSettingDisplayValue(scopedSettings, 'maxCommitsToAnalyze', resolvedTargets.maxCommitsToAnalyze)}
+          onChange={(value) =>
+            updateScopedSetting('maxCommitsToAnalyze', value, resolvedTargets.maxCommitsToAnalyze)
+          }
           min={100}
           max={100000}
           step={1000}
+          headerContent={renderScopedHeader('maxCommitsToAnalyze')}
         />
       </div>
 

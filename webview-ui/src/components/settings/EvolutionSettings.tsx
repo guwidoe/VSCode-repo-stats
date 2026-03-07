@@ -2,14 +2,29 @@
  * Evolution Settings - Configuration for on-demand evolution analysis.
  */
 
-import { useState } from 'react';
-import type { ExtensionSettings } from '../../types';
+import { useMemo, useState } from 'react';
+import type {
+  ExtensionSettings,
+  RepoScopableSettingKey,
+  RepoScopableSettingValueMap,
+  RepoScopedSettings,
+  SettingWriteTarget,
+} from '../../types';
 import { SelectSetting } from './SelectSetting';
 import { NumberSetting } from './NumberSetting';
+import { ScopedSettingHeader } from './ScopedSettingHeader';
+import { getScopedSettingDisplayValue } from '../../utils/scopedSettings';
 
 interface Props {
   settings: ExtensionSettings;
+  scopedSettings: RepoScopedSettings;
   updateSettings: (settings: Partial<ExtensionSettings>) => void;
+  updateScopedSetting: <K extends RepoScopableSettingKey>(
+    key: K,
+    value: RepoScopableSettingValueMap[K],
+    target: SettingWriteTarget
+  ) => void;
+  resetScopedSetting: (key: RepoScopableSettingKey) => void;
 }
 
 const SNAPSHOT_GRANULARITY_OPTIONS = [
@@ -21,17 +36,88 @@ const SNAPSHOT_GRANULARITY_OPTIONS = [
   { value: 'yearly', label: 'Yearly', days: 365 },
 ] as const;
 
+type EvolutionScopedKey =
+  | 'evolution.snapshotIntervalDays'
+  | 'evolution.maxSnapshots'
+  | 'evolution.maxSeries'
+  | 'evolution.cohortFormat';
+
 function getSnapshotGranularity(snapshotIntervalDays: number): string {
   return SNAPSHOT_GRANULARITY_OPTIONS.find((option) => option.days === snapshotIntervalDays)?.value ?? 'custom';
 }
 
-export function EvolutionSettings({ settings, updateSettings }: Props) {
+function getInitialTargets(
+  scopedSettings: RepoScopedSettings
+): Record<EvolutionScopedKey, SettingWriteTarget> {
+  return {
+    'evolution.snapshotIntervalDays':
+      scopedSettings['evolution.snapshotIntervalDays'].source === 'repo' ? 'repo' : 'global',
+    'evolution.maxSnapshots':
+      scopedSettings['evolution.maxSnapshots'].source === 'repo' ? 'repo' : 'global',
+    'evolution.maxSeries':
+      scopedSettings['evolution.maxSeries'].source === 'repo' ? 'repo' : 'global',
+    'evolution.cohortFormat':
+      scopedSettings['evolution.cohortFormat'].source === 'repo' ? 'repo' : 'global',
+  };
+}
+
+export function EvolutionSettings({
+  settings,
+  scopedSettings,
+  updateSettings,
+  updateScopedSetting,
+  resetScopedSetting,
+}: Props) {
   const [preferCustomSnapshotInterval, setPreferCustomSnapshotInterval] = useState(false);
-  const derivedSnapshotGranularity = getSnapshotGranularity(settings.evolution.snapshotIntervalDays);
+  const [targets, setTargets] = useState<Record<EvolutionScopedKey, SettingWriteTarget>>(
+    () => getInitialTargets(scopedSettings)
+  );
+
+  const resolvedTargets = useMemo(
+    () => ({ ...getInitialTargets(scopedSettings), ...targets }),
+    [scopedSettings, targets]
+  );
+
+  const snapshotIntervalDays = getScopedSettingDisplayValue(
+    scopedSettings,
+    'evolution.snapshotIntervalDays',
+    resolvedTargets['evolution.snapshotIntervalDays']
+  );
+  const maxSnapshots = getScopedSettingDisplayValue(
+    scopedSettings,
+    'evolution.maxSnapshots',
+    resolvedTargets['evolution.maxSnapshots']
+  );
+  const maxSeries = getScopedSettingDisplayValue(
+    scopedSettings,
+    'evolution.maxSeries',
+    resolvedTargets['evolution.maxSeries']
+  );
+  const cohortFormat = getScopedSettingDisplayValue(
+    scopedSettings,
+    'evolution.cohortFormat',
+    resolvedTargets['evolution.cohortFormat']
+  );
+
+  const derivedSnapshotGranularity = getSnapshotGranularity(snapshotIntervalDays);
   const snapshotGranularity =
     preferCustomSnapshotInterval || derivedSnapshotGranularity === 'custom'
       ? 'custom'
       : derivedSnapshotGranularity;
+
+  const setTarget = (key: EvolutionScopedKey, target: SettingWriteTarget) => {
+    setTargets((current) => ({ ...current, [key]: target }));
+  };
+
+  const renderScopedHeader = (key: EvolutionScopedKey) => (
+    <ScopedSettingHeader
+      target={resolvedTargets[key]}
+      source={scopedSettings[key].source}
+      hasRepoOverride={scopedSettings[key].repoValue !== undefined}
+      onTargetChange={(target) => setTarget(key, target)}
+      onResetRepoOverride={() => resetScopedSetting(key)}
+    />
+  );
 
   return (
     <div className="settings-sections">
@@ -73,27 +159,26 @@ export function EvolutionSettings({ settings, updateSettings }: Props) {
           }
 
           setPreferCustomSnapshotInterval(false);
-          updateSettings({
-            evolution: {
-              ...settings.evolution,
-              snapshotIntervalDays: selected.days,
-            },
-          });
+          updateScopedSetting(
+            'evolution.snapshotIntervalDays',
+            selected.days,
+            resolvedTargets['evolution.snapshotIntervalDays']
+          );
         }}
+        headerContent={renderScopedHeader('evolution.snapshotIntervalDays')}
       />
 
       {snapshotGranularity === 'custom' && (
         <NumberSetting
           title="Custom Snapshot Interval (Days)"
           description="Exact minimum time between analyzed snapshots. Use this if the presets are too coarse or too fine for your repository."
-          value={settings.evolution.snapshotIntervalDays}
+          value={snapshotIntervalDays}
           onChange={(value) =>
-            updateSettings({
-              evolution: {
-                ...settings.evolution,
-                snapshotIntervalDays: value,
-              },
-            })
+            updateScopedSetting(
+              'evolution.snapshotIntervalDays',
+              value,
+              resolvedTargets['evolution.snapshotIntervalDays']
+            )
           }
           min={1}
           max={365}
@@ -104,54 +189,46 @@ export function EvolutionSettings({ settings, updateSettings }: Props) {
       <NumberSetting
         title="Maximum Snapshots"
         description="Hard cap for the number of snapshots analyzed."
-        value={settings.evolution.maxSnapshots}
+        value={maxSnapshots}
         onChange={(value) =>
-          updateSettings({
-            evolution: {
-              ...settings.evolution,
-              maxSnapshots: value,
-            },
-          })
+          updateScopedSetting('evolution.maxSnapshots', value, resolvedTargets['evolution.maxSnapshots'])
         }
         min={2}
         max={500}
         step={1}
+        headerContent={renderScopedHeader('evolution.maxSnapshots')}
       />
 
       <NumberSetting
         title="Default Max Series"
         description="Default series limit for Evolution charts before aggregating into 'Other'."
-        value={settings.evolution.maxSeries}
+        value={maxSeries}
         onChange={(value) =>
-          updateSettings({
-            evolution: {
-              ...settings.evolution,
-              maxSeries: value,
-            },
-          })
+          updateScopedSetting('evolution.maxSeries', value, resolvedTargets['evolution.maxSeries'])
         }
         min={5}
         max={200}
         step={1}
+        headerContent={renderScopedHeader('evolution.maxSeries')}
       />
 
       <SelectSetting
         title="Cohort Format"
         description="How code cohorts are grouped in Evolution analysis."
-        value={settings.evolution.cohortFormat}
+        value={cohortFormat}
         options={[
           { value: '%Y', label: 'Yearly (%Y)' },
           { value: '%Y-%m', label: 'Monthly (%Y-%m)' },
           { value: '%Y-W%W', label: 'Weekly (%Y-W%W)' },
         ]}
         onChange={(value) =>
-          updateSettings({
-            evolution: {
-              ...settings.evolution,
-              cohortFormat: value,
-            },
-          })
+          updateScopedSetting(
+            'evolution.cohortFormat',
+            value,
+            resolvedTargets['evolution.cohortFormat']
+          )
         }
+        headerContent={renderScopedHeader('evolution.cohortFormat')}
       />
     </div>
   );

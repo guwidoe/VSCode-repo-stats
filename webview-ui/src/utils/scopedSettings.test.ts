@@ -67,6 +67,29 @@ function createScopedSettings(): RepoScopedSettings {
       globalValue: true,
       source: 'global',
     },
+    maxCommitsToAnalyze: {
+      defaultValue: 10000,
+      globalValue: 2000,
+      source: 'global',
+    },
+    'evolution.snapshotIntervalDays': {
+      defaultValue: 30,
+      globalValue: 14,
+      source: 'global',
+    },
+    'evolution.maxSnapshots': {
+      defaultValue: 80,
+      repoValue: 40,
+      source: 'repo',
+    },
+    'evolution.maxSeries': {
+      defaultValue: 20,
+      source: 'default',
+    },
+    'evolution.cohortFormat': {
+      defaultValue: '%Y',
+      source: 'default',
+    },
   };
 }
 
@@ -101,6 +124,19 @@ describe('scopedSettings', () => {
     expect(result.settings.excludePatterns).toEqual(['vendor']);
     expect(result.scopedSettings.excludePatterns.repoValue).toBeUndefined();
     expect(result.scopedSettings.excludePatterns.source).toBe('global');
+  });
+
+  it('updates nested evolution settings through scoped writes', () => {
+    const result = applyScopedSettingUpdate(
+      createSettings(),
+      createScopedSettings(),
+      'evolution.maxSnapshots',
+      12,
+      'repo'
+    );
+
+    expect(result.settings.evolution.maxSnapshots).toBe(12);
+    expect(result.scopedSettings['evolution.maxSnapshots'].repoValue).toBe(12);
   });
 
   it('renders contextual source labels', () => {
