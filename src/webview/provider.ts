@@ -14,6 +14,7 @@ import {
   ExtensionSettings,
   NotAGitRepoError,
   RepoScopableSettingKey,
+  RepoScopableSettingValueMap,
   RepoScopedSettings,
   SettingWriteTarget,
 } from '../types/index.js';
@@ -221,6 +222,21 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
         break;
       }
 
+      case 'updateScopedSetting': {
+        const shouldPromptReanalysis = await this.updateScopedSetting(
+          message.key,
+          message.value,
+          message.target
+        );
+        this.sendSettingsLoaded(webview);
+        await this.sendStalenessStatus(webview);
+
+        if (shouldPromptReanalysis) {
+          await this.promptReanalysisForFileScopeSetting(webview);
+        }
+        break;
+      }
+
       case 'resetScopedSetting': {
         const shouldPromptReanalysis = await this.resetScopedSettingOverride(message.key);
         this.sendSettingsLoaded(webview);
@@ -289,11 +305,22 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     return previousSettings.includeSubmodules !== this.getSettings().includeSubmodules;
   }
 
+  private async updateScopedSetting<K extends RepoScopableSettingKey>(
+    key: K,
+    value: RepoScopableSettingValueMap[K],
+    target: SettingWriteTarget
+  ): Promise<boolean> {
+    const config = this.getConfig();
+    const previousSettings = this.getSettings();
+    await config.update(key, value, this.toConfigurationTarget(target));
+    return createCoreSettingsHash(previousSettings) !== createCoreSettingsHash(this.getSettings());
+  }
+
   private async resetScopedSettingOverride(key: RepoScopableSettingKey): Promise<boolean> {
     const config = this.getConfig();
     const previousSettings = this.getSettings();
     await config.update(key, undefined, vscode.ConfigurationTarget.WorkspaceFolder);
-    return previousSettings.includeSubmodules !== this.getSettings().includeSubmodules;
+    return createCoreSettingsHash(previousSettings) !== createCoreSettingsHash(this.getSettings());
   }
 
   private toConfigurationTarget(target: SettingWriteTarget): vscode.ConfigurationTarget {
@@ -304,7 +331,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
 
   private async promptReanalysisForFileScopeSetting(webview: vscode.Webview): Promise<void> {
     const action = await vscode.window.showInformationMessage(
-      'Include Git Submodules in File Analysis changed. Re-analyze to update Overview, Files, and Treemap.',
+      'Analysis settings changed. Re-analyze to update repository-based views.',
       'Re-analyze now'
     );
 
@@ -594,7 +621,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     config: vscode.WorkspaceConfiguration,
     key: K
   ): RepoScopedSettings[K] {
-    const inspect = config.inspect<ExtensionSettings[K]>(key);
+    const inspect = config.inspect<RepoScopableSettingValueMap[K]>(key);
     if (!inspect) {
       throw new Error(
         `Missing inspect data for configuration value: repoStats.${key}. ` +
@@ -602,7 +629,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       );
     }
 
-    return buildScopedSettingValue(inspect) as RepoScopedSettings[K];
+    return buildScopedSettingValue(inspect) as unknown as RepoScopedSettings[K];
   }
 
   private getRepoScopedSettings(): RepoScopedSettings {
@@ -614,6 +641,11 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       binaryExtensions: this.getScopedSettingValue(config, 'binaryExtensions'),
       locExcludedExtensions: this.getScopedSettingValue(config, 'locExcludedExtensions'),
       includeSubmodules: this.getScopedSettingValue(config, 'includeSubmodules'),
+      maxCommitsToAnalyze: this.getScopedSettingValue(config, 'maxCommitsToAnalyze'),
+      'evolution.snapshotIntervalDays': this.getScopedSettingValue(config, 'evolution.snapshotIntervalDays'),
+      'evolution.maxSnapshots': this.getScopedSettingValue(config, 'evolution.maxSnapshots'),
+      'evolution.maxSeries': this.getScopedSettingValue(config, 'evolution.maxSeries'),
+      'evolution.cohortFormat': this.getScopedSettingValue(config, 'evolution.cohortFormat'),
     };
   }
 

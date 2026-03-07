@@ -163,7 +163,7 @@ Tip: If assets like `.svg` files inflate LOC totals for your project, add `.svg`
 
 `repoStats.excludePatterns` accepts simple directory names (`vendor`), repo-relative paths (`backend/fixtures`), and glob-style directory patterns (`**/backend/fixtures/**`).
 
-The following settings can be saved per-repository via the Settings UI and VS Code workspace-folder settings (`.vscode/settings.json`): `excludePatterns`, `generatedPatterns`, `binaryExtensions`, `locExcludedExtensions`, and `includeSubmodules`.
+The following settings can be saved per-repository via the Settings UI and VS Code workspace-folder settings (`.vscode/settings.json`): `excludePatterns`, `generatedPatterns`, `binaryExtensions`, `locExcludedExtensions`, `includeSubmodules`, `maxCommitsToAnalyze`, `evolution.snapshotIntervalDays`, `evolution.maxSnapshots`, `evolution.maxSeries`, and `evolution.cohortFormat`.
 
 `repoStats.includeSubmodules` only affects file-based analysis (Overview + Files + Treemap). Contributors, Code Frequency, and Evolution continue to use parent-repo history only.
 

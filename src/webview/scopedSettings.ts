@@ -1,6 +1,6 @@
 import type {
-  ExtensionSettings,
   RepoScopableSettingKey,
+  RepoScopableSettingValueMap,
   RepoScopedSettings,
   ScopedSettingSource,
   ScopedSettingValue,
@@ -39,11 +39,11 @@ export function getScopedSettingDisplayValue<K extends RepoScopableSettingKey>(
   scopedSettings: RepoScopedSettings,
   key: K,
   target: 'global' | 'repo'
-): ExtensionSettings[K] {
+): RepoScopableSettingValueMap[K] {
   const setting = scopedSettings[key];
   if (target === 'repo') {
-    return (setting.repoValue ?? setting.globalValue ?? setting.defaultValue) as ExtensionSettings[K];
+    return (setting.repoValue ?? setting.globalValue ?? setting.defaultValue) as RepoScopableSettingValueMap[K];
   }
 
-  return (setting.globalValue ?? setting.defaultValue) as ExtensionSettings[K];
+  return (setting.globalValue ?? setting.defaultValue) as RepoScopableSettingValueMap[K];
 }

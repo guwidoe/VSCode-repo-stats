@@ -59,6 +59,7 @@
         },
         "repoStats.maxCommitsToAnalyze": {
           "type": "number",
+          "scope": "resource",
           "default": 10000,
           "description": "Maximum commits to analyze (performance limit for large repos)"
         },
@@ -258,6 +259,7 @@
         },
         "repoStats.evolution.snapshotIntervalDays": {
           "type": "number",
+          "scope": "resource",
           "default": 30,
           "minimum": 1,
           "maximum": 365,
@@ -265,6 +267,7 @@
         },
         "repoStats.evolution.maxSnapshots": {
           "type": "number",
+          "scope": "resource",
           "default": 80,
           "minimum": 2,
           "maximum": 500,
@@ -272,6 +275,7 @@
         },
         "repoStats.evolution.maxSeries": {
           "type": "number",
+          "scope": "resource",
           "default": 20,
           "minimum": 5,
           "maximum": 200,
@@ -279,6 +283,7 @@
         },
         "repoStats.evolution.cohortFormat": {
           "type": "string",
+          "scope": "resource",
           "default": "%Y",
           "description": "Cohort grouping format for Evolution analysis (%Y, %Y-%m, %Y-W%W)"
         }

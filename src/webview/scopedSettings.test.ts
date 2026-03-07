@@ -56,6 +56,29 @@ describe('getScopedSettingDisplayValue', () => {
       globalValue: true,
       source: 'global',
     },
+    maxCommitsToAnalyze: {
+      defaultValue: 10000,
+      globalValue: 2000,
+      repoValue: 500,
+      source: 'repo',
+    },
+    'evolution.snapshotIntervalDays': {
+      defaultValue: 30,
+      globalValue: 14,
+      source: 'global',
+    },
+    'evolution.maxSnapshots': {
+      defaultValue: 80,
+      source: 'default',
+    },
+    'evolution.maxSeries': {
+      defaultValue: 20,
+      source: 'default',
+    },
+    'evolution.cohortFormat': {
+      defaultValue: '%Y',
+      source: 'default',
+    },
   };
 
   it('uses repo fallback chain for repo target', () => {
@@ -64,6 +87,8 @@ describe('getScopedSettingDisplayValue', () => {
     expect(getScopedSettingDisplayValue(scopedSettings, 'generatedPatterns', 'repo')).toEqual([
       '**/generated/**',
     ]);
+    expect(getScopedSettingDisplayValue(scopedSettings, 'maxCommitsToAnalyze', 'repo')).toBe(500);
+    expect(getScopedSettingDisplayValue(scopedSettings, 'evolution.snapshotIntervalDays', 'repo')).toBe(14);
   });
 
   it('uses global or default for global target', () => {
@@ -71,5 +96,7 @@ describe('getScopedSettingDisplayValue', () => {
     expect(getScopedSettingDisplayValue(scopedSettings, 'generatedPatterns', 'global')).toEqual([
       '**/generated/**',
     ]);
+    expect(getScopedSettingDisplayValue(scopedSettings, 'maxCommitsToAnalyze', 'global')).toBe(2000);
+    expect(getScopedSettingDisplayValue(scopedSettings, 'evolution.maxSnapshots', 'global')).toBe(80);
   });
 });
