@@ -191,6 +191,7 @@ export interface CacheStructure {
   version: string;
   repoPath: string;
   lastCommitSha: string;
+  settingsHash?: string;
   lastAnalyzed: number; // timestamp
   contributors: ContributorStats[];
   codeFrequency: CodeFrequency[];

@@ -11,6 +11,7 @@ import {
   NotAGitRepoError,
   GitNotFoundError,
 } from '../types/index.js';
+import { createPathPatternMatcher } from './pathMatching.js';
 
 // ============================================================================
 // Interfaces for Dependency Injection
@@ -19,13 +20,23 @@ import {
 export interface GitClient {
   isRepo(): Promise<boolean>;
   getRepoInfo(): Promise<RepositoryInfo>;
-  getContributorStats(maxCommits: number): Promise<ContributorStats[]>;
-  getCodeFrequency(maxCommits: number): Promise<CodeFrequency[]>;
+  getContributorStats(maxCommits: number, excludePatterns?: string[]): Promise<ContributorStats[]>;
+  getCodeFrequency(maxCommits: number, excludePatterns?: string[]): Promise<CodeFrequency[]>;
   getFileModificationDates(): Promise<Map<string, string>>;
   getTrackedFiles(): Promise<string[]>;
   getSubmodulePaths(): Promise<string[]>;
   getHeadBlobShas(paths?: string[]): Promise<Map<string, string>>;
   raw(args: string[]): Promise<string>;
+}
+
+interface ParsedCommitStat {
+  date: string;
+  name?: string;
+  email?: string;
+  additions: number;
+  deletions: number;
+  hasIncludedChanges: boolean;
+  sawAnyFileStats: boolean;
 }
 
 // ============================================================================
@@ -78,127 +89,63 @@ export class GitAnalyzer implements GitClient {
     }
   }
 
-  async getContributorStats(maxCommits: number): Promise<ContributorStats[]> {
+  async getContributorStats(
+    maxCommits: number,
+    excludePatterns: string[] = []
+  ): Promise<ContributorStats[]> {
     if (!(await this.isRepo())) {
       throw new NotAGitRepoError(this.repoPath);
     }
 
-    // Parse raw log output for detailed stats
-    const rawLog = await this.git.raw([
-      'log',
-      '--all',
-      `--max-count=${maxCommits}`,
-      '--format=%H|%an|%ae|%aI',
-      '--shortstat',
-    ]);
-
+    const commits = await this.getParsedCommitStats(maxCommits, true, excludePatterns);
     const contributorMap = new Map<string, ContributorStats>();
-    const lines = rawLog.split('\n');
 
-    let currentCommit: {
-      hash: string;
-      name: string;
-      email: string;
-      date: string;
-    } | null = null;
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed) {continue;}
-
-      // Check if this is a commit line (hash|name|email|date)
-      if (trimmed.includes('|') && !trimmed.includes('insertion') && !trimmed.includes('deletion')) {
-        const parts = trimmed.split('|');
-        if (parts.length >= 4) {
-          currentCommit = {
-            hash: parts[0],
-            name: parts[1],
-            email: parts[2],
-            date: parts[3],
-          };
-        }
-      } else if (currentCommit && (trimmed.includes('insertion') || trimmed.includes('deletion') || trimmed.includes('file'))) {
-        // Parse stat line: "X files changed, Y insertions(+), Z deletions(-)"
-        const stats = this.parseStatLine(trimmed);
-        const key = currentCommit.email.toLowerCase();
-
-        if (!contributorMap.has(key)) {
-          contributorMap.set(key, {
-            name: currentCommit.name,
-            email: currentCommit.email,
-            commits: 0,
-            linesAdded: 0,
-            linesDeleted: 0,
-            firstCommit: currentCommit.date,
-            lastCommit: currentCommit.date,
-            weeklyActivity: [],
-          });
-        }
-
-        const contributor = contributorMap.get(key)!;
-        contributor.commits++;
-        contributor.linesAdded += stats.additions;
-        contributor.linesDeleted += stats.deletions;
-
-        // Update first/last commit dates
-        if (currentCommit.date < contributor.firstCommit) {
-          contributor.firstCommit = currentCommit.date;
-        }
-        if (currentCommit.date > contributor.lastCommit) {
-          contributor.lastCommit = currentCommit.date;
-        }
-
-        // Add to weekly activity
-        const week = this.getISOWeek(new Date(currentCommit.date));
-        let weeklyEntry = contributor.weeklyActivity.find(w => w.week === week);
-        if (!weeklyEntry) {
-          weeklyEntry = { week, commits: 0, additions: 0, deletions: 0 };
-          contributor.weeklyActivity.push(weeklyEntry);
-        }
-        weeklyEntry.commits++;
-        weeklyEntry.additions += stats.additions;
-        weeklyEntry.deletions += stats.deletions;
-
-        currentCommit = null;
+    for (const commit of commits) {
+      if (!commit.email || !commit.name) {
+        continue;
       }
+
+      const key = commit.email.toLowerCase();
+      if (!contributorMap.has(key)) {
+        contributorMap.set(key, {
+          name: commit.name,
+          email: commit.email,
+          commits: 0,
+          linesAdded: 0,
+          linesDeleted: 0,
+          firstCommit: commit.date,
+          lastCommit: commit.date,
+          weeklyActivity: [],
+        });
+      }
+
+      const contributor = contributorMap.get(key)!;
+      contributor.commits++;
+      contributor.linesAdded += commit.additions;
+      contributor.linesDeleted += commit.deletions;
+
+      if (commit.date < contributor.firstCommit) {
+        contributor.firstCommit = commit.date;
+      }
+      if (commit.date > contributor.lastCommit) {
+        contributor.lastCommit = commit.date;
+      }
+
+      const week = this.getISOWeek(new Date(commit.date));
+      let weeklyEntry = contributor.weeklyActivity.find((entry) => entry.week === week);
+      if (!weeklyEntry) {
+        weeklyEntry = { week, commits: 0, additions: 0, deletions: 0 };
+        contributor.weeklyActivity.push(weeklyEntry);
+      }
+
+      weeklyEntry.commits++;
+      weeklyEntry.additions += commit.additions;
+      weeklyEntry.deletions += commit.deletions;
     }
 
-    // Handle commits without stat lines (empty commits)
-    // We need a second pass for these
-    const rawLogBasic = await this.git.raw([
-      'log',
-      '--all',
-      `--max-count=${maxCommits}`,
-      '--format=%an|%ae|%aI',
-    ]);
-
-    for (const line of rawLogBasic.split('\n')) {
-      const trimmed = line.trim();
-      if (!trimmed || !trimmed.includes('|')) {continue;}
-
-      const parts = trimmed.split('|');
-      if (parts.length >= 3) {
-        const email = parts[1].toLowerCase();
-        if (!contributorMap.has(email)) {
-          contributorMap.set(email, {
-            name: parts[0],
-            email: parts[1],
-            commits: 1,
-            linesAdded: 0,
-            linesDeleted: 0,
-            firstCommit: parts[2],
-            lastCommit: parts[2],
-            weeklyActivity: [],
-          });
-        }
-      }
-    }
-
-    // Sort contributors by commit count (descending)
     const contributors = Array.from(contributorMap.values());
     contributors.sort((a, b) => b.commits - a.commits);
 
-    // Sort weekly activity by week
     for (const contributor of contributors) {
       contributor.weeklyActivity.sort((a, b) => a.week.localeCompare(b.week));
     }
@@ -206,54 +153,34 @@ export class GitAnalyzer implements GitClient {
     return contributors;
   }
 
-  async getCodeFrequency(maxCommits: number): Promise<CodeFrequency[]> {
+  async getCodeFrequency(
+    maxCommits: number,
+    excludePatterns: string[] = []
+  ): Promise<CodeFrequency[]> {
     if (!(await this.isRepo())) {
       throw new NotAGitRepoError(this.repoPath);
     }
 
-    const rawLog = await this.git.raw([
-      'log',
-      '--all',
-      `--max-count=${maxCommits}`,
-      '--format=%aI',
-      '--shortstat',
-    ]);
-
+    const commits = await this.getParsedCommitStats(maxCommits, false, excludePatterns);
     const weeklyMap = new Map<string, CodeFrequency>();
-    const lines = rawLog.split('\n');
 
-    let currentDate: string | null = null;
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed) {continue;}
-
-      // Check if this is a date line (ISO format)
-      if (trimmed.match(/^\d{4}-\d{2}-\d{2}T/)) {
-        currentDate = trimmed;
-      } else if (currentDate && (trimmed.includes('insertion') || trimmed.includes('deletion') || trimmed.includes('file'))) {
-        const stats = this.parseStatLine(trimmed);
-        const week = this.getISOWeek(new Date(currentDate));
-
-        if (!weeklyMap.has(week)) {
-          weeklyMap.set(week, {
-            week,
-            additions: 0,
-            deletions: 0,
-            netChange: 0,
-          });
-        }
-
-        const entry = weeklyMap.get(week)!;
-        entry.additions += stats.additions;
-        entry.deletions += stats.deletions;
-        entry.netChange = entry.additions - entry.deletions;
-
-        currentDate = null;
+    for (const commit of commits) {
+      const week = this.getISOWeek(new Date(commit.date));
+      if (!weeklyMap.has(week)) {
+        weeklyMap.set(week, {
+          week,
+          additions: 0,
+          deletions: 0,
+          netChange: 0,
+        });
       }
+
+      const entry = weeklyMap.get(week)!;
+      entry.additions += commit.additions;
+      entry.deletions += commit.deletions;
+      entry.netChange = entry.additions - entry.deletions;
     }
 
-    // Sort by week
     const frequency = Array.from(weeklyMap.values());
     frequency.sort((a, b) => a.week.localeCompare(b.week));
 
@@ -405,21 +332,116 @@ export class GitAnalyzer implements GitClient {
     return this.git.raw(args);
   }
 
-  private parseStatLine(line: string): { additions: number; deletions: number } {
-    let additions = 0;
-    let deletions = 0;
+  private async getParsedCommitStats(
+    maxCommits: number,
+    includeAuthorFields: boolean,
+    excludePatterns: string[]
+  ): Promise<ParsedCommitStat[]> {
+    const shouldExcludePath = createPathPatternMatcher(excludePatterns);
+    const format = includeAuthorFields
+      ? '__COMMIT__|%an|%ae|%aI'
+      : '__COMMIT__|%aI';
+    const rawLog = await this.git.raw([
+      'log',
+      '--all',
+      `--max-count=${maxCommits}`,
+      '--no-renames',
+      `--format=${format}`,
+      '--numstat',
+    ]);
 
-    const insertionMatch = line.match(/(\d+)\s+insertion/);
-    if (insertionMatch) {
-      additions = parseInt(insertionMatch[1], 10);
+    const commits: ParsedCommitStat[] = [];
+    let current: ParsedCommitStat | null = null;
+
+    const pushCurrent = () => {
+      if (!current) {
+        return;
+      }
+
+      if (current.hasIncludedChanges || !current.sawAnyFileStats) {
+        commits.push(current);
+      }
+    };
+
+    for (const line of rawLog.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        continue;
+      }
+
+      if (trimmed.startsWith('__COMMIT__|')) {
+        pushCurrent();
+        current = this.createParsedCommit(trimmed, includeAuthorFields);
+        continue;
+      }
+
+      if (!current) {
+        continue;
+      }
+
+      const fileStat = this.parseNumstatLine(line);
+      if (!fileStat) {
+        continue;
+      }
+
+      current.sawAnyFileStats = true;
+      if (shouldExcludePath(fileStat.filePath)) {
+        continue;
+      }
+
+      current.hasIncludedChanges = true;
+      current.additions += fileStat.additions;
+      current.deletions += fileStat.deletions;
     }
 
-    const deletionMatch = line.match(/(\d+)\s+deletion/);
-    if (deletionMatch) {
-      deletions = parseInt(deletionMatch[1], 10);
+    pushCurrent();
+    return commits;
+  }
+
+  private createParsedCommit(line: string, includeAuthorFields: boolean): ParsedCommitStat {
+    const parts = line.split('|');
+    if (includeAuthorFields) {
+      return {
+        name: parts[1],
+        email: parts[2],
+        date: parts[3],
+        additions: 0,
+        deletions: 0,
+        hasIncludedChanges: false,
+        sawAnyFileStats: false,
+      };
     }
 
-    return { additions, deletions };
+    return {
+      date: parts[1],
+      additions: 0,
+      deletions: 0,
+      hasIncludedChanges: false,
+      sawAnyFileStats: false,
+    };
+  }
+
+  private parseNumstatLine(
+    line: string
+  ): { additions: number; deletions: number; filePath: string } | null {
+    const parts = line.split('\t');
+    if (parts.length < 3) {
+      return null;
+    }
+
+    const filePath = parts[parts.length - 1].trim();
+    if (!filePath) {
+      return null;
+    }
+
+    const additions = parts[0] === '-' ? 0 : parseInt(parts[0], 10);
+    const deletions = parts[1] === '-' ? 0 : parseInt(parts[1], 10);
+
+    if (!Number.isFinite(additions) || !Number.isFinite(deletions)) {
+      return null;
+    }
+
+    return { additions, deletions, filePath };
   }
 
   private getRepositoryName(): string {

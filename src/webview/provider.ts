@@ -18,6 +18,7 @@ import { AnalysisCoordinator } from '../analyzers/coordinator.js';
 import { createEvolutionAnalyzer } from '../analyzers/evolutionAnalyzer.js';
 import { CacheManager, CacheStorage } from '../cache/cacheManager.js';
 import { EvolutionCacheManager } from '../cache/evolutionCacheManager.js';
+import { createCoreSettingsHash } from '../cache/coreSettingsHash.js';
 
 // ============================================================================
 // VSCode Workspace State Storage Adapter
@@ -47,6 +48,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
   private workspaceState: vscode.Memento;
   private globalStoragePath: string;
   private lastCoreHeadSha: string | null = null;
+  private lastCoreSettingsHash: string | null = null;
   private lastEvolutionHeadSha: string | null = null;
   private lastEvolutionSettingsHash: string | null = null;
 
@@ -296,6 +298,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
 
     try {
       const settings = this.getSettings();
+      const settingsHash = createCoreSettingsHash(settings);
       const storage = new WorkspaceStateStorage(this.workspaceState);
       const cacheManager = new CacheManager(storage, repoPath);
       const previousBlameFileCache = cacheManager.getBlameFileCache();
@@ -311,12 +314,13 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
 
       // Check if we have a valid cache
       const repoInfo = await coordinator.getRepositoryInfo();
-      const cached = cacheManager.getIfValid(repoInfo.headSha);
+      const cached = cacheManager.getIfValid(repoInfo.headSha, settingsHash);
 
       if (cached) {
         // Update with fresh repo info
         cached.repository = repoInfo;
         this.lastCoreHeadSha = cached.repository.headSha;
+        this.lastCoreSettingsHash = settingsHash;
         this.sendMessage(webview, {
           type: 'analysisComplete',
           data: cached,
@@ -338,6 +342,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
         },
         onCoreReady: (coreResult) => {
           this.lastCoreHeadSha = coreResult.repository.headSha;
+          this.lastCoreSettingsHash = settingsHash;
           this.sendMessage(webview, {
             type: 'analysisComplete',
             data: coreResult,
@@ -352,9 +357,10 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       });
 
       // Save to cache
-      cacheManager.save(result, coordinator.getLatestBlameFileCache());
+      cacheManager.save(result, coordinator.getLatestBlameFileCache(), settingsHash);
 
       this.lastCoreHeadSha = result.repository.headSha;
+      this.lastCoreSettingsHash = settingsHash;
       this.sendMessage(webview, {
         type: 'analysisComplete',
         data: result,
@@ -493,18 +499,23 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     try {
       const git = simpleGit(repoPath);
       const currentHeadSha = (await git.revparse(['HEAD'])).trim();
-      const currentSettingsHash = createEvolutionSettingsHash(this.getSettings());
+      const settings = this.getSettings();
+      const currentCoreSettingsHash = createCoreSettingsHash(settings);
+      const currentEvolutionSettingsHash = createEvolutionSettingsHash(settings);
 
-      const coreStale = this.lastCoreHeadSha !== null && this.lastCoreHeadSha !== currentHeadSha;
+      const coreStaleByHead = this.lastCoreHeadSha !== null && this.lastCoreHeadSha !== currentHeadSha;
+      const coreStaleBySettings =
+        this.lastCoreSettingsHash !== null &&
+        this.lastCoreSettingsHash !== currentCoreSettingsHash;
 
       const evolutionStaleByHead = this.lastEvolutionHeadSha !== null && this.lastEvolutionHeadSha !== currentHeadSha;
       const evolutionStaleBySettings =
         this.lastEvolutionSettingsHash !== null &&
-        this.lastEvolutionSettingsHash !== currentSettingsHash;
+        this.lastEvolutionSettingsHash !== currentEvolutionSettingsHash;
 
       this.sendMessage(webview, {
         type: 'stalenessStatus',
-        coreStale,
+        coreStale: coreStaleByHead || coreStaleBySettings,
         evolutionStale: evolutionStaleByHead || evolutionStaleBySettings,
       });
     } catch (error) {

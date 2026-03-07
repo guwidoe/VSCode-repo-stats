@@ -23,6 +23,7 @@ import {
   normalizeExtensionForFilter,
   shouldExcludeFileByExtension,
 } from './locCounter.js';
+import { createPathPatternMatcher } from './pathMatching.js';
 
 // ============================================================================
 // Progress Callback Type
@@ -90,14 +91,16 @@ export class AnalysisCoordinator {
     // Phase 3: Contributor stats (can be slow for large repos)
     onProgress?.('Analyzing contributors', 15);
     const contributors = await this.gitClient.getContributorStats(
-      this.settings.maxCommitsToAnalyze
+      this.settings.maxCommitsToAnalyze,
+      this.settings.excludePatterns
     );
     onProgress?.('Contributors analyzed', 40);
 
     // Phase 4: Code frequency
     onProgress?.('Calculating code frequency', 45);
     const codeFrequency = await this.gitClient.getCodeFrequency(
-      this.settings.maxCommitsToAnalyze
+      this.settings.maxCommitsToAnalyze,
+      this.settings.excludePatterns
     );
     onProgress?.('Code frequency calculated', 60);
 
@@ -117,7 +120,10 @@ export class AnalysisCoordinator {
 
     // Phase 7: Get all tracked files and add binary files to tree
     onProgress?.('Scanning for binary files', 90);
-    const trackedFiles = await this.gitClient.getTrackedFiles();
+    const shouldExcludePath = createPathPatternMatcher(this.settings.excludePatterns);
+    const trackedFiles = (await this.gitClient.getTrackedFiles()).filter(
+      (filePath) => !shouldExcludePath(filePath)
+    );
     const codeFilePaths = this.collectFilePaths(fileTree);
     const locExcludedExtensionSet = this.buildExtensionSet(
       this.settings.locExcludedExtensions
@@ -490,11 +496,17 @@ export class AnalysisCoordinator {
   }
 
   async getContributors(): Promise<ContributorStats[]> {
-    return this.gitClient.getContributorStats(this.settings.maxCommitsToAnalyze);
+    return this.gitClient.getContributorStats(
+      this.settings.maxCommitsToAnalyze,
+      this.settings.excludePatterns
+    );
   }
 
   async getCodeFrequency(): Promise<CodeFrequency[]> {
-    return this.gitClient.getCodeFrequency(this.settings.maxCommitsToAnalyze);
+    return this.gitClient.getCodeFrequency(
+      this.settings.maxCommitsToAnalyze,
+      this.settings.excludePatterns
+    );
   }
 
   async getFileTree(): Promise<TreemapNode> {

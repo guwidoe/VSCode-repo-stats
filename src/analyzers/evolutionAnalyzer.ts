@@ -13,6 +13,7 @@ import {
   ExtensionSettings,
   NotAGitRepoError,
 } from '../types/index.js';
+import { createPathPatternMatcher } from './pathMatching.js';
 
 export type EvolutionProgressCallback = (phase: string, progress: number) => void;
 
@@ -59,17 +60,14 @@ export class EvolutionAnalyzer {
   private readonly git: EvolutionGitClient;
   private readonly repoPath: string;
   private readonly settings: ExtensionSettings;
-  private readonly excludeRegexes: RegExp[];
+  private readonly shouldExcludePath: (filePath: string) => boolean;
   private expectedBlameMisses = 0;
 
   constructor(repoPath: string, settings: ExtensionSettings, gitClient?: EvolutionGitClient) {
     this.repoPath = repoPath;
     this.settings = settings;
     this.git = gitClient ?? simpleGit(repoPath);
-    this.excludeRegexes = settings.excludePatterns
-      .map((pattern) => pattern.trim())
-      .filter((pattern) => pattern.length > 0)
-      .map((pattern) => globToRegExp(pattern));
+    this.shouldExcludePath = createPathPatternMatcher(settings.excludePatterns);
   }
 
   async analyze(onProgress?: EvolutionProgressCallback): Promise<EvolutionResult> {
@@ -334,10 +332,8 @@ export class EvolutionAnalyzer {
       return false;
     }
 
-    for (const regex of this.excludeRegexes) {
-      if (regex.test(normalizedPath)) {
-        return false;
-      }
+    if (this.shouldExcludePath(normalizedPath)) {
+      return false;
     }
 
     return true;
@@ -570,41 +566,6 @@ function isExpectedBlameMiss(error: unknown): boolean {
     message.includes('file not found') ||
     message.includes('no such ref')
   );
-}
-
-function globToRegExp(glob: string): RegExp {
-  const normalized = glob.replace(/\\/g, '/');
-  let pattern = '^';
-
-  for (let i = 0; i < normalized.length; i++) {
-    const char = normalized[i];
-    const next = normalized[i + 1];
-
-    if (char === '*' && next === '*') {
-      pattern += '.*';
-      i += 1;
-      continue;
-    }
-
-    if (char === '*') {
-      pattern += '[^/]*';
-      continue;
-    }
-
-    if (char === '?') {
-      pattern += '.';
-      continue;
-    }
-
-    pattern += escapeRegExp(char);
-  }
-
-  pattern += '$';
-  return new RegExp(pattern);
-}
-
-function escapeRegExp(input: string): string {
-  return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 export function createEvolutionAnalyzer(

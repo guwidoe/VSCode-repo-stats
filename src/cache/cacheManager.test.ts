@@ -77,20 +77,25 @@ describe('CacheManager', () => {
     });
 
     it('should return true for valid cache with matching SHA', () => {
-      cacheManager.save(mockResult);
-      expect(cacheManager.isValid('abc123')).toBe(true);
+      cacheManager.save(mockResult, {}, 'settings-hash-1');
+      expect(cacheManager.isValid('abc123', 'settings-hash-1')).toBe(true);
     });
 
     it('should return false for cache with different SHA', () => {
-      cacheManager.save(mockResult);
-      expect(cacheManager.isValid('xyz789')).toBe(false);
+      cacheManager.save(mockResult, {}, 'settings-hash-1');
+      expect(cacheManager.isValid('xyz789', 'settings-hash-1')).toBe(false);
+    });
+
+    it('should return false for cache with different settings hash', () => {
+      cacheManager.save(mockResult, {}, 'settings-hash-1');
+      expect(cacheManager.isValid('abc123', 'settings-hash-2')).toBe(false);
     });
   });
 
   describe('save and getIfValid', () => {
     it('should save and retrieve analysis result', () => {
-      cacheManager.save(mockResult);
-      const cached = cacheManager.getIfValid('abc123');
+      cacheManager.save(mockResult, {}, 'settings-hash-1');
+      const cached = cacheManager.getIfValid('abc123', 'settings-hash-1');
 
       expect(cached).not.toBeNull();
       expect(cached?.contributors).toHaveLength(1);
@@ -100,8 +105,15 @@ describe('CacheManager', () => {
     });
 
     it('should return null for invalid SHA', () => {
-      cacheManager.save(mockResult);
-      const cached = cacheManager.getIfValid('wrong-sha');
+      cacheManager.save(mockResult, {}, 'settings-hash-1');
+      const cached = cacheManager.getIfValid('wrong-sha', 'settings-hash-1');
+
+      expect(cached).toBeNull();
+    });
+
+    it('should return null for invalid settings hash', () => {
+      cacheManager.save(mockResult, {}, 'settings-hash-1');
+      const cached = cacheManager.getIfValid('abc123', 'settings-hash-2');
 
       expect(cached).toBeNull();
     });

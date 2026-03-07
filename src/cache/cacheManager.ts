@@ -15,7 +15,7 @@ import {
 // Cache Version - Bump this when cache structure changes
 // ============================================================================
 
-const CACHE_VERSION = '1.3.1'; // Bumped to invalidate incorrect incremental blame ownership caches
+const CACHE_VERSION = '1.3.2'; // Bumped to include core analysis settings in cache validity
 
 // ============================================================================
 // Storage Interface (for dependency injection)
@@ -43,19 +43,20 @@ export class CacheManager {
   /**
    * Check if the cache is valid for the given commit SHA.
    */
-  isValid(currentSha: string): boolean {
+  isValid(currentSha: string, settingsHash?: string): boolean {
     const cache = this.getCache();
     if (!cache) {return false;}
     if (cache.version !== CACHE_VERSION) {return false;}
     if (cache.lastCommitSha !== currentSha) {return false;}
+    if (settingsHash !== undefined && cache.settingsHash !== settingsHash) {return false;}
     return true;
   }
 
   /**
    * Get the full cached analysis result if valid.
    */
-  getIfValid(currentSha: string): AnalysisResult | null {
-    if (!this.isValid(currentSha)) {return null;}
+  getIfValid(currentSha: string, settingsHash?: string): AnalysisResult | null {
+    if (!this.isValid(currentSha, settingsHash)) {return null;}
 
     const cache = this.getCache();
     if (!cache) {return null;}
@@ -93,12 +94,14 @@ export class CacheManager {
    */
   save(
     result: AnalysisResult,
-    blameFileCache: Record<string, BlameFileCacheEntry> = {}
+    blameFileCache: Record<string, BlameFileCacheEntry> = {},
+    settingsHash?: string
   ): void {
     const cache: CacheStructure = {
       version: CACHE_VERSION,
       repoPath: result.repository.path,
       lastCommitSha: result.repository.headSha,
+      settingsHash,
       lastAnalyzed: Date.now(),
       contributors: result.contributors,
       codeFrequency: result.codeFrequency,

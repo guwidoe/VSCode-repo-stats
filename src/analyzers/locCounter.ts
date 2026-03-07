@@ -18,6 +18,10 @@ import {
   SccInfo,
   createSccBinaryManager,
 } from './sccBinaryManager.js';
+import {
+  createPathPatternMatcher,
+  getLiteralExcludeDirNames,
+} from './pathMatching.js';
 
 const execAsync = promisify(exec);
 
@@ -200,10 +204,11 @@ export class LOCCounter implements LOCClient {
       );
     }
 
-    const excludeArgs = excludePatterns
-      .map((p) => `--exclude-dir=${p}`)
+    const excludeArgs = getLiteralExcludeDirNames(excludePatterns)
+      .map((pattern) => `--exclude-dir=${pattern}`)
       .join(' ');
 
+    const shouldExcludePath = createPathPatternMatcher(excludePatterns);
     const excludedExtensionSet = buildExcludedExtensionSet(locExcludedExtensions);
 
     try {
@@ -227,9 +232,13 @@ export class LOCCounter implements LOCClient {
         }
       }
 
-      const filteredFiles = allFiles.filter(
-        (file) => !shouldExcludeFileByExtension(file.Location, excludedExtensionSet)
-      );
+      const filteredFiles = allFiles.filter((file) => {
+        const relativePath = this.toRelativePath(file.Location);
+        return (
+          !shouldExcludePath(relativePath) &&
+          !shouldExcludeFileByExtension(relativePath, excludedExtensionSet)
+        );
+      });
 
       return this.buildTreeFromScc(filteredFiles);
     } catch (error) {
@@ -237,6 +246,14 @@ export class LOCCounter implements LOCClient {
         error instanceof Error ? error.message : String(error);
       throw new Error(`Failed to count lines of code: ${errorMessage}`);
     }
+  }
+
+  private toRelativePath(fileLocation: string): string {
+    const relativePath = fileLocation.startsWith(this.repoPath)
+      ? fileLocation.slice(this.repoPath.length + 1)
+      : fileLocation;
+
+    return relativePath.replace(/^\.\//, '').replace(/\\/g, '/');
   }
 
   private buildTreeFromScc(sccResult: SccFileEntry[]): TreemapNode {
@@ -249,13 +266,7 @@ export class LOCCounter implements LOCClient {
     };
 
     for (const file of sccResult) {
-      let relativePath = file.Location.startsWith(this.repoPath)
-        ? file.Location.slice(this.repoPath.length + 1)
-        : file.Location;
-
-      // Normalize path: remove leading ./, use forward slashes
-      relativePath = relativePath.replace(/^\.\//, '').replace(/\\/g, '/');
-
+      const relativePath = this.toRelativePath(file.Location);
       const parts = relativePath.split('/');
       let current = root;
 
