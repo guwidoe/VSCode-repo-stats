@@ -141,7 +141,7 @@ This extension uses [scc](https://github.com/boyter/scc) for accurate lines-of-c
 
 | Setting | Default | Description |
 | --- | --- | --- |
-| `repoStats.excludePatterns` | `[]` | Additional directories to exclude beyond `.gitignore` |
+| `repoStats.excludePatterns` | `[]` | Additional repo-relative directory patterns to exclude beyond `.gitignore` |
 | `repoStats.maxCommitsToAnalyze` | `10000` | Maximum commits to analyze for history-based views |
 | `repoStats.defaultColorMode` | `"language"` | Default treemap color mode (`language`, `age`, `complexity`, or `density`) |
 | `repoStats.showEmptyTimePeriods` | `true` | Show weeks/months with no activity in charts |
@@ -160,6 +160,8 @@ This extension uses [scc](https://github.com/boyter/scc) for accurate lines-of-c
 | `repoStats.evolution.cohortFormat` | `"%Y"` | Cohort grouping format (`%Y`, `%Y-%m`, `%Y-W%W`) |
 
 Tip: If assets like `.svg` files inflate LOC totals for your project, add `.svg` to `repoStats.locExcludedExtensions`.
+
+`repoStats.excludePatterns` accepts simple directory names (`vendor`), repo-relative paths (`backend/fixtures`), and glob-style directory patterns (`**/backend/fixtures/**`).
 
 `repoStats.includeSubmodules` only affects file-based analysis (Overview + Files + Treemap). Contributors, Code Frequency, and Evolution continue to use parent-repo history only.
 

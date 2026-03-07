@@ -45,10 +45,10 @@ export function GeneralSettings({ settings, data, updateSettings, requestRefresh
       <div className="settings-sections">
         <PatternListSetting
           title="Additional Exclude Patterns"
-          description="Extra directories to exclude beyond .gitignore (e.g., for untracked directories)"
+          description="Extra repo-relative directory patterns to exclude beyond .gitignore (e.g. vendor, backend/fixtures, **/fixtures/**)"
           patterns={settings.excludePatterns}
           onChange={(patterns) => updateSettings({ excludePatterns: patterns })}
-          placeholder="e.g., vendor, temp"
+          placeholder="e.g., vendor, backend/fixtures"
         />
 
         <SelectSetting

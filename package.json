@@ -54,7 +54,7 @@
         "repoStats.excludePatterns": {
           "type": "array",
           "default": [],
-          "description": "Additional directories to exclude beyond .gitignore (e.g., for untracked directories)"
+          "description": "Additional repo-relative directory patterns to exclude beyond .gitignore (e.g. vendor, backend/fixtures, **/fixtures/**)"
         },
         "repoStats.maxCommitsToAnalyze": {
           "type": "number",
