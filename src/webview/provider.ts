@@ -13,12 +13,16 @@ import {
   WebviewMessage,
   ExtensionSettings,
   NotAGitRepoError,
+  RepoScopableSettingKey,
+  RepoScopedSettings,
+  SettingWriteTarget,
 } from '../types/index.js';
 import { AnalysisCoordinator } from '../analyzers/coordinator.js';
 import { createEvolutionAnalyzer } from '../analyzers/evolutionAnalyzer.js';
 import { CacheManager, CacheStorage } from '../cache/cacheManager.js';
 import { EvolutionCacheManager } from '../cache/evolutionCacheManager.js';
 import { createCoreSettingsHash } from '../cache/coreSettingsHash.js';
+import { buildScopedSettingValue } from './scopedSettings.js';
 
 // ============================================================================
 // VSCode Workspace State Storage Adapter
@@ -113,11 +117,10 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
 
     // Send settings after a brief delay to ensure webview is ready
     // Also send again after analysis in case the first one was missed
-    const settings = this.getSettings();
     setTimeout(() => {
       if (this.panel) {
-        console.log('[RepoStats] Sending initial settings:', settings);
-        this.sendMessage(this.panel.webview, { type: 'settingsLoaded', settings });
+        console.log('[RepoStats] Sending initial settings');
+        this.sendSettingsLoaded(this.panel.webview);
       }
     }, 100);
 
@@ -125,7 +128,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     await this.runAnalysis(this.panel.webview);
 
     // Send settings again after analysis completes (webview should definitely be ready now)
-    this.sendMessage(this.panel.webview, { type: 'settingsLoaded', settings });
+    this.sendSettingsLoaded(this.panel.webview);
   }
 
   /**
@@ -200,16 +203,27 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
 
       case 'getSettings': {
         console.log('[RepoStats] Handling getSettings request');
-        const settings = this.getSettings();
-        console.log('[RepoStats] Sending settings:', settings);
-        this.sendMessage(webview, { type: 'settingsLoaded', settings });
+        this.sendSettingsLoaded(webview);
         break;
       }
 
       case 'updateSettings': {
-        const shouldPromptReanalysis = await this.updateSettings(message.settings);
-        const settings = this.getSettings();
-        this.sendMessage(webview, { type: 'settingsLoaded', settings });
+        const shouldPromptReanalysis = await this.updateSettings(
+          message.settings,
+          message.target ?? 'global'
+        );
+        this.sendSettingsLoaded(webview);
+        await this.sendStalenessStatus(webview);
+
+        if (shouldPromptReanalysis) {
+          await this.promptReanalysisForFileScopeSetting(webview);
+        }
+        break;
+      }
+
+      case 'resetScopedSetting': {
+        const shouldPromptReanalysis = await this.resetScopedSettingOverride(message.key);
+        this.sendSettingsLoaded(webview);
         await this.sendStalenessStatus(webview);
 
         if (shouldPromptReanalysis) {
@@ -220,59 +234,72 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  private async updateSettings(settings: Partial<ExtensionSettings>): Promise<boolean> {
-    const config = vscode.workspace.getConfiguration('repoStats');
-    let shouldPromptReanalysis = false;
+  private async updateSettings(
+    settings: Partial<ExtensionSettings>,
+    target: SettingWriteTarget
+  ): Promise<boolean> {
+    const config = this.getConfig();
+    const configTarget = this.toConfigurationTarget(target);
+    const previousSettings = this.getSettings();
 
     if (settings.excludePatterns !== undefined) {
-      await config.update('excludePatterns', settings.excludePatterns, vscode.ConfigurationTarget.Global);
+      await config.update('excludePatterns', settings.excludePatterns, configTarget);
     }
     if (settings.maxCommitsToAnalyze !== undefined) {
-      await config.update('maxCommitsToAnalyze', settings.maxCommitsToAnalyze, vscode.ConfigurationTarget.Global);
+      await config.update('maxCommitsToAnalyze', settings.maxCommitsToAnalyze, configTarget);
     }
     if (settings.defaultColorMode !== undefined) {
-      await config.update('defaultColorMode', settings.defaultColorMode, vscode.ConfigurationTarget.Global);
+      await config.update('defaultColorMode', settings.defaultColorMode, configTarget);
     }
     if (settings.generatedPatterns !== undefined) {
-      await config.update('generatedPatterns', settings.generatedPatterns, vscode.ConfigurationTarget.Global);
+      await config.update('generatedPatterns', settings.generatedPatterns, configTarget);
     }
     if (settings.binaryExtensions !== undefined) {
-      await config.update('binaryExtensions', settings.binaryExtensions, vscode.ConfigurationTarget.Global);
+      await config.update('binaryExtensions', settings.binaryExtensions, configTarget);
     }
     if (settings.locExcludedExtensions !== undefined) {
-      await config.update('locExcludedExtensions', settings.locExcludedExtensions, vscode.ConfigurationTarget.Global);
+      await config.update('locExcludedExtensions', settings.locExcludedExtensions, configTarget);
     }
     if (settings.includeSubmodules !== undefined) {
-      const currentValue = this.getRequiredConfigValue<boolean>(config, 'includeSubmodules');
-      await config.update('includeSubmodules', settings.includeSubmodules, vscode.ConfigurationTarget.Global);
-      if (currentValue !== settings.includeSubmodules) {
-        shouldPromptReanalysis = true;
-      }
+      await config.update('includeSubmodules', settings.includeSubmodules, configTarget);
     }
     if (settings.showEmptyTimePeriods !== undefined) {
-      await config.update('showEmptyTimePeriods', settings.showEmptyTimePeriods, vscode.ConfigurationTarget.Global);
+      await config.update('showEmptyTimePeriods', settings.showEmptyTimePeriods, configTarget);
     }
     if (settings.defaultGranularityMode !== undefined) {
-      await config.update('defaultGranularityMode', settings.defaultGranularityMode, vscode.ConfigurationTarget.Global);
+      await config.update('defaultGranularityMode', settings.defaultGranularityMode, configTarget);
     }
     if (settings.autoGranularityThreshold !== undefined) {
-      await config.update('autoGranularityThreshold', settings.autoGranularityThreshold, vscode.ConfigurationTarget.Global);
+      await config.update('autoGranularityThreshold', settings.autoGranularityThreshold, configTarget);
     }
     if (settings.overviewDisplayMode !== undefined) {
-      await config.update('overviewDisplayMode', settings.overviewDisplayMode, vscode.ConfigurationTarget.Global);
+      await config.update('overviewDisplayMode', settings.overviewDisplayMode, configTarget);
     }
     if (settings.tooltipSettings !== undefined) {
-      await config.update('tooltipSettings', settings.tooltipSettings, vscode.ConfigurationTarget.Global);
+      await config.update('tooltipSettings', settings.tooltipSettings, configTarget);
     }
     if (settings.evolution !== undefined) {
-      await config.update('evolution.autoRun', settings.evolution.autoRun, vscode.ConfigurationTarget.Global);
-      await config.update('evolution.snapshotIntervalDays', settings.evolution.snapshotIntervalDays, vscode.ConfigurationTarget.Global);
-      await config.update('evolution.maxSnapshots', settings.evolution.maxSnapshots, vscode.ConfigurationTarget.Global);
-      await config.update('evolution.maxSeries', settings.evolution.maxSeries, vscode.ConfigurationTarget.Global);
-      await config.update('evolution.cohortFormat', settings.evolution.cohortFormat, vscode.ConfigurationTarget.Global);
+      await config.update('evolution.autoRun', settings.evolution.autoRun, configTarget);
+      await config.update('evolution.snapshotIntervalDays', settings.evolution.snapshotIntervalDays, configTarget);
+      await config.update('evolution.maxSnapshots', settings.evolution.maxSnapshots, configTarget);
+      await config.update('evolution.maxSeries', settings.evolution.maxSeries, configTarget);
+      await config.update('evolution.cohortFormat', settings.evolution.cohortFormat, configTarget);
     }
 
-    return shouldPromptReanalysis;
+    return previousSettings.includeSubmodules !== this.getSettings().includeSubmodules;
+  }
+
+  private async resetScopedSettingOverride(key: RepoScopableSettingKey): Promise<boolean> {
+    const config = this.getConfig();
+    const previousSettings = this.getSettings();
+    await config.update(key, undefined, vscode.ConfigurationTarget.WorkspaceFolder);
+    return previousSettings.includeSubmodules !== this.getSettings().includeSubmodules;
+  }
+
+  private toConfigurationTarget(target: SettingWriteTarget): vscode.ConfigurationTarget {
+    return target === 'repo'
+      ? vscode.ConfigurationTarget.WorkspaceFolder
+      : vscode.ConfigurationTarget.Global;
   }
 
   private async promptReanalysisForFileScopeSetting(webview: vscode.Webview): Promise<void> {
@@ -528,12 +555,28 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     webview.postMessage(message);
   }
 
-  private getWorkspacePath(): string | undefined {
+  private sendSettingsLoaded(webview: vscode.Webview): void {
+    this.sendMessage(webview, {
+      type: 'settingsLoaded',
+      settings: this.getSettings(),
+      scopedSettings: this.getRepoScopedSettings(),
+    });
+  }
+
+  private getWorkspaceFolderUri(): vscode.Uri | undefined {
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (!workspaceFolders || workspaceFolders.length === 0) {
       return undefined;
     }
-    return workspaceFolders[0].uri.fsPath;
+    return workspaceFolders[0].uri;
+  }
+
+  private getWorkspacePath(): string | undefined {
+    return this.getWorkspaceFolderUri()?.fsPath;
+  }
+
+  private getConfig(): vscode.WorkspaceConfiguration {
+    return vscode.workspace.getConfiguration('repoStats', this.getWorkspaceFolderUri());
   }
 
   private getRequiredConfigValue<T>(config: vscode.WorkspaceConfiguration, key: string): T {
@@ -547,8 +590,35 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     return value;
   }
 
+  private getScopedSettingValue<K extends RepoScopableSettingKey>(
+    config: vscode.WorkspaceConfiguration,
+    key: K
+  ): RepoScopedSettings[K] {
+    const inspect = config.inspect<ExtensionSettings[K]>(key);
+    if (!inspect) {
+      throw new Error(
+        `Missing inspect data for configuration value: repoStats.${key}. ` +
+        'Check package.json contributes.configuration registration.'
+      );
+    }
+
+    return buildScopedSettingValue(inspect) as RepoScopedSettings[K];
+  }
+
+  private getRepoScopedSettings(): RepoScopedSettings {
+    const config = this.getConfig();
+
+    return {
+      excludePatterns: this.getScopedSettingValue(config, 'excludePatterns'),
+      generatedPatterns: this.getScopedSettingValue(config, 'generatedPatterns'),
+      binaryExtensions: this.getScopedSettingValue(config, 'binaryExtensions'),
+      locExcludedExtensions: this.getScopedSettingValue(config, 'locExcludedExtensions'),
+      includeSubmodules: this.getScopedSettingValue(config, 'includeSubmodules'),
+    };
+  }
+
   private getSettings(): ExtensionSettings {
-    const config = vscode.workspace.getConfiguration('repoStats');
+    const config = this.getConfig();
 
     return {
       excludePatterns: this.getRequiredConfigValue<string[]>(config, 'excludePatterns'),

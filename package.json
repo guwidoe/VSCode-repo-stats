@@ -53,6 +53,7 @@
       "properties": {
         "repoStats.excludePatterns": {
           "type": "array",
+          "scope": "resource",
           "default": [],
           "description": "Additional repo-relative directory patterns to exclude beyond .gitignore (e.g. vendor, backend/fixtures, **/fixtures/**)"
         },
@@ -74,6 +75,7 @@
         },
         "repoStats.generatedPatterns": {
           "type": "array",
+          "scope": "resource",
           "default": [
             "**/generated/**",
             "**/gen/**",
@@ -105,6 +107,7 @@
         },
         "repoStats.binaryExtensions": {
           "type": "array",
+          "scope": "resource",
           "default": [
             ".png",
             ".jpg",
@@ -191,11 +194,13 @@
         },
         "repoStats.locExcludedExtensions": {
           "type": "array",
+          "scope": "resource",
           "default": [],
           "description": "File extensions to exclude from LOC counting (e.g. .svg). Accepts forms like .svg, svg, or **/*.svg."
         },
         "repoStats.includeSubmodules": {
           "type": "boolean",
+          "scope": "resource",
           "default": false,
           "description": "Include Git submodule files in LOC/file-tree analysis (Overview + Files + Treemap). Does not aggregate submodule history in Contributors, Code Frequency, or Evolution."
         },
