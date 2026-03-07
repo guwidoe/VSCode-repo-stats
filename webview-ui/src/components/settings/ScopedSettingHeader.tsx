@@ -5,6 +5,7 @@ interface ScopedSettingHeaderProps {
   target: SettingWriteTarget;
   source: ScopedSettingSource;
   hasRepoOverride: boolean;
+  compact?: boolean;
   onTargetChange: (target: SettingWriteTarget) => void;
   onResetRepoOverride: () => void;
 }
@@ -13,11 +14,12 @@ export function ScopedSettingHeader({
   target,
   source,
   hasRepoOverride,
+  compact = false,
   onTargetChange,
   onResetRepoOverride,
 }: ScopedSettingHeaderProps) {
   return (
-    <div className="scoped-setting-header">
+    <div className={`scoped-setting-header ${compact ? 'compact' : ''}`}>
       <div className="scoped-setting-targets" role="group" aria-label="Setting scope">
         <button
           type="button"
@@ -34,6 +36,12 @@ export function ScopedSettingHeader({
           Repo
         </button>
       </div>
+
+      {target === 'repo' && (
+        <span className="scoped-setting-path-hint">
+          Saved to <code>.vscode/settings.json</code>
+        </span>
+      )}
 
       <div className="scoped-setting-meta">
         <span className="scoped-setting-source">

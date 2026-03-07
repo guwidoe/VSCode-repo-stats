@@ -147,6 +147,10 @@
   gap: 8px;
 }
 
+.scoped-setting-header.compact {
+  gap: 6px;
+}
+
 .scoped-setting-targets {
   display: inline-flex;
   gap: 4px;
@@ -184,9 +188,30 @@
   justify-content: flex-end;
 }
 
+.scoped-setting-path-hint {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.scoped-setting-path-hint code {
+  font-family: var(--vscode-editor-font-family), monospace;
+  background: var(--vscode-textCodeBlock-background);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+.scoped-setting-header.compact .scoped-setting-path-hint {
+  font-size: 9px;
+}
+
 .scoped-setting-source {
   font-size: 11px;
   color: var(--vscode-descriptionForeground);
+}
+
+.scoped-setting-header.compact .scoped-setting-source,
+.scoped-setting-header.compact .scoped-setting-reset {
+  font-size: 10px;
 }
 
 .scoped-setting-reset {

@@ -114,6 +114,7 @@ export function EvolutionSettings({
       target={resolvedTargets[key]}
       source={scopedSettings[key].source}
       hasRepoOverride={scopedSettings[key].repoValue !== undefined}
+      compact
       onTargetChange={(target) => setTarget(key, target)}
       onResetRepoOverride={() => resetScopedSetting(key)}
     />

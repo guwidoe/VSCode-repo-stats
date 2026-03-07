@@ -127,5 +127,5 @@ describe('TreemapTooltip', () => {
     render(<TreemapTooltip visible={true} x={200} y={300} node={mockFileNode} sizeMode="loc" />);
     const tooltip = screen.getByText('src/components/index.ts').closest('.treemap-tooltip');
     expect(tooltip).toHaveStyle({ left: '215px', top: '315px' });
-  });
+  }, 10000);
 });

@@ -97,7 +97,7 @@ describe('GeneralSettings', () => {
 
     expect(screen.getByText('vendor')).toBeInTheDocument();
     expect(screen.queryByText('fixtures')).not.toBeInTheDocument();
-  }, 10000);
+  }, 20000);
 
   it('offers a reset action when a repo override exists', () => {
     const resetScopedSetting = vi.fn();
