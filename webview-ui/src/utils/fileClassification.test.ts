@@ -19,6 +19,13 @@ describe('fileClassification', () => {
     expect(isGeneratedFile('src/app.ts', DEFAULT_GENERATED_PATTERNS)).toBe(false);
   });
 
+  it('matches generated patterns at the repository root', () => {
+    expect(isGeneratedFile('generated/types.ts', DEFAULT_GENERATED_PATTERNS)).toBe(true);
+    expect(isGeneratedFile('dist/app.js', DEFAULT_GENERATED_PATTERNS)).toBe(true);
+    expect(isGeneratedFile('app.min.js', DEFAULT_GENERATED_PATTERNS)).toBe(true);
+    expect(isGeneratedFile('package-lock.json', DEFAULT_GENERATED_PATTERNS)).toBe(true);
+  });
+
   it('converts globs into regex with path-awareness', () => {
     const regex = globToRegex('**/*.generated.*');
     expect(regex.test('foo/bar/file.generated.ts')).toBe(true);

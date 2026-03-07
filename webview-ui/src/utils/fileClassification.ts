@@ -36,32 +36,29 @@ export function getFileExtension(filename: string): string {
  * Supports: ** (any path), * (any chars except /), ? (single char)
  */
 export function globToRegex(glob: string): RegExp {
-  let regex = glob
-    // Escape special regex chars except * and ?
+  const normalized = glob.replace(/\\/g, '/').replace(/^\.\//, '').replace(/^\/+|\/+$/g, '');
+  const doubleStarSlash = '__DOUBLE_STAR_SLASH__';
+  const slashDoubleStar = '__SLASH_DOUBLE_STAR__';
+  const doubleStar = '__DOUBLE_STAR__';
+
+  const regex = normalized
+    .replace(/\*\*\//g, doubleStarSlash)
+    .replace(/\/\*\*/g, slashDoubleStar)
+    .replace(/\*\*/g, doubleStar)
     .replace(/[.+^${}()|[\]\\]/g, '\\$&')
-    // Convert ** to match any path segment
-    .replace(/\*\*/g, '.*')
-    // Convert * to match anything except /
     .replace(/\*/g, '[^/]*')
-    // Convert ? to match single char
-    .replace(/\?/g, '.');
+    .replace(/\?/g, '[^/]')
+    .replace(new RegExp(doubleStarSlash, 'g'), '(?:.*/)?')
+    .replace(new RegExp(slashDoubleStar, 'g'), '(?:/.*)?')
+    .replace(new RegExp(doubleStar, 'g'), '.*');
 
-  // If pattern doesn't start with **, match from start or after /
-  if (!glob.startsWith('**')) {
-    regex = '(^|/)' + regex;
-  }
-
-  // If pattern doesn't end with **, match to end or before /
-  if (!glob.endsWith('**')) {
-    regex = regex + '($|/)';
-  }
-
-  return new RegExp(regex, 'i');
+  return new RegExp(`^${regex}$`, 'i');
 }
 
 /**
  * Check if a path matches any of the generated-file patterns.
  */
 export function isGeneratedFile(path: string, patterns: string[]): boolean {
-  return patterns.some((pattern) => globToRegex(pattern).test(path));
+  const normalizedPath = path.replace(/\\/g, '/').replace(/^\.\//, '').replace(/^\/+/, '');
+  return patterns.some((pattern) => globToRegex(pattern).test(normalizedPath));
 }
