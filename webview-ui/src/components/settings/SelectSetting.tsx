@@ -8,6 +8,7 @@ interface SelectSettingProps {
   value: string;
   options: { value: string; label: string }[];
   onChange: (value: string) => void;
+  headerContent?: React.ReactNode;
 }
 
 export function SelectSetting({
@@ -16,12 +17,16 @@ export function SelectSetting({
   value,
   options,
   onChange,
+  headerContent,
 }: SelectSettingProps) {
   return (
     <div className="setting-section">
       <div className="setting-header">
-        <h3 className="setting-title">{title}</h3>
-        <p className="setting-description">{description}</p>
+        <div className="setting-header-main">
+          <h3 className="setting-title">{title}</h3>
+          <p className="setting-description">{description}</p>
+        </div>
+        {headerContent && <div className="setting-header-aside">{headerContent}</div>}
       </div>
 
       <div className="select-row">

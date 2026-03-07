@@ -16,6 +16,7 @@ import type {
   TreemapFilterPreset,
   TreemapFilterState,
   ExtensionSettings,
+  RepoScopedSettings,
 } from '../types';
 import type { SizeDisplayMode } from '../components/treemap/types';
 import { isCodeLanguage } from '../utils/fileTypes';
@@ -40,6 +41,7 @@ interface RepoStatsState {
 
   // Settings
   settings: ExtensionSettings | null;
+  scopedSettings: RepoScopedSettings | null;
 
   // Staleness (tracked independently for core and evolution analyses)
   coreStale: boolean;
@@ -80,6 +82,7 @@ interface RepoStatsState {
   setEvolutionStatus: (status: EvolutionStatus) => void;
   setStaleness: (status: { coreStale: boolean; evolutionStale: boolean }) => void;
   setSettings: (settings: ExtensionSettings) => void;
+  setScopedSettings: (settings: RepoScopedSettings) => void;
   setActiveView: (view: ViewType) => void;
   setTimePeriod: (period: TimePeriod) => void;
   setFrequencyGranularity: (granularity: FrequencyGranularity) => void;
@@ -118,6 +121,7 @@ const initialState = {
     progress: 0,
   },
   settings: null as ExtensionSettings | null,
+  scopedSettings: null as RepoScopedSettings | null,
   coreStale: false,
   evolutionStale: false,
   activeView: 'overview' as ViewType,
@@ -291,6 +295,10 @@ export const useStore = create<RepoStatsState>((set, get) => ({
       frequencyGranularity: defaultGranularity,
       contributorGranularity: defaultGranularity,
     });
+  },
+
+  setScopedSettings: (scopedSettings: RepoScopedSettings) => {
+    set({ scopedSettings });
   },
 
   setActiveView: (view: ViewType) => {

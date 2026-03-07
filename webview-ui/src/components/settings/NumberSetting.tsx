@@ -10,6 +10,7 @@ interface NumberSettingProps {
   min?: number;
   max?: number;
   step?: number;
+  headerContent?: React.ReactNode;
 }
 
 export function NumberSetting({
@@ -20,6 +21,7 @@ export function NumberSetting({
   min = 0,
   max = 100000,
   step = 1,
+  headerContent,
 }: NumberSettingProps) {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = parseInt(e.target.value, 10);
@@ -31,8 +33,11 @@ export function NumberSetting({
   return (
     <div className="setting-section">
       <div className="setting-header">
-        <h3 className="setting-title">{title}</h3>
-        <p className="setting-description">{description}</p>
+        <div className="setting-header-main">
+          <h3 className="setting-title">{title}</h3>
+          <p className="setting-description">{description}</p>
+        </div>
+        {headerContent && <div className="setting-header-aside">{headerContent}</div>}
       </div>
 
       <div className="number-input-row">

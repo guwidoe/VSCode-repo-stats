@@ -32,6 +32,13 @@
   color: var(--vscode-descriptionForeground);
 }
 
+.settings-description code {
+  font-family: var(--vscode-editor-font-family), monospace;
+  background: var(--vscode-textCodeBlock-background);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
 /* SCC Info Section */
 .settings-info-section {
   margin-bottom: 24px;
@@ -103,7 +110,20 @@
 }
 
 .setting-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
   margin-bottom: 16px;
+}
+
+.setting-header-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.setting-header-aside {
+  flex-shrink: 0;
 }
 
 .setting-title {
@@ -117,6 +137,69 @@
   margin: 0;
   font-size: 12px;
   color: var(--vscode-descriptionForeground);
+}
+
+/* Scoped Setting Controls */
+.scoped-setting-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.scoped-setting-targets {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+  border-radius: 999px;
+}
+
+.scoped-setting-target {
+  padding: 4px 10px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--vscode-descriptionForeground);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.scoped-setting-target.active {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+
+.scoped-setting-target:hover:not(.active) {
+  background: var(--vscode-list-hoverBackground);
+  color: var(--vscode-foreground);
+}
+
+.scoped-setting-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.scoped-setting-source {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.scoped-setting-reset {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--vscode-textLink-foreground);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.scoped-setting-reset:hover {
+  text-decoration: underline;
 }
 
 /* Pattern List */

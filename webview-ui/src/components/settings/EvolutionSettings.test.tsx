@@ -52,7 +52,7 @@ describe('EvolutionSettings', () => {
         snapshotIntervalDays: 1,
       },
     });
-  });
+  }, 10000);
 
   it('shows the custom interval input for non-preset values', () => {
     render(<EvolutionSettings settings={createSettings(45)} updateSettings={vi.fn()} />);

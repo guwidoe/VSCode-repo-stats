@@ -10,6 +10,7 @@ interface PatternListSettingProps {
   patterns: string[];
   onChange: (patterns: string[]) => void;
   placeholder?: string;
+  headerContent?: React.ReactNode;
 }
 
 export function PatternListSetting({
@@ -18,6 +19,7 @@ export function PatternListSetting({
   patterns,
   onChange,
   placeholder,
+  headerContent,
 }: PatternListSettingProps) {
   const [newPattern, setNewPattern] = useState('');
 
@@ -43,8 +45,11 @@ export function PatternListSetting({
   return (
     <div className="setting-section">
       <div className="setting-header">
-        <h3 className="setting-title">{title}</h3>
-        <p className="setting-description">{description}</p>
+        <div className="setting-header-main">
+          <h3 className="setting-title">{title}</h3>
+          <p className="setting-description">{description}</p>
+        </div>
+        {headerContent && <div className="setting-header-aside">{headerContent}</div>}
       </div>
 
       <div className="pattern-list">

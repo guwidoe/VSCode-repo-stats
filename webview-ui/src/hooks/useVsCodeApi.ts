@@ -3,9 +3,19 @@
  */
 
 import { useCallback, useEffect } from 'react';
-import type { WebviewMessage, ExtensionMessage, ExtensionSettings } from '../types';
+import type {
+  WebviewMessage,
+  ExtensionMessage,
+  ExtensionSettings,
+  RepoScopableSettingKey,
+  SettingWriteTarget,
+} from '../types';
 import { useStore } from '../store';
 import { getOptimisticStalenessForSettingsChange } from './settingsStaleness';
+import {
+  applyScopedSettingUpdate,
+  resetRepoScopedSettingOverride,
+} from '../utils/scopedSettings';
 
 // ============================================================================
 // VSCode API Type
@@ -52,6 +62,7 @@ export function useVsCodeApi() {
     setError,
     setLoading,
     setSettings,
+    setScopedSettings,
     setEvolutionData,
     setEvolutionError,
     setEvolutionLoading,
@@ -129,6 +140,7 @@ export function useVsCodeApi() {
 
         case 'settingsLoaded':
           setSettings(message.settings);
+          setScopedSettings(message.scopedSettings);
           break;
       }
     };
@@ -154,6 +166,7 @@ export function useVsCodeApi() {
     setError,
     setLoading,
     setSettings,
+    setScopedSettings,
     setEvolutionData,
     setEvolutionError,
     setEvolutionLoading,
@@ -217,6 +230,45 @@ export function useVsCodeApi() {
     getVsCodeApi().postMessage({ type: 'updateSettings', settings });
   }, []);
 
+  const updateScopedSetting = useCallback(
+    <K extends RepoScopableSettingKey>(
+      key: K,
+      value: ExtensionSettings[K],
+      target: SettingWriteTarget
+    ) => {
+      const state = useStore.getState();
+      if (state.settings && state.scopedSettings) {
+        const next = applyScopedSettingUpdate(
+          state.settings,
+          state.scopedSettings,
+          key,
+          value,
+          target
+        );
+        state.setSettings(next.settings);
+        state.setScopedSettings(next.scopedSettings);
+      }
+
+      getVsCodeApi().postMessage({
+        type: 'updateSettings',
+        settings: { [key]: value } as Partial<ExtensionSettings>,
+        target,
+      });
+    },
+    []
+  );
+
+  const resetScopedSetting = useCallback((key: RepoScopableSettingKey) => {
+    const state = useStore.getState();
+    if (state.settings && state.scopedSettings) {
+      const next = resetRepoScopedSettingOverride(state.settings, state.scopedSettings, key);
+      state.setSettings(next.settings);
+      state.setScopedSettings(next.scopedSettings);
+    }
+
+    getVsCodeApi().postMessage({ type: 'resetScopedSetting', key });
+  }, []);
+
   return {
     requestAnalysis,
     requestRefresh,
@@ -226,6 +278,8 @@ export function useVsCodeApi() {
     revealInExplorer,
     copyPath,
     updateSettings,
+    updateScopedSetting,
+    resetScopedSetting,
   };
 }
 

@@ -191,6 +191,29 @@ export interface ExtensionSettings {
   evolution: EvolutionSettings;
 }
 
+export const REPO_SCOPABLE_SETTING_KEYS = [
+  'excludePatterns',
+  'generatedPatterns',
+  'binaryExtensions',
+  'locExcludedExtensions',
+  'includeSubmodules',
+] as const;
+
+export type RepoScopableSettingKey = typeof REPO_SCOPABLE_SETTING_KEYS[number];
+export type SettingWriteTarget = 'global' | 'repo';
+export type ScopedSettingSource = 'default' | 'global' | 'repo';
+
+export interface ScopedSettingValue<T> {
+  defaultValue: T;
+  globalValue?: T;
+  repoValue?: T;
+  source: ScopedSettingSource;
+}
+
+export type RepoScopedSettings = {
+  [K in RepoScopableSettingKey]: ScopedSettingValue<ExtensionSettings[K]>;
+};
+
 // ============================================================================
 // Message Types
 // ============================================================================
@@ -207,7 +230,7 @@ export type ExtensionMessage =
   | { type: 'evolutionError'; error: string }
   | { type: 'evolutionStale'; reason: string }
   | { type: 'stalenessStatus'; coreStale: boolean; evolutionStale: boolean }
-  | { type: 'settingsLoaded'; settings: ExtensionSettings };
+  | { type: 'settingsLoaded'; settings: ExtensionSettings; scopedSettings: RepoScopedSettings };
 
 export type WebviewMessage =
   | { type: 'requestAnalysis' }
@@ -219,7 +242,8 @@ export type WebviewMessage =
   | { type: 'revealInExplorer'; path: string }
   | { type: 'copyPath'; path: string }
   | { type: 'getSettings' }
-  | { type: 'updateSettings'; settings: Partial<ExtensionSettings> };
+  | { type: 'updateSettings'; settings: Partial<ExtensionSettings>; target?: SettingWriteTarget }
+  | { type: 'resetScopedSetting'; key: RepoScopableSettingKey };
 
 // ============================================================================
 // UI State Types

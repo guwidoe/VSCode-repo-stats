@@ -2,19 +2,75 @@
  * General Settings - Analysis and file patterns configuration.
  */
 
-import type { ExtensionSettings, AnalysisResult } from '../../types';
+import { useMemo, useState } from 'react';
+import type {
+  ExtensionSettings,
+  AnalysisResult,
+  RepoScopableSettingKey,
+  RepoScopedSettings,
+  SettingWriteTarget,
+} from '../../types';
 import { PatternListSetting } from './PatternListSetting';
 import { NumberSetting } from './NumberSetting';
 import { SelectSetting } from './SelectSetting';
+import { ScopedSettingHeader } from './ScopedSettingHeader';
+import { getScopedSettingDisplayValue } from '../../utils/scopedSettings';
 
 interface Props {
   settings: ExtensionSettings;
+  scopedSettings: RepoScopedSettings;
   data: AnalysisResult | null;
   updateSettings: (settings: Partial<ExtensionSettings>) => void;
+  updateScopedSetting: <K extends RepoScopableSettingKey>(
+    key: K,
+    value: ExtensionSettings[K],
+    target: SettingWriteTarget
+  ) => void;
+  resetScopedSetting: (key: RepoScopableSettingKey) => void;
   requestRefresh: () => void;
 }
 
-export function GeneralSettings({ settings, data, updateSettings, requestRefresh }: Props) {
+function getInitialTargets(scopedSettings: RepoScopedSettings): Record<RepoScopableSettingKey, SettingWriteTarget> {
+  return {
+    excludePatterns: scopedSettings.excludePatterns.source === 'repo' ? 'repo' : 'global',
+    generatedPatterns: scopedSettings.generatedPatterns.source === 'repo' ? 'repo' : 'global',
+    binaryExtensions: scopedSettings.binaryExtensions.source === 'repo' ? 'repo' : 'global',
+    locExcludedExtensions: scopedSettings.locExcludedExtensions.source === 'repo' ? 'repo' : 'global',
+    includeSubmodules: scopedSettings.includeSubmodules.source === 'repo' ? 'repo' : 'global',
+  };
+}
+
+export function GeneralSettings({
+  settings,
+  scopedSettings,
+  data,
+  updateSettings,
+  updateScopedSetting,
+  resetScopedSetting,
+  requestRefresh,
+}: Props) {
+  const [targets, setTargets] = useState<Record<RepoScopableSettingKey, SettingWriteTarget>>(
+    () => getInitialTargets(scopedSettings)
+  );
+
+  const resolvedTargets = useMemo(
+    () => ({ ...getInitialTargets(scopedSettings), ...targets }),
+    [scopedSettings, targets]
+  );
+
+  const setTarget = (key: RepoScopableSettingKey, target: SettingWriteTarget) => {
+    setTargets((current) => ({ ...current, [key]: target }));
+  };
+
+  const renderScopedHeader = (key: RepoScopableSettingKey) => (
+    <ScopedSettingHeader
+      target={resolvedTargets[key]}
+      source={scopedSettings[key].source}
+      hasRepoOverride={scopedSettings[key].repoValue !== undefined}
+      onTargetChange={(target) => setTarget(key, target)}
+      onResetRepoOverride={() => resetScopedSetting(key)}
+    />
+  );
   return (
     <>
       {/* SCC Info Section */}
@@ -46,44 +102,57 @@ export function GeneralSettings({ settings, data, updateSettings, requestRefresh
         <PatternListSetting
           title="Additional Exclude Patterns"
           description="Extra repo-relative directory patterns to exclude beyond .gitignore (e.g. vendor, backend/fixtures, **/fixtures/**)"
-          patterns={settings.excludePatterns}
-          onChange={(patterns) => updateSettings({ excludePatterns: patterns })}
+          patterns={getScopedSettingDisplayValue(scopedSettings, 'excludePatterns', resolvedTargets.excludePatterns)}
+          onChange={(patterns) => updateScopedSetting('excludePatterns', patterns, resolvedTargets.excludePatterns)}
           placeholder="e.g., vendor, backend/fixtures"
+          headerContent={renderScopedHeader('excludePatterns')}
         />
 
         <SelectSetting
           title="Include Git Submodules in File Analysis"
           description="When enabled, submodule files are included in LOC and file-tree analysis (Overview + Files + Treemap). Contributors, Code Frequency, and Evolution remain parent-repo only."
-          value={settings.includeSubmodules ? 'enabled' : 'disabled'}
+          value={getScopedSettingDisplayValue(scopedSettings, 'includeSubmodules', resolvedTargets.includeSubmodules) ? 'enabled' : 'disabled'}
           options={[
             { value: 'disabled', label: 'Disabled' },
             { value: 'enabled', label: 'Enabled' },
           ]}
-          onChange={(value) => updateSettings({ includeSubmodules: value === 'enabled' })}
+          onChange={(value) =>
+            updateScopedSetting(
+              'includeSubmodules',
+              value === 'enabled',
+              resolvedTargets.includeSubmodules
+            )
+          }
+          headerContent={renderScopedHeader('includeSubmodules')}
         />
 
         <PatternListSetting
           title="Generated File Patterns"
           description="Patterns to identify generated files (flagged in file metadata and overview stats)"
-          patterns={settings.generatedPatterns}
-          onChange={(patterns) => updateSettings({ generatedPatterns: patterns })}
+          patterns={getScopedSettingDisplayValue(scopedSettings, 'generatedPatterns', resolvedTargets.generatedPatterns)}
+          onChange={(patterns) => updateScopedSetting('generatedPatterns', patterns, resolvedTargets.generatedPatterns)}
           placeholder="e.g., **/dist/**, *.min.js"
+          headerContent={renderScopedHeader('generatedPatterns')}
         />
 
         <PatternListSetting
           title="Binary File Extensions"
           description="File extensions considered binary for classification and binary-focused views."
-          patterns={settings.binaryExtensions}
-          onChange={(patterns) => updateSettings({ binaryExtensions: patterns })}
+          patterns={getScopedSettingDisplayValue(scopedSettings, 'binaryExtensions', resolvedTargets.binaryExtensions)}
+          onChange={(patterns) => updateScopedSetting('binaryExtensions', patterns, resolvedTargets.binaryExtensions)}
           placeholder="e.g., .png, .woff2"
+          headerContent={renderScopedHeader('binaryExtensions')}
         />
 
         <PatternListSetting
           title="LOC Excluded Extensions"
           description="File extensions excluded from LOC counting (use this for files like .svg that should not inflate code totals)."
-          patterns={settings.locExcludedExtensions}
-          onChange={(patterns) => updateSettings({ locExcludedExtensions: patterns })}
+          patterns={getScopedSettingDisplayValue(scopedSettings, 'locExcludedExtensions', resolvedTargets.locExcludedExtensions)}
+          onChange={(patterns) =>
+            updateScopedSetting('locExcludedExtensions', patterns, resolvedTargets.locExcludedExtensions)
+          }
           placeholder="e.g., .svg, svg, **/*.svg"
+          headerContent={renderScopedHeader('locExcludedExtensions')}
         />
 
         <NumberSetting
