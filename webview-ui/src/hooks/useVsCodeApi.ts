@@ -5,6 +5,7 @@
 import { useCallback, useEffect } from 'react';
 import type { WebviewMessage, ExtensionMessage, ExtensionSettings } from '../types';
 import { useStore } from '../store';
+import { getOptimisticStalenessForSettingsChange } from './settingsStaleness';
 
 // ============================================================================
 // VSCode API Type
@@ -190,14 +191,27 @@ export function useVsCodeApi() {
   }, []);
 
   const updateSettings = useCallback((settings: Partial<ExtensionSettings>) => {
-    const currentSettings = useStore.getState().settings;
+    const state = useStore.getState();
+    const currentSettings = state.settings;
     if (currentSettings) {
       const nextSettings = {
         ...currentSettings,
         ...settings,
       };
 
-      useStore.getState().setSettings(nextSettings);
+      state.setSettings(nextSettings);
+
+      const optimisticStaleness = getOptimisticStalenessForSettingsChange({
+        currentSettings,
+        nextSettings: settings,
+        hasCoreData: state.data !== null,
+        hasEvolutionData: state.evolutionData !== null,
+        currentStaleness: {
+          coreStale: state.coreStale,
+          evolutionStale: state.evolutionStale,
+        },
+      });
+      state.setStaleness(optimisticStaleness);
     }
 
     getVsCodeApi().postMessage({ type: 'updateSettings', settings });

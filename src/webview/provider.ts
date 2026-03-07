@@ -210,6 +210,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
         const shouldPromptReanalysis = await this.updateSettings(message.settings);
         const settings = this.getSettings();
         this.sendMessage(webview, { type: 'settingsLoaded', settings });
+        await this.sendStalenessStatus(webview);
 
         if (shouldPromptReanalysis) {
           await this.promptReanalysisForFileScopeSetting(webview);
