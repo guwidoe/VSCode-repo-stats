@@ -6,6 +6,21 @@ export interface ProcessedSeriesData {
   y: number[][];
 }
 
+export type EvolutionTimeGranularity =
+  | 'daily'
+  | 'weekly'
+  | 'biweekly'
+  | 'monthly'
+  | 'quarterly'
+  | 'yearly';
+
+export interface EvolutionTimeAxisConfig {
+  x: string[];
+  granularity: EvolutionTimeGranularity;
+  hoverLabels: string[];
+  tickFormat: string;
+}
+
 export function processEvolutionSeries(
   data: EvolutionTimeSeriesData,
   maxSeries: number,
@@ -27,7 +42,6 @@ export function processEvolutionSeries(
 
   const top = indexed.slice(0, Math.max(1, maxSeries));
   const rest = indexed.slice(Math.max(1, maxSeries));
-
 
   let outLabels = top.map((entry) => entry.label);
   let outY = top.map((entry) => y[entry.index] || Array(ts.length).fill(0));
@@ -99,6 +113,64 @@ export function processEvolutionSeries(
   };
 }
 
+export function getEvolutionTimeAxisConfig(ts: string[]): EvolutionTimeAxisConfig {
+  const granularity = inferEvolutionTimeGranularity(ts);
+
+  return {
+    x: ts,
+    granularity,
+    hoverLabels: ts.map((isoDate) => formatTimeLabel(isoDate, granularity)),
+    tickFormat: getPlotlyTickFormat(granularity),
+  };
+}
+
+export function inferEvolutionTimeGranularity(ts: string[]): EvolutionTimeGranularity {
+  const timestamps = ts
+    .map((value) => new Date(value).getTime())
+    .filter((value) => Number.isFinite(value))
+    .sort((a, b) => a - b);
+
+  if (timestamps.length < 2) {
+    return 'daily';
+  }
+
+  const gapDays: number[] = [];
+  for (let i = 1; i < timestamps.length; i++) {
+    const diffMs = timestamps[i] - timestamps[i - 1];
+    if (diffMs > 0) {
+      gapDays.push(diffMs / 86400000);
+    }
+  }
+
+  if (gapDays.length === 0) {
+    return 'daily';
+  }
+
+  const sortedGapDays = [...gapDays].sort((a, b) => a - b);
+  const mid = Math.floor(sortedGapDays.length / 2);
+  const medianGapDays =
+    sortedGapDays.length % 2 === 0
+      ? (sortedGapDays[mid - 1] + sortedGapDays[mid]) / 2
+      : sortedGapDays[mid];
+
+  if (medianGapDays <= 3) {
+    return 'daily';
+  }
+  if (medianGapDays <= 10) {
+    return 'weekly';
+  }
+  if (medianGapDays <= 21) {
+    return 'biweekly';
+  }
+  if (medianGapDays <= 60) {
+    return 'monthly';
+  }
+  if (medianGapDays <= 180) {
+    return 'quarterly';
+  }
+  return 'yearly';
+}
+
 function cohortSortKey(label: string): number {
   const yearWeekMatch = label.match(/^(\d{4})-W(\d{2})$/);
   if (yearWeekMatch) {
@@ -122,7 +194,10 @@ function cohortSortKey(label: string): number {
   return Number.MAX_SAFE_INTEGER;
 }
 
-export function formatTimeLabel(isoDate: string): string {
+export function formatTimeLabel(
+  isoDate: string,
+  granularity: EvolutionTimeGranularity = 'monthly'
+): string {
   const date = new Date(isoDate);
   if (Number.isNaN(date.getTime())) {
     return isoDate;
@@ -131,5 +206,34 @@ export function formatTimeLabel(isoDate: string): string {
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const month = monthNames[date.getUTCMonth()];
   const year = date.getUTCFullYear();
-  return `${month} ${year}`;
+  const day = `${date.getUTCDate()}`.padStart(2, '0');
+
+  switch (granularity) {
+    case 'daily':
+    case 'weekly':
+    case 'biweekly':
+      return `${day} ${month} ${year}`;
+    case 'quarterly':
+      return `Q${Math.floor(date.getUTCMonth() / 3) + 1} ${year}`;
+    case 'yearly':
+      return `${year}`;
+    case 'monthly':
+    default:
+      return `${month} ${year}`;
+  }
+}
+
+function getPlotlyTickFormat(granularity: EvolutionTimeGranularity): string {
+  switch (granularity) {
+    case 'daily':
+    case 'weekly':
+    case 'biweekly':
+      return '%d %b\n%Y';
+    case 'yearly':
+      return '%Y';
+    case 'monthly':
+    case 'quarterly':
+    default:
+      return '%b\n%Y';
+  }
 }

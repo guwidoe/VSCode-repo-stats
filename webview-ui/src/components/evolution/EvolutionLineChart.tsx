@@ -1,6 +1,6 @@
 import Plot from 'react-plotly.js';
 import type { ProcessedSeriesData } from './evolutionUtils';
-import { formatTimeLabel } from './evolutionUtils';
+import { getEvolutionTimeAxisConfig } from './evolutionUtils';
 
 interface Props {
   data: ProcessedSeriesData;
@@ -14,7 +14,7 @@ const PALETTE = [
 ];
 
 export function EvolutionLineChart({ data, normalize }: Props) {
-  const x = data.ts.map(formatTimeLabel);
+  const timeAxis = getEvolutionTimeAxisConfig(data.ts);
 
   return (
     <Plot
@@ -22,13 +22,14 @@ export function EvolutionLineChart({ data, normalize }: Props) {
         type: 'scatter',
         mode: 'lines',
         name: label,
-        x,
+        x: timeAxis.x,
         y: data.y[index],
+        customdata: timeAxis.hoverLabels,
         line: {
           width: 2,
           color: PALETTE[index % PALETTE.length],
         },
-        hovertemplate: '%{x}<br>%{y:.2f}<extra>' + label + '</extra>',
+        hovertemplate: '%{customdata}<br>%{y:.2f}<extra>' + label + '</extra>',
       }))}
       layout={{
         autosize: true,
@@ -48,6 +49,8 @@ export function EvolutionLineChart({ data, normalize }: Props) {
           y: -0.25,
         },
         xaxis: {
+          type: 'date',
+          tickformat: timeAxis.tickFormat,
           gridcolor: 'var(--vscode-panel-border)',
           tickangle: -40,
         },
