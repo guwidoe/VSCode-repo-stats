@@ -125,73 +125,123 @@ export function CommitsPanel() {
         </section>
       </div>
 
-      <div className="commit-filter-grid">
-        <label>
-          <span>Message</span>
-          <input value={filters.messageText} onChange={(event) => filters.setMessageText(event.target.value)} placeholder="Search commit summary" />
-        </label>
+      <section className="commit-filter-shell">
+        <div className="commit-filter-header">
+          <div>
+            <h3>Filter commits</h3>
+            <p>Search by message, narrow by author and date, then tune the change-size ranges.</p>
+          </div>
+          <button
+            type="button"
+            className="commit-filter-reset"
+            onClick={filters.resetFilters}
+            disabled={!filters.hasActiveFilters}
+          >
+            Reset filters
+          </button>
+        </div>
 
-        <label>
-          <span>Author</span>
-          <select value={filters.authorId} onChange={(event) => filters.setAuthorId(event.target.value)}>
-            <option value="all">All authors</option>
-            {authorOptions.map((author) => (
-              <option key={author.authorId} value={author.authorId}>
-                {author.authorName}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="commit-filter-primary">
+          <label className="commit-filter-field commit-filter-field-search">
+            <span>Search message</span>
+            <input value={filters.messageText} onChange={(event) => filters.setMessageText(event.target.value)} placeholder="Search commit summary" />
+          </label>
 
-        <label>
-          <span>From date</span>
-          <input type="date" value={filters.committedAfter} onChange={(event) => filters.setCommittedAfter(event.target.value)} />
-        </label>
+          <label className="commit-filter-field">
+            <span>Author</span>
+            <select value={filters.authorId} onChange={(event) => filters.setAuthorId(event.target.value)}>
+              <option value="all">All authors</option>
+              {authorOptions.map((author) => (
+                <option key={author.authorId} value={author.authorId}>
+                  {author.authorName}
+                </option>
+              ))}
+            </select>
+          </label>
 
-        <label>
-          <span>To date</span>
-          <input type="date" value={filters.committedBefore} onChange={(event) => filters.setCommittedBefore(event.target.value)} />
-        </label>
+          <div className="commit-filter-field commit-filter-sort">
+            <span>Sort results</span>
+            <div className="commit-filter-sort-row">
+              <select value={filters.sortBy} onChange={(event) => filters.setSortBy(event.target.value as CommitSortField)}>
+                <option value="timestamp">Date</option>
+                <option value="additions">Additions</option>
+                <option value="deletions">Deletions</option>
+                <option value="changedLines">Changed lines</option>
+                <option value="filesChanged">Files changed</option>
+              </select>
+              <div className="commit-segmented-control" role="group" aria-label="Sort direction">
+                <button
+                  type="button"
+                  className={filters.sortDirection === 'desc' ? 'active' : ''}
+                  onClick={() => filters.setSortDirection('desc' as CommitSortDirection)}
+                >
+                  Desc
+                </button>
+                <button
+                  type="button"
+                  className={filters.sortDirection === 'asc' ? 'active' : ''}
+                  onClick={() => filters.setSortDirection('asc' as CommitSortDirection)}
+                >
+                  Asc
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
 
-        <label>
-          <span>Min Δ lines</span>
-          <input value={filters.minChangedLines} onChange={(event) => filters.setMinChangedLines(event.target.value)} inputMode="numeric" placeholder="0" />
-        </label>
+        <div className="commit-filter-groups">
+          <section className="commit-filter-group">
+            <div className="commit-filter-group-header">
+              <h4>Date range</h4>
+              <span>Limit the timeline window</span>
+            </div>
+            <div className="commit-filter-range-row">
+              <label className="commit-filter-field">
+                <span>From</span>
+                <input type="date" value={filters.committedAfter} onChange={(event) => filters.setCommittedAfter(event.target.value)} />
+              </label>
+              <label className="commit-filter-field">
+                <span>To</span>
+                <input type="date" value={filters.committedBefore} onChange={(event) => filters.setCommittedBefore(event.target.value)} />
+              </label>
+            </div>
+          </section>
 
-        <label>
-          <span>Max Δ lines</span>
-          <input value={filters.maxChangedLines} onChange={(event) => filters.setMaxChangedLines(event.target.value)} inputMode="numeric" placeholder="∞" />
-        </label>
+          <section className="commit-filter-group">
+            <div className="commit-filter-group-header">
+              <h4>Changed lines</h4>
+              <span>Filter by total additions + deletions</span>
+            </div>
+            <div className="commit-filter-range-row">
+              <label className="commit-filter-field">
+                <span>Minimum</span>
+                <input value={filters.minChangedLines} onChange={(event) => filters.setMinChangedLines(event.target.value)} inputMode="numeric" placeholder="0" />
+              </label>
+              <label className="commit-filter-field">
+                <span>Maximum</span>
+                <input value={filters.maxChangedLines} onChange={(event) => filters.setMaxChangedLines(event.target.value)} inputMode="numeric" placeholder="∞" />
+              </label>
+            </div>
+          </section>
 
-        <label>
-          <span>Min files changed</span>
-          <input value={filters.minFilesChanged} onChange={(event) => filters.setMinFilesChanged(event.target.value)} inputMode="numeric" placeholder="0" />
-        </label>
-
-        <label>
-          <span>Max files changed</span>
-          <input value={filters.maxFilesChanged} onChange={(event) => filters.setMaxFilesChanged(event.target.value)} inputMode="numeric" placeholder="∞" />
-        </label>
-
-        <label>
-          <span>Sort by</span>
-          <select value={filters.sortBy} onChange={(event) => filters.setSortBy(event.target.value as CommitSortField)}>
-            <option value="timestamp">Date</option>
-            <option value="additions">Additions</option>
-            <option value="deletions">Deletions</option>
-            <option value="changedLines">Changed lines</option>
-            <option value="filesChanged">Files changed</option>
-          </select>
-        </label>
-
-        <label>
-          <span>Direction</span>
-          <select value={filters.sortDirection} onChange={(event) => filters.setSortDirection(event.target.value as CommitSortDirection)}>
-            <option value="desc">Descending</option>
-            <option value="asc">Ascending</option>
-          </select>
-        </label>
-      </div>
+          <section className="commit-filter-group">
+            <div className="commit-filter-group-header">
+              <h4>Files changed</h4>
+              <span>Focus on small surgical edits or wide sweeps</span>
+            </div>
+            <div className="commit-filter-range-row">
+              <label className="commit-filter-field">
+                <span>Minimum</span>
+                <input value={filters.minFilesChanged} onChange={(event) => filters.setMinFilesChanged(event.target.value)} inputMode="numeric" placeholder="0" />
+              </label>
+              <label className="commit-filter-field">
+                <span>Maximum</span>
+                <input value={filters.maxFilesChanged} onChange={(event) => filters.setMaxFilesChanged(event.target.value)} inputMode="numeric" placeholder="∞" />
+              </label>
+            </div>
+          </section>
+        </div>
+      </section>
 
       <div className="commit-table-card">
         <div className="commit-results-toolbar">

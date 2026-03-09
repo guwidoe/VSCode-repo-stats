@@ -108,6 +108,32 @@ export function useCommitPanelState() {
     [analytics]
   );
 
+  const resetFilters = () => {
+    setMessageText('');
+    setAuthorId('all');
+    setCommittedAfter('');
+    setCommittedBefore('');
+    setMinChangedLines('');
+    setMaxChangedLines('');
+    setMinFilesChanged('');
+    setMaxFilesChanged('');
+    setSortBy('timestamp');
+    setSortDirection('desc');
+  };
+
+  const hasActiveFilters = Boolean(
+    messageText ||
+    authorId !== 'all' ||
+    committedAfter ||
+    committedBefore ||
+    minChangedLines ||
+    maxChangedLines ||
+    minFilesChanged ||
+    maxFilesChanged ||
+    sortBy !== 'timestamp' ||
+    sortDirection !== 'desc'
+  );
+
   return {
     data,
     rows,
@@ -139,6 +165,8 @@ export function useCommitPanelState() {
       setSortBy,
       sortDirection,
       setSortDirection,
+      resetFilters,
+      hasActiveFilters,
     },
   };
 }
