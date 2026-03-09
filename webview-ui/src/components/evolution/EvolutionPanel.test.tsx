@@ -179,7 +179,7 @@ describe('EvolutionPanel', () => {
         contributorSummaries: [],
         changedLineBuckets: [],
         fileChangeBuckets: [],
-        indexes: { byTimestampAsc: [], byChangedLinesDesc: [], byFilesChangedDesc: [] },
+        indexes: { byTimestampAsc: [], byAdditionsDesc: [], byDeletionsDesc: [], byChangedLinesDesc: [], byFilesChangedDesc: [] },
       },
       fileTree: {
         name: 'repo',

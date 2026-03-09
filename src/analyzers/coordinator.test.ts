@@ -50,6 +50,8 @@ class FakeGitClient implements GitClient {
       fileChangeBuckets: [],
       indexes: {
         byTimestampAsc: [],
+        byAdditionsDesc: [],
+        byDeletionsDesc: [],
         byChangedLinesDesc: [],
         byFilesChangedDesc: [],
       },

@@ -76,6 +76,8 @@ describe('commit analytics', () => {
     });
 
     expect(analytics.indexes.byTimestampAsc).toEqual([0, 1, 2]);
+    expect(analytics.indexes.byAdditionsDesc).toEqual([1, 0, 2]);
+    expect(analytics.indexes.byDeletionsDesc).toEqual([1, 2, 0]);
     expect(analytics.indexes.byChangedLinesDesc).toEqual([1, 0, 2]);
     expect(analytics.indexes.byFilesChangedDesc).toEqual([1, 0, 2]);
   });
@@ -97,6 +99,15 @@ describe('commit analytics', () => {
         changedLines: 4,
       }),
     ]);
+
+    expect(
+      queryCommitAnalytics(analytics, {
+        messageText: 'expand',
+        committedAfter: '2024-01-10',
+        sortBy: 'additions',
+        sortDirection: 'desc',
+      }).map((record) => record.sha)
+    ).toEqual(['cccccccccccccccccccccccccccccccccccccccc']);
 
     expect(
       queryCommitAnalytics(analytics, {

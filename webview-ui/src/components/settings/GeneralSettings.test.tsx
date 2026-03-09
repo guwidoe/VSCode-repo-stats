@@ -89,7 +89,7 @@ function createData(): AnalysisResult {
       contributorSummaries: [],
       changedLineBuckets: [],
       fileChangeBuckets: [],
-      indexes: { byTimestampAsc: [], byChangedLinesDesc: [], byFilesChangedDesc: [] },
+      indexes: { byTimestampAsc: [], byAdditionsDesc: [], byDeletionsDesc: [], byChangedLinesDesc: [], byFilesChangedDesc: [] },
     },
     fileTree: { name: 'repo', path: '', type: 'directory', children: [] },
     analyzedAt: '2026-01-01T00:00:00Z',

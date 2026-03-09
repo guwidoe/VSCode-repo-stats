@@ -18,6 +18,7 @@ const MAIN_VIEWS: ViewConfig[] = [
   { id: 'overview', label: 'Overview', icon: '📋' },
   { id: 'files', label: 'Files', icon: '📄' },
   { id: 'contributors', label: 'Contributors', icon: '👥' },
+  { id: 'commits', label: 'Commits', icon: '✅' },
   { id: 'frequency', label: 'Code Frequency', icon: '📊' },
   { id: 'evolution', label: 'Evolution', icon: '🧬' },
   { id: 'treemap', label: 'Treemap', icon: '🗂️' },

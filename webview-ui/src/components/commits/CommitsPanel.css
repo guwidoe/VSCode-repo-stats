@@ -1,0 +1,119 @@
+.commits-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+}
+
+.commits-panel .panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.commits-meta {
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+}
+
+.commit-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.commit-summary-card,
+.commit-table-card,
+.commit-filter-grid {
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 8px;
+  background: var(--vscode-editor-background);
+}
+
+.commit-summary-card {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.commit-summary-value {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+
+.commit-summary-label {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.commit-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  padding: 12px;
+}
+
+.commit-filter-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.commit-filter-grid input,
+.commit-filter-grid select {
+  width: 100%;
+  padding: 6px 8px;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+  border-radius: 6px;
+}
+
+.commit-table-card {
+  overflow: hidden;
+}
+
+.commit-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.commit-table th,
+.commit-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  text-align: left;
+  font-size: 12px;
+  vertical-align: top;
+}
+
+.commit-table th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--vscode-descriptionForeground);
+  background: color-mix(in srgb, var(--vscode-editor-background) 94%, black 6%);
+}
+
+.commit-summary-cell {
+  max-width: 420px;
+}
+
+.commit-positive {
+  color: var(--vscode-gitDecoration-addedResourceForeground, #3fb950);
+}
+
+.commit-negative {
+  color: var(--vscode-gitDecoration-deletedResourceForeground, #f85149);
+}
+
+.commit-empty-state {
+  padding: 20px;
+  text-align: center;
+  color: var(--vscode-descriptionForeground);
+}

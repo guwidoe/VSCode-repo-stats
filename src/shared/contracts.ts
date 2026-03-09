@@ -235,11 +235,18 @@ export interface CommitStatBucket {
   count: number;
 }
 
-export type CommitSortField = 'timestamp' | 'changedLines' | 'filesChanged';
+export type CommitSortField = 'timestamp' | 'additions' | 'deletions' | 'changedLines' | 'filesChanged';
 export type CommitSortDirection = 'asc' | 'desc';
 
 export interface CommitAnalyticsQuery {
   authorIds?: number[];
+  messageText?: string;
+  committedAfter?: string;
+  committedBefore?: string;
+  minAdditions?: number;
+  maxAdditions?: number;
+  minDeletions?: number;
+  maxDeletions?: number;
   minChangedLines?: number;
   maxChangedLines?: number;
   minFilesChanged?: number;
@@ -268,6 +275,8 @@ export interface CommitContributorSummary extends CommitMetricSummary {
 
 export interface CommitIndexRanges {
   byTimestampAsc: number[];
+  byAdditionsDesc: number[];
+  byDeletionsDesc: number[];
   byChangedLinesDesc: number[];
   byFilesChangedDesc: number[];
 }

@@ -130,6 +130,8 @@ export function buildCommitAnalytics(commits: ParsedCommitHistoryEntry[]): Commi
     fileChangeBuckets: buildBuckets(records.map((record) => record.filesChanged), FILE_CHANGE_BUCKET_UPPER_BOUNDS),
     indexes: {
       byTimestampAsc: sortRecordIndexes(records, 'timestamp', 'asc'),
+      byAdditionsDesc: sortRecordIndexes(records, 'additions', 'desc'),
+      byDeletionsDesc: sortRecordIndexes(records, 'deletions', 'desc'),
       byChangedLinesDesc: sortRecordIndexes(records, 'changedLines', 'desc'),
       byFilesChangedDesc: sortRecordIndexes(records, 'filesChanged', 'desc'),
     },
@@ -236,12 +238,37 @@ export function queryCommitAnalytics(
   const result: CommitRecord[] = [];
   let matched = 0;
 
+  const committedAfter = query.committedAfter ? Date.parse(query.committedAfter) : null;
+  const committedBefore = query.committedBefore ? Date.parse(query.committedBefore) : null;
+  const messageText = query.messageText?.trim().toLowerCase() ?? '';
+
   for (const index of orderedIndexes) {
     const record = analytics.records[index];
     if (!record) {
       continue;
     }
     if (authorFilter && !authorFilter.has(record.authorId)) {
+      continue;
+    }
+    if (messageText && !record.summary.toLowerCase().includes(messageText)) {
+      continue;
+    }
+    if (committedAfter !== null && record.timestamp * 1000 < committedAfter) {
+      continue;
+    }
+    if (committedBefore !== null && record.timestamp * 1000 > committedBefore) {
+      continue;
+    }
+    if (query.minAdditions !== undefined && record.additions < query.minAdditions) {
+      continue;
+    }
+    if (query.maxAdditions !== undefined && record.additions > query.maxAdditions) {
+      continue;
+    }
+    if (query.minDeletions !== undefined && record.deletions < query.minDeletions) {
+      continue;
+    }
+    if (query.maxDeletions !== undefined && record.deletions > query.maxDeletions) {
       continue;
     }
     if (query.minChangedLines !== undefined && record.changedLines < query.minChangedLines) {
@@ -410,6 +437,14 @@ function getOrderedIndexes(
   sortDirection: 'asc' | 'desc'
 ): number[] {
   switch (sortField) {
+    case 'additions': {
+      const base = analytics.indexes.byAdditionsDesc;
+      return sortDirection === 'desc' ? base : [...base].reverse();
+    }
+    case 'deletions': {
+      const base = analytics.indexes.byDeletionsDesc;
+      return sortDirection === 'desc' ? base : [...base].reverse();
+    }
     case 'changedLines': {
       const base = analytics.indexes.byChangedLinesDesc;
       return sortDirection === 'desc' ? base : [...base].reverse();

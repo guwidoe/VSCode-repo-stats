@@ -75,7 +75,7 @@ const mockAnalysisResult: AnalysisResult = {
     ],
     changedLineBuckets: [],
     fileChangeBuckets: [],
-    indexes: { byTimestampAsc: [0], byChangedLinesDesc: [0], byFilesChangedDesc: [0] },
+    indexes: { byTimestampAsc: [0], byAdditionsDesc: [0], byDeletionsDesc: [0], byChangedLinesDesc: [0], byFilesChangedDesc: [0] },
   },
   fileTree: {
     name: 'test-repo',
