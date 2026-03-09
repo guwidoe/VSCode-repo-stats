@@ -83,7 +83,10 @@ function createSettings(): ExtensionSettings {
     },
     evolution: {
       autoRun: false,
+      samplingMode: 'time',
       snapshotIntervalDays: 30,
+      snapshotIntervalCommits: 100,
+      showInactivePeriods: false,
       maxSnapshots: 80,
       maxSeries: 20,
       cohortFormat: '%Y',
@@ -92,16 +95,24 @@ function createSettings(): ExtensionSettings {
 }
 
 function createEvolutionResult(): EvolutionResult {
+  const snapshot = {
+    commitSha: 'abc123abc123abc123abc123abc123abc123abcd',
+    commitIndex: 4,
+    totalCommitCount: 20,
+    committedAt: '2026-01-01T00:00:00.000Z',
+    samplingMode: 'auto' as const,
+  };
+
   return {
     generatedAt: '2026-03-05T00:00:00.000Z',
     headSha: 'abc123',
     branch: 'main',
     settingsHash: 'hash1',
-    cohorts: { ts: ['2026-01-01T00:00:00.000Z'], labels: ['2026'], y: [[1]] },
-    authors: { ts: ['2026-01-01T00:00:00.000Z'], labels: ['Alice'], y: [[1]] },
-    exts: { ts: ['2026-01-01T00:00:00.000Z'], labels: ['.ts'], y: [[1]] },
-    dirs: { ts: ['2026-01-01T00:00:00.000Z'], labels: ['src/'], y: [[1]] },
-    domains: { ts: ['2026-01-01T00:00:00.000Z'], labels: ['example.com'], y: [[1]] },
+    cohorts: { snapshots: [snapshot], ts: ['2026-01-01T00:00:00.000Z'], labels: ['2026'], y: [[1]] },
+    authors: { snapshots: [snapshot], ts: ['2026-01-01T00:00:00.000Z'], labels: ['Alice'], y: [[1]] },
+    exts: { snapshots: [snapshot], ts: ['2026-01-01T00:00:00.000Z'], labels: ['.ts'], y: [[1]] },
+    dirs: { snapshots: [snapshot], ts: ['2026-01-01T00:00:00.000Z'], labels: ['src/'], y: [[1]] },
+    domains: { snapshots: [snapshot], ts: ['2026-01-01T00:00:00.000Z'], labels: ['example.com'], y: [[1]] },
   };
 }
 
@@ -176,5 +187,16 @@ describe('EvolutionPanel', () => {
     render(<EvolutionPanel />);
 
     expect(screen.getByText(/Evolution data is stale/i)).toBeInTheDocument();
+  });
+
+  it('explains non-linear snapshot timelines when using auto sampling', () => {
+    mockStoreState.current!.evolutionStatus = 'ready';
+    mockStoreState.current!.evolutionData = createEvolutionResult();
+    mockStoreState.current!.settings = createSettings();
+
+    render(<EvolutionPanel />);
+
+    expect(screen.getByText(/Sampling: Auto-distributed/i)).toBeInTheDocument();
+    expect(screen.getByText(/spacing is intentionally non-linear in time/i)).toBeInTheDocument();
   });
 });

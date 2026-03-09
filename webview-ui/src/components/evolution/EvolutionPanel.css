@@ -102,6 +102,34 @@
   background: color-mix(in srgb, var(--vscode-editor-background) 90%, black 10%);
 }
 
+.evolution-timeline-note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--vscode-panel-border);
+  color: var(--vscode-descriptionForeground);
+  background: color-mix(in srgb, var(--vscode-editor-background) 92%, black 8%);
+}
+
+.evolution-timeline-pill {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.evolution-timeline-copy {
+  margin: 0;
+  flex: 1 1 320px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .evolution-chart-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

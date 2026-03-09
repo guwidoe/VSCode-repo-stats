@@ -144,6 +144,26 @@ export function EvolutionPanel() {
         runLabel={runLabel}
       />
 
+      <div className="evolution-timeline-note">
+        <div className="evolution-timeline-pill">
+          Sampling: {describeSamplingMode(processed.snapshots[0]?.samplingMode ?? settings.evolution.samplingMode)}
+        </div>
+        <div className="evolution-timeline-pill">
+          Points: {processed.snapshots.length.toLocaleString()}
+        </div>
+        {processed.snapshots.some((snapshot) => snapshot.synthetic) && (
+          <div className="evolution-timeline-pill">
+            Filled periods: {processed.snapshots.filter((snapshot) => snapshot.synthetic).length.toLocaleString()}
+          </div>
+        )}
+        <p className="evolution-timeline-copy">
+          {buildTimelineExplanation(
+            processed.snapshots[0]?.samplingMode ?? settings.evolution.samplingMode,
+            settings.evolution.showInactivePeriods
+          )}
+        </p>
+      </div>
+
       <div className="evolution-chart-grid">
         <section className="evolution-chart-card">
           <h3>Stacked Ownership Over Time</h3>
@@ -162,6 +182,37 @@ export function EvolutionPanel() {
       </div>
     </div>
   );
+}
+
+function describeSamplingMode(mode: 'time' | 'commit' | 'auto'): string {
+  switch (mode) {
+    case 'commit':
+      return 'Commit-based';
+    case 'auto':
+      return 'Auto-distributed';
+    case 'time':
+    default:
+      return 'Time-based';
+  }
+}
+
+function buildTimelineExplanation(
+  mode: 'time' | 'commit' | 'auto',
+  showInactivePeriods: boolean
+): string {
+  const gapCopy = showInactivePeriods
+    ? 'Inactive periods are filled with carry-forward ownership so flat stretches remain visible.'
+    : 'Only directly sampled snapshots are plotted; inactive periods are skipped.';
+
+  switch (mode) {
+    case 'commit':
+      return `The x-axis still shows real commit dates, but snapshots were selected by commit interval rather than uniform calendar time. ${gapCopy}`;
+    case 'auto':
+      return `The x-axis shows real commit dates while snapshots are auto-distributed across repository history, so spacing is intentionally non-linear in time. ${gapCopy}`;
+    case 'time':
+    default:
+      return `Snapshots are selected by elapsed time. ${gapCopy}`;
+  }
 }
 
 function selectDimensionData(
