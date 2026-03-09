@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { queryCommitAnalytics } from '../../../../src/analyzers/commitAnalytics';
+import { queryCommitAnalytics } from '../../../../src/shared/commitAnalyticsQuery';
 import { useStore } from '../../store';
 import type { CommitAnalyticsQuery, CommitSortDirection, CommitSortField } from '../../types';
 import './CommitsPanel.css';

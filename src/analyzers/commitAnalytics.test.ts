@@ -4,8 +4,8 @@ import {
   buildCommitAnalytics,
   buildContributorStatsFromCommitAnalytics,
   parseCommitHistoryLog,
-  queryCommitAnalytics,
 } from './commitAnalytics';
+import { queryCommitAnalytics } from '../shared/commitAnalyticsQuery';
 
 const RAW_LOG = [
   '__COMMIT__|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa|Alice|alice@example.com|2024-01-01T12:00:00Z|add app',
