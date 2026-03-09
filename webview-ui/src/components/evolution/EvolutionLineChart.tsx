@@ -14,7 +14,7 @@ const PALETTE = [
 ];
 
 export function EvolutionLineChart({ data, normalize }: Props) {
-  const timeAxis = getEvolutionTimeAxisConfig(data.ts);
+  const timeAxis = getEvolutionTimeAxisConfig(data);
 
   return (
     <Plot

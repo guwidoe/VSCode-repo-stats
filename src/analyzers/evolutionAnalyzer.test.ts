@@ -169,6 +169,29 @@ describe('EvolutionAnalyzer', () => {
 
     expect(result.authors.y[aliceIndex]).toEqual([2, 2, 0]);
     expect(result.authors.y[bobIndex]).toEqual([0, 0, 3]);
+    expect(result.authors.snapshots).toEqual([
+      {
+        commitSha: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        commitIndex: 0,
+        totalCommitCount: 3,
+        committedAt: '2020-01-01T00:00:00.000Z',
+        samplingMode: 'time',
+      },
+      {
+        commitSha: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+        commitIndex: 1,
+        totalCommitCount: 3,
+        committedAt: '2020-02-01T00:00:00.000Z',
+        samplingMode: 'time',
+      },
+      {
+        commitSha: 'cccccccccccccccccccccccccccccccccccccccc',
+        commitIndex: 2,
+        totalCommitCount: 3,
+        committedAt: '2022-01-01T00:00:00.000Z',
+        samplingMode: 'time',
+      },
+    ]);
 
     // Blame should run only for first and changed snapshot (not unchanged middle snapshot)
     expect(git.blameCallCount).toBe(2);
@@ -244,6 +267,8 @@ describe('EvolutionAnalyzer', () => {
     const result = await analyzer.analyze();
 
     expect(result.cohorts.ts.length).toBeLessThanOrEqual(3);
+    expect(result.cohorts.snapshots?.map((snapshot) => snapshot.commitIndex)).toEqual([0, 5, 9]);
+    expect(result.cohorts.snapshots?.every((snapshot) => snapshot.samplingMode === 'time')).toBe(true);
   });
 
   it('matches root-level directories for leading ** exclude patterns', async () => {

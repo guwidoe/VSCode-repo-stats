@@ -8,6 +8,22 @@ import {
 
 describe('processEvolutionSeries', () => {
   const source = {
+    snapshots: [
+      {
+        commitSha: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        commitIndex: 0,
+        totalCommitCount: 2,
+        committedAt: '2026-01-01T00:00:00.000Z',
+        samplingMode: 'time' as const,
+      },
+      {
+        commitSha: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+        commitIndex: 1,
+        totalCommitCount: 2,
+        committedAt: '2026-02-01T00:00:00.000Z',
+        samplingMode: 'time' as const,
+      },
+    ],
     ts: ['2026-01-01T00:00:00.000Z', '2026-02-01T00:00:00.000Z'],
     labels: ['Alice', 'Bob', 'Carol'],
     y: [
@@ -22,6 +38,7 @@ describe('processEvolutionSeries', () => {
 
     expect(processed.labels).toEqual(['Alice', 'Bob', 'Other']);
     expect(processed.y[2]).toEqual([1, 1]);
+    expect(processed.snapshots).toEqual(source.snapshots);
   });
 
   it('normalizes series to percentages', () => {
@@ -81,11 +98,13 @@ describe('evolution time axis formatting', () => {
   });
 
   it('keeps date axes on raw timestamps and chooses a weekly tick format', () => {
-    const axis = getEvolutionTimeAxisConfig([
-      '2026-01-01T00:00:00.000Z',
-      '2026-01-08T00:00:00.000Z',
-      '2026-01-15T00:00:00.000Z',
-    ]);
+    const axis = getEvolutionTimeAxisConfig({
+      ts: [
+        '2026-01-01T00:00:00.000Z',
+        '2026-01-08T00:00:00.000Z',
+        '2026-01-15T00:00:00.000Z',
+      ],
+    });
 
     expect(axis.x).toEqual([
       '2026-01-01T00:00:00.000Z',
@@ -94,5 +113,24 @@ describe('evolution time axis formatting', () => {
     ]);
     expect(axis.hoverLabels).toEqual(['01 Jan 2026', '08 Jan 2026', '15 Jan 2026']);
     expect(axis.tickFormat).toBe('%d %b\n%Y');
+  });
+
+  it('includes snapshot metadata in hover labels when available', () => {
+    const axis = getEvolutionTimeAxisConfig({
+      ts: ['2026-01-01T00:00:00.000Z'],
+      snapshots: [
+        {
+          commitSha: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+          commitIndex: 4,
+          totalCommitCount: 20,
+          committedAt: '2026-01-01T00:00:00.000Z',
+          samplingMode: 'auto',
+        },
+      ],
+    });
+
+    expect(axis.hoverLabels[0]).toContain('Commit 5 of 20');
+    expect(axis.hoverLabels[0]).toContain('Auto-distributed snapshot');
+    expect(axis.hoverLabels[0]).toContain('SHA aaaaaaaa');
   });
 });

@@ -9,10 +9,13 @@ import * as path from 'path';
 import simpleGit from 'simple-git';
 import {
   EvolutionResult,
+  EvolutionSamplingMode,
+  EvolutionSnapshotPoint,
   EvolutionTimeSeriesData,
   ExtensionSettings,
   NotAGitRepoError,
 } from '../types/index.js';
+import { createEvolutionAnalysisSettingsSnapshot } from '../shared/settings.js';
 import { normalizeExtensionForFilter } from './locCounter.js';
 import { createPathPatternMatcher } from './pathMatching.js';
 
@@ -31,6 +34,9 @@ interface FileHistogram {
 interface SnapshotCommit {
   sha: string;
   timestamp: number;
+  commitIndex: number;
+  totalCommitCount: number;
+  samplingMode: EvolutionSamplingMode;
 }
 
 interface DiffStatusEntry {
@@ -104,7 +110,7 @@ export class EvolutionAnalyzer {
       dir: [] as DimensionCounts[],
       domain: [] as DimensionCounts[],
     };
-    const snapshotTimestamps: string[] = [];
+    const snapshotPoints: EvolutionSnapshotPoint[] = [];
 
     let previousCommit: SnapshotCommit | null = null;
     const fileHistograms = new Map<string, FileHistogram>();
@@ -172,7 +178,13 @@ export class EvolutionAnalyzer {
       }
 
       previousCommit = commit;
-      snapshotTimestamps.push(new Date(commit.timestamp * 1000).toISOString());
+      snapshotPoints.push({
+        commitSha: commit.sha,
+        commitIndex: commit.commitIndex,
+        totalCommitCount: commit.totalCommitCount,
+        committedAt: new Date(commit.timestamp * 1000).toISOString(),
+        samplingMode: commit.samplingMode,
+      });
       snapshotTotals.cohort.push({ ...runningTotals.cohort });
       snapshotTotals.author.push({ ...runningTotals.author });
       snapshotTotals.ext.push({ ...runningTotals.ext });
@@ -189,11 +201,11 @@ export class EvolutionAnalyzer {
       headSha,
       branch,
       settingsHash,
-      cohorts: this.toSeries(snapshotTimestamps, snapshotTotals.cohort),
-      authors: this.toSeries(snapshotTimestamps, snapshotTotals.author),
-      exts: this.toSeries(snapshotTimestamps, snapshotTotals.ext),
-      dirs: this.toSeries(snapshotTimestamps, snapshotTotals.dir),
-      domains: this.toSeries(snapshotTimestamps, snapshotTotals.domain),
+      cohorts: this.toSeries(snapshotPoints, snapshotTotals.cohort),
+      authors: this.toSeries(snapshotPoints, snapshotTotals.author),
+      exts: this.toSeries(snapshotPoints, snapshotTotals.ext),
+      dirs: this.toSeries(snapshotPoints, snapshotTotals.dir),
+      domains: this.toSeries(snapshotPoints, snapshotTotals.domain),
       diagnostics: {
         expectedBlameMisses: this.expectedBlameMisses,
       },
@@ -218,7 +230,7 @@ export class EvolutionAnalyzer {
       branch,
     ]);
 
-    const allCommits = rawLog
+    const parsedCommits = rawLog
       .split('\n')
       .map((line) => line.trim())
       .filter((line) => line.length > 0)
@@ -227,6 +239,14 @@ export class EvolutionAnalyzer {
         return { sha, timestamp: parseInt(tsRaw, 10) };
       })
       .filter((entry) => Boolean(entry.sha) && Number.isFinite(entry.timestamp));
+
+    const totalCommitCount = parsedCommits.length;
+    const allCommits = parsedCommits.map((commit, index) => ({
+      ...commit,
+      commitIndex: index,
+      totalCommitCount,
+      samplingMode: 'time' as const,
+    }));
 
     if (allCommits.length === 0) {
       return [];
@@ -487,30 +507,30 @@ export class EvolutionAnalyzer {
     mergeCounts(target.domain, source.domain, sign);
   }
 
-  private toSeries(ts: string[], snapshots: DimensionCounts[]): EvolutionTimeSeriesData {
+  private toSeries(
+    snapshots: EvolutionSnapshotPoint[],
+    countsBySnapshot: DimensionCounts[]
+  ): EvolutionTimeSeriesData {
     const labelSet = new Set<string>();
-    for (const snapshot of snapshots) {
+    for (const snapshot of countsBySnapshot) {
       for (const label of Object.keys(snapshot)) {
         labelSet.add(label);
       }
     }
 
     const labels = Array.from(labelSet).sort((a, b) => a.localeCompare(b));
-    const y = labels.map((label) => snapshots.map((snapshot) => snapshot[label] ?? 0));
+    const y = labels.map((label) => countsBySnapshot.map((snapshot) => snapshot[label] ?? 0));
 
     return {
-      ts,
+      snapshots,
+      ts: snapshots.map((snapshot) => snapshot.committedAt),
       labels,
       y,
     };
   }
 
   private createSettingsHash(): string {
-    const payload = JSON.stringify({
-      excludePatterns: this.settings.excludePatterns,
-      binaryExtensions: this.settings.binaryExtensions,
-      evolution: this.settings.evolution,
-    });
+    const payload = JSON.stringify(createEvolutionAnalysisSettingsSnapshot(this.settings));
     return crypto.createHash('sha1').update(payload).digest('hex').slice(0, 16);
   }
 }

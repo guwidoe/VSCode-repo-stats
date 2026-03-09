@@ -1,6 +1,11 @@
-import type { EvolutionDimension, EvolutionTimeSeriesData } from '../../types';
+import type {
+  EvolutionDimension,
+  EvolutionSnapshotPoint,
+  EvolutionTimeSeriesData,
+} from '../../types';
 
 export interface ProcessedSeriesData {
+  snapshots: EvolutionSnapshotPoint[];
   ts: string[];
   labels: string[];
   y: number[][];
@@ -28,6 +33,13 @@ export function processEvolutionSeries(
   dimension: EvolutionDimension
 ): ProcessedSeriesData {
   const ts = data.ts;
+  const snapshots = data.snapshots ?? ts.map((committedAt, index) => ({
+    commitSha: '',
+    commitIndex: index,
+    totalCommitCount: ts.length,
+    committedAt,
+    samplingMode: 'time' as const,
+  }));
   const labels = [...data.labels];
   const y = data.y.map((series) => [...series]);
 
@@ -87,7 +99,7 @@ export function processEvolutionSeries(
   }
 
   if (!normalize) {
-    return { ts, labels: outLabels, y: outY };
+    return { snapshots, ts, labels: outLabels, y: outY };
   }
 
   const normalized = outY.map((series) => [...series]);
@@ -107,19 +119,24 @@ export function processEvolutionSeries(
   }
 
   return {
+    snapshots,
     ts,
     labels: outLabels,
     y: normalized,
   };
 }
 
-export function getEvolutionTimeAxisConfig(ts: string[]): EvolutionTimeAxisConfig {
-  const granularity = inferEvolutionTimeGranularity(ts);
+export function getEvolutionTimeAxisConfig(data: {
+  ts: string[];
+  snapshots?: EvolutionSnapshotPoint[];
+}): EvolutionTimeAxisConfig {
+  const granularity = inferEvolutionTimeGranularity(data.ts);
+  const snapshots = data.snapshots ?? [];
 
   return {
-    x: ts,
+    x: data.ts,
     granularity,
-    hoverLabels: ts.map((isoDate) => formatTimeLabel(isoDate, granularity)),
+    hoverLabels: data.ts.map((isoDate, index) => formatSnapshotHoverLabel(snapshots[index], isoDate, granularity)),
     tickFormat: getPlotlyTickFormat(granularity),
   };
 }
@@ -220,6 +237,38 @@ export function formatTimeLabel(
     case 'monthly':
     default:
       return `${month} ${year}`;
+  }
+}
+
+function formatSnapshotHoverLabel(
+  snapshot: EvolutionSnapshotPoint | undefined,
+  isoDate: string,
+  granularity: EvolutionTimeGranularity
+): string {
+  const dateLabel = formatTimeLabel(isoDate, granularity);
+  if (!snapshot) {
+    return dateLabel;
+  }
+
+  const shaLabel = snapshot.commitSha ? snapshot.commitSha.slice(0, 8) : 'unknown';
+  const commitPosition = snapshot.totalCommitCount > 0
+    ? `Commit ${snapshot.commitIndex + 1} of ${snapshot.totalCommitCount}`
+    : `Commit ${snapshot.commitIndex + 1}`;
+  const samplingLabel = describeSamplingMode(snapshot.samplingMode);
+  const syntheticLabel = snapshot.synthetic ? '<br>Synthetic filled point' : '';
+
+  return `${dateLabel}<br>${commitPosition}<br>${samplingLabel}<br>SHA ${shaLabel}${syntheticLabel}`;
+}
+
+function describeSamplingMode(mode: EvolutionSnapshotPoint['samplingMode']): string {
+  switch (mode) {
+    case 'commit':
+      return 'Commit-based snapshot';
+    case 'auto':
+      return 'Auto-distributed snapshot';
+    case 'time':
+    default:
+      return 'Time-based snapshot';
   }
 }
 
