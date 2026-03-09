@@ -233,6 +233,12 @@ wait_for_run() {
         return 1
         ;;
       *)
+        if grep -q '^process_alive=0$' <<<"${status_output}"; then
+          echo "[repo-stats][remote] benchmark run ${run_id} stopped unexpectedly" >&2
+          fetch_run "${run_id}"
+          fetch_shared_results
+          return 1
+        fi
         sleep "${poll_seconds}"
         ;;
     esac
@@ -290,6 +296,7 @@ start_run() {
     shift
   fi
   local bench_args=("$@")
+  local bench_name_arg="${bench_name:-__REPO_STATS_EMPTY__}"
   local shortsha run_id snapshot_worker_dir
   shortsha="$(git -C "${REPO_DIR}" rev-parse --short HEAD)"
   run_id="$(date +%Y%m%dT%H%M%S)-${shortsha}"
@@ -309,7 +316,7 @@ start_run() {
     "${REMOTE_LOCK_FILE}" \
     "${run_id}" \
     "${bench_command}" \
-    "${bench_name}" \
+    "${bench_name_arg}" \
     "${REPO_STATS_REMOTE_ENV_FILE:-}" \
     "${REPO_STATS_REMOTE_BENCH_IDLE_MAX_LOAD1}" \
     "${REPO_STATS_REMOTE_BENCH_IDLE_POLL_SECONDS}" \
@@ -328,6 +335,9 @@ lock_file="$8"
 run_id="$9"
 bench_command="${10}"
 bench_name="${11}"
+if [[ "$bench_name" == "__REPO_STATS_EMPTY__" ]]; then
+  bench_name=""
+fi
 remote_env_file="${12}"
 idle_max_load1="${13}"
 idle_poll_seconds="${14}"
@@ -397,12 +407,15 @@ write_status() {
   local started_at="$2"
   local finished_at="$3"
   local exit_code="$4"
+  local current_run_id current_queued_at
+  current_run_id="$(awk -F= '$1=="run_id" { print $2 }' "$status_path")"
+  current_queued_at="$(awk -F= '$1=="queued_at" { print $2 }' "$status_path")"
   cat > "$status_path" <<STATUS
 exists=1
-run_id=$(awk -F= '$1=="run_id" { print $2 }' "$status_path")
+run_id=$current_run_id
 bench_command=$bench_command
 status=$status
-queued_at=$(awk -F= '$1=="queued_at" { print $2 }' "$status_path")
+queued_at=$current_queued_at
 started_at=$started_at
 finished_at=$finished_at
 exit_code=$exit_code
