@@ -192,6 +192,7 @@ export interface AnalysisResult {
   repository: RepositoryInfo;
   contributors: ContributorStats[];
   codeFrequency: CodeFrequency[];
+  commitAnalytics: CommitAnalytics;
   fileTree: TreemapNode;
   analyzedAt: string; // ISO date string
   // Limit tracking - shows warning when data may be incomplete
@@ -299,6 +300,7 @@ export interface CacheStructure {
   lastAnalyzed: number; // timestamp
   contributors: ContributorStats[];
   codeFrequency: CodeFrequency[];
+  commitAnalytics: CommitAnalytics;
   fileTree: TreemapNode;
   blameMetrics: BlameMetrics;
   blameFileCache: Record<string, BlameFileCacheEntry>;

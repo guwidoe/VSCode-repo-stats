@@ -15,7 +15,7 @@ import {
 // Cache Version - Bump this when cache structure changes
 // ============================================================================
 
-const CACHE_VERSION = '1.3.2'; // Bumped to include core analysis settings in cache validity
+const CACHE_VERSION = '1.4.0'; // Bumped to include commit analytics in cached core results
 
 // ============================================================================
 // Storage Interface (for dependency injection)
@@ -71,6 +71,7 @@ export class CacheManager {
       },
       contributors: cache.contributors,
       codeFrequency: cache.codeFrequency,
+      commitAnalytics: cache.commitAnalytics,
       fileTree: cache.fileTree,
       analyzedAt: new Date(cache.lastAnalyzed).toISOString(),
       analyzedCommitCount: 0, // Will be refreshed from current analysis
@@ -105,6 +106,7 @@ export class CacheManager {
       lastAnalyzed: Date.now(),
       contributors: result.contributors,
       codeFrequency: result.codeFrequency,
+      commitAnalytics: result.commitAnalytics,
       fileTree: result.fileTree,
       blameMetrics: result.blameMetrics,
       blameFileCache,

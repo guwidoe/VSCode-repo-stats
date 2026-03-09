@@ -88,16 +88,24 @@ export class AnalysisCoordinator {
     const submodulePaths = await this.gitClient.getSubmodulePaths();
     onProgress?.('Submodules detected', 14);
 
-    // Phase 3: Contributor stats (can be slow for large repos)
-    onProgress?.('Analyzing contributors', 15);
+    // Phase 3: Commit analytics backbone (shared by contributors/frequency/commit views)
+    onProgress?.('Analyzing commit history', 15);
+    const commitAnalytics = await this.gitClient.getCommitAnalytics(
+      this.settings.maxCommitsToAnalyze,
+      this.settings.excludePatterns
+    );
+    onProgress?.('Commit history analyzed', 28);
+
+    // Phase 4: Contributor stats
+    onProgress?.('Analyzing contributors', 30);
     const contributors = await this.gitClient.getContributorStats(
       this.settings.maxCommitsToAnalyze,
       this.settings.excludePatterns
     );
-    onProgress?.('Contributors analyzed', 40);
+    onProgress?.('Contributors analyzed', 45);
 
-    // Phase 4: Code frequency
-    onProgress?.('Calculating code frequency', 45);
+    // Phase 5: Code frequency
+    onProgress?.('Calculating code frequency', 48);
     const codeFrequency = await this.gitClient.getCodeFrequency(
       this.settings.maxCommitsToAnalyze,
       this.settings.excludePatterns
@@ -164,6 +172,7 @@ export class AnalysisCoordinator {
       repository,
       contributors,
       codeFrequency,
+      commitAnalytics,
       fileTree,
       analyzedAt: new Date().toISOString(),
       analyzedCommitCount,

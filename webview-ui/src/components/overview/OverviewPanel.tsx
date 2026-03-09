@@ -21,6 +21,7 @@ const DEFAULT_AGE_BUCKETS: AgeBucketDefinition[] = [
 
 export function OverviewPanel() {
   const stats = useOverviewStats();
+  const data = useStore((state) => state.data)!;
   const settings = useStore((state) => state.settings)!;
   const loading = useStore((state) => state.loading);
   const [showAllUnknown, setShowAllUnknown] = useState(false);
@@ -83,6 +84,41 @@ export function OverviewPanel() {
 
   return (
     <div className="overview-panel">
+      <div className="stats-row">
+        <div className="stat-card">
+          <div className="stat-card-icon">📄</div>
+          <div className="stat-card-content">
+            <span className="stat-card-value">{stats.files.total.toLocaleString()}</span>
+            <span className="stat-card-label">Total Files</span>
+            <span className="stat-card-subtitle">{stats.files.codeFiles.toLocaleString()} code files</span>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-card-icon">🧮</div>
+          <div className="stat-card-content">
+            <span className="stat-card-value">{stats.loc.total.toLocaleString()}</span>
+            <span className="stat-card-label">Total LOC</span>
+            <span className="stat-card-subtitle">{stats.loc.codeOnly.toLocaleString()} code-only LOC</span>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-card-icon">✅</div>
+          <div className="stat-card-content">
+            <span className="stat-card-value">{data.commitAnalytics.summary.totalCommits.toLocaleString()}</span>
+            <span className="stat-card-label">Total Commits</span>
+            <span className="stat-card-subtitle">{data.repository.commitCount.toLocaleString()} commits in repository history</span>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-card-icon">👥</div>
+          <div className="stat-card-content">
+            <span className="stat-card-value">{data.contributors.length.toLocaleString()}</span>
+            <span className="stat-card-label">Contributors</span>
+            <span className="stat-card-subtitle">{data.commitAnalytics.contributorSummaries.length.toLocaleString()} with commit activity</span>
+          </div>
+        </div>
+      </div>
+
       {/* Charts Row */}
       <div className="charts-row">
         <div className="chart-section">

@@ -164,6 +164,23 @@ describe('EvolutionPanel', () => {
       },
       contributors: [],
       codeFrequency: [],
+      commitAnalytics: {
+        authorDirectory: { idByEmail: {}, namesById: [], emailsById: [] },
+        records: [],
+        summary: {
+          totalCommits: 0,
+          totalAdditions: 0,
+          totalDeletions: 0,
+          totalChangedLines: 0,
+          averageChangedLines: 0,
+          medianChangedLines: 0,
+          averageFilesChanged: 0,
+        },
+        contributorSummaries: [],
+        changedLineBuckets: [],
+        fileChangeBuckets: [],
+        indexes: { byTimestampAsc: [], byChangedLinesDesc: [], byFilesChangedDesc: [] },
+      },
       fileTree: {
         name: 'repo',
         path: '',
