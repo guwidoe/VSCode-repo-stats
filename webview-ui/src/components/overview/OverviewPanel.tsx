@@ -56,6 +56,17 @@ export function OverviewPanel() {
     color: extensionColors[i % extensionColors.length],
   }));
 
+  const commitContributorSegments = useMemo(
+    () => data.commitAnalytics.contributorSummaries
+      .map((contributor) => ({
+        label: contributor.authorName,
+        value: contributor.totalCommits,
+        color: getAvatarColor(contributor.authorEmail),
+      }))
+      .sort((a, b) => b.value - a.value),
+    [data.commitAnalytics.contributorSummaries]
+  );
+
   const contributorSegments = useMemo(() => {
     const byAuthor = new Map<string, { lines: number; email: string }>();
 
@@ -138,6 +149,19 @@ export function OverviewPanel() {
             thickness={40}
             defaultDisplayMode={defaultDisplayMode}
           />
+        </div>
+        <div className="chart-section">
+          {commitContributorSegments.length > 0 ? (
+            <DonutChart
+              segments={commitContributorSegments}
+              title="Commits by Contributor"
+              size={200}
+              thickness={40}
+              defaultDisplayMode={defaultDisplayMode}
+            />
+          ) : (
+            <div className="chart-empty">No commit contributor data available</div>
+          )}
         </div>
         <div className="chart-section">
           {contributorSegments.length > 0 ? (
