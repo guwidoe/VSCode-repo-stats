@@ -232,6 +232,41 @@ npm run test
 npm run package
 ```
 
+### Analysis performance benchmarks
+
+Repo Stats now includes a deterministic analysis benchmark harness so analysis performance can be tracked over time without relying on whatever repository happens to be open locally.
+
+Local benchmark commands:
+
+```bash
+# list deterministic benchmark targets
+npm run bench:analysis:list
+
+# run the full benchmark suite locally
+npm run bench:analysis
+
+# record a baseline for the current commit
+npm run bench:record
+
+# compare against the previously recorded baseline
+npm run bench:compare-prev
+```
+
+The benchmark harness generates deterministic synthetic Git repositories under `.bench-results/workspaces/analysis/`, warms the `scc` binary outside the measured window, and records per-method timing totals for the analysis pipeline (`getCommitAnalytics`, `countLines`, `raw` blame calls, and related steps).
+
+For more comparable benchmark history, use the remote async runner on a quieter machine. It stages immutable code snapshots, serializes benchmark jobs behind a remote lock, and can wait for the remote machine to become mostly idle before starting a run:
+
+```bash
+cp ./tools/remote_benchmark.env.example ./tools/remote_benchmark.env
+# fill in SSH target, machine name, and stage dir first
+
+npm run bench:remote:check
+./tools/remote_benchmark_async.sh start record
+./tools/remote_benchmark_async.sh wait "$(./tools/remote_benchmark_async.sh latest)"
+```
+
+This workflow is intentionally separate from `npm run validate`. Performance benchmarks are useful regression tools, but they are too environment-sensitive and expensive to make every normal validation run block on them.
+
 ## License
 
 [MIT](LICENSE)

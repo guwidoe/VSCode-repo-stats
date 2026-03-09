@@ -28,11 +28,13 @@ test/**
 .vscode/**
 .claude/**
 .pi/**
+.bench-results/**
 .git/**
 .gitignore
 node_modules/**
 .venv/**
 *.vsix
+tools/**
 
 # Config files
 .eslintrc.json

@@ -340,6 +340,11 @@
     "test:e2e": "extest setup-and-run './test/e2e/*.test.ts' --mocha_config .mocharc.json",
     "test:e2e:setup": "extest get-vscode && extest get-chromedriver",
     "test:coverage": "vitest run --coverage",
+    "bench:analysis": "node ./tools/analysis_benchmark.js run",
+    "bench:analysis:list": "node ./tools/analysis_benchmark.js list-targets",
+    "bench:record": "./tools/benchmark_baseline.sh record",
+    "bench:compare-prev": "./tools/benchmark_baseline.sh compare-prev",
+    "bench:remote:check": "./tools/remote_benchmark_async.sh check",
     "validate": "npm run typecheck && npm run lint && npm run test && npm run package",
     "package": "vsce package --no-dependencies",
     "build": "npm run compile"

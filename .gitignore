@@ -31,6 +31,10 @@ npm-debug.log*
 .env
 .env.local
 .venv/
+tools/remote_benchmark.env
+
+# Benchmark outputs
+.bench-results/
 
 # Claude Code local settings (user-specific)
 .claude/settings.local.json
