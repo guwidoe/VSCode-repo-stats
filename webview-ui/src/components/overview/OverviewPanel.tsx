@@ -115,9 +115,13 @@ export function OverviewPanel() {
         <div className="stat-card">
           <div className="stat-card-icon">✅</div>
           <div className="stat-card-content">
-            <span className="stat-card-value">{data.commitAnalytics.summary.totalCommits.toLocaleString()}</span>
+            <span className="stat-card-value">{data.repository.commitCount.toLocaleString()}</span>
             <span className="stat-card-label">Total Commits</span>
-            <span className="stat-card-subtitle">{data.repository.commitCount.toLocaleString()} commits in repository history</span>
+            <span className="stat-card-subtitle">
+              {data.limitReached
+                ? `${data.commitAnalytics.summary.totalCommits.toLocaleString()} analyzed in detail (limit ${data.maxCommitsLimit.toLocaleString()})`
+                : 'All repository commits analyzed'}
+            </span>
           </div>
         </div>
         <div className="stat-card">

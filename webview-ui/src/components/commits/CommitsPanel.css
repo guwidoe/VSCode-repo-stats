@@ -52,6 +52,12 @@
   color: var(--vscode-descriptionForeground);
 }
 
+.commit-summary-caption {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.85;
+}
+
 .commit-insight-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));

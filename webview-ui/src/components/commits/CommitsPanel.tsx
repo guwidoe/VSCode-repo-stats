@@ -23,19 +23,28 @@ export function CommitsPanel() {
     return null;
   }
 
+  const analyzedCommitCount = summary.totalCommits;
+  const repositoryCommitCount = data.repository.commitCount;
+
   return (
     <div className="commits-panel">
       <div className="panel-header">
         <h2>Commits</h2>
         <span className="commits-meta">
-          Showing {rows.length.toLocaleString()} of {summary.totalCommits.toLocaleString()} commits
+          Showing {rows.length.toLocaleString()} of {analyzedCommitCount.toLocaleString()} analyzed commits
+          {data.limitReached && ` • repository has ${repositoryCommitCount.toLocaleString()} total`}
         </span>
       </div>
 
       <div className="commit-summary-grid">
         <div className="commit-summary-card">
-          <span className="commit-summary-value">{summary.totalCommits.toLocaleString()}</span>
-          <span className="commit-summary-label">Total commits</span>
+          <span className="commit-summary-value">{repositoryCommitCount.toLocaleString()}</span>
+          <span className="commit-summary-label">Repository commits</span>
+          <span className="commit-summary-caption">
+            {data.limitReached
+              ? `${analyzedCommitCount.toLocaleString()} analyzed by current limit`
+              : 'All commits included in analytics'}
+          </span>
         </div>
         <div className="commit-summary-card">
           <span className="commit-summary-value">Δ {Math.round(summary.averageChangedLines).toLocaleString()}</span>
