@@ -2,34 +2,38 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
   padding: 8px;
   border-bottom: 1px solid var(--vscode-panel-border);
   background: var(--vscode-editor-background);
 }
 
-.nav-main {
+.nav-main,
+.nav-utility {
   display: flex;
+  align-items: center;
   gap: 4px;
 }
 
-.nav-utility {
-  display: flex;
-  gap: 4px;
+.nav-main {
+  min-width: 0;
+  flex: 1;
 }
 
 .nav-button {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
+  gap: 8px;
+  min-height: 38px;
+  padding: 8px 14px;
+  border: 1px solid transparent;
+  border-radius: 999px;
   background: transparent;
   color: var(--vscode-foreground);
   cursor: pointer;
   font-size: 13px;
   font-family: var(--vscode-font-family);
-  transition: background-color 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .nav-button:hover {
@@ -37,23 +41,60 @@
 }
 
 .nav-button.active {
-  background: var(--vscode-list-activeSelectionBackground);
+  background: color-mix(in srgb, var(--vscode-list-activeSelectionBackground) 78%, transparent);
+  border-color: color-mix(in srgb, var(--vscode-list-activeSelectionBackground) 55%, var(--vscode-focusBorder) 45%);
   color: var(--vscode-list-activeSelectionForeground);
 }
 
-.nav-icon {
-  font-size: 16px;
+.nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  background: color-mix(in srgb, var(--vscode-badge-background) 70%, transparent);
+  color: var(--vscode-badge-foreground);
+}
+
+.nav-badge-blue {
+  background: color-mix(in srgb, var(--vscode-charts-blue, #4c9aff) 28%, transparent);
+  color: color-mix(in srgb, var(--vscode-charts-blue, #4c9aff) 88%, white 12%);
+}
+
+.nav-badge-purple {
+  background: color-mix(in srgb, var(--vscode-charts-purple, #a371f7) 28%, transparent);
+  color: color-mix(in srgb, var(--vscode-charts-purple, #a371f7) 90%, white 10%);
+}
+
+.nav-badge-green {
+  background: color-mix(in srgb, var(--vscode-charts-green, #3fb950) 26%, transparent);
+  color: color-mix(in srgb, var(--vscode-charts-green, #3fb950) 88%, white 12%);
+}
+
+.nav-badge-orange {
+  background: color-mix(in srgb, var(--vscode-charts-orange, #f29d49) 28%, transparent);
+  color: color-mix(in srgb, var(--vscode-charts-orange, #f29d49) 92%, white 8%);
+}
+
+.nav-badge-pink {
+  background: color-mix(in srgb, var(--vscode-charts-pink, #d16d9e) 28%, transparent);
+  color: color-mix(in srgb, var(--vscode-charts-pink, #d16d9e) 92%, white 8%);
 }
 
 .nav-label {
-  font-weight: 500;
+  font-weight: 600;
 }
 
-/* Icon-only variant for utility buttons */
 .nav-button.nav-icon-only {
   padding: 8px 10px;
 }
 
-.nav-button.nav-icon-only .nav-icon {
-  font-size: 18px;
+.nav-button.nav-icon-only .nav-badge {
+  min-width: 24px;
 }

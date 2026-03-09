@@ -10,23 +10,24 @@ import './Navigation.css';
 interface ViewConfig {
   id: ViewType;
   label: string;
-  icon: string;
+  badge: string;
+  tone: 'neutral' | 'blue' | 'purple' | 'green' | 'orange' | 'pink';
   tooltip?: string;
 }
 
 const MAIN_VIEWS: ViewConfig[] = [
-  { id: 'overview', label: 'Overview', icon: '📋' },
-  { id: 'files', label: 'Files', icon: '📄' },
-  { id: 'contributors', label: 'Contributors', icon: '👥' },
-  { id: 'commits', label: 'Commits', icon: '✅' },
-  { id: 'frequency', label: 'Code Frequency', icon: '📊' },
-  { id: 'evolution', label: 'Evolution', icon: '🧬' },
-  { id: 'treemap', label: 'Treemap', icon: '🗂️' },
+  { id: 'overview', label: 'Overview', badge: 'OV', tone: 'blue' },
+  { id: 'files', label: 'Files', badge: 'FI', tone: 'neutral' },
+  { id: 'contributors', label: 'Contributors', badge: 'CO', tone: 'purple' },
+  { id: 'commits', label: 'Commits', badge: 'CM', tone: 'green' },
+  { id: 'frequency', label: 'Code Frequency', badge: 'CF', tone: 'orange' },
+  { id: 'evolution', label: 'Evolution', badge: 'EV', tone: 'pink' },
+  { id: 'treemap', label: 'Treemap', badge: 'TM', tone: 'blue' },
 ];
 
 const UTILITY_VIEWS: ViewConfig[] = [
-  { id: 'about', label: 'About', icon: 'ℹ️', tooltip: 'About & Help' },
-  { id: 'settings', label: 'Settings', icon: '⚙️', tooltip: 'Settings' },
+  { id: 'about', label: 'About', badge: 'i', tone: 'neutral', tooltip: 'About & Help' },
+  { id: 'settings', label: 'Settings', badge: 'S', tone: 'neutral', tooltip: 'Settings' },
 ];
 
 export function Navigation() {
@@ -42,7 +43,7 @@ export function Navigation() {
             onClick={() => setActiveView(view.id)}
             aria-current={activeView === view.id ? 'page' : undefined}
           >
-            <span className="nav-icon">{view.icon}</span>
+            <span className={`nav-badge nav-badge-${view.tone}`} aria-hidden="true">{view.badge}</span>
             <span className="nav-label">{view.label}</span>
           </button>
         ))}
@@ -57,7 +58,7 @@ export function Navigation() {
             title={view.tooltip || view.label}
             aria-label={view.label}
           >
-            <span className="nav-icon">{view.icon}</span>
+            <span className={`nav-badge nav-badge-${view.tone}`} aria-hidden="true">{view.badge}</span>
           </button>
         ))}
       </div>
