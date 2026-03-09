@@ -25,6 +25,7 @@
 }
 
 .commit-summary-card,
+.commit-insight-card,
 .commit-table-card,
 .commit-filter-grid {
   border: 1px solid var(--vscode-panel-border);
@@ -50,11 +51,90 @@
   color: var(--vscode-descriptionForeground);
 }
 
+.commit-insight-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.commit-insight-card,
+.commit-filter-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+}
+
+.commit-insight-card h3 {
+  margin: 0;
+  font-size: 13px;
+}
+
+.commit-bar-list,
+.commit-pattern-list,
+.largest-commit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.commit-bar-row,
+.commit-pattern-row,
+.largest-commit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.commit-bar-label,
+.commit-bar-value,
+.commit-pattern-meta,
+.largest-commit-meta {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.commit-bar-label {
+  width: 78px;
+  flex-shrink: 0;
+}
+
+.commit-bar-track {
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--vscode-panel-border);
+}
+
+.commit-bar-fill {
+  height: 100%;
+  background: var(--vscode-progressBar-background);
+}
+
+.commit-bar-fill.files {
+  background: var(--vscode-charts-blue);
+}
+
+.commit-pattern-name,
+.largest-commit-summary {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+
+.commit-pattern-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  text-align: right;
+}
+
 .commit-filter-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
-  padding: 12px;
 }
 
 .commit-filter-grid label {

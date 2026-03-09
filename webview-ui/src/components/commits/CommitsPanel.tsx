@@ -26,6 +26,16 @@ function formatDate(isoDate: string): string {
   }).format(date);
 }
 
+function formatBucketLabel(minInclusive: number, maxInclusive: number): string {
+  if (maxInclusive === Number.MAX_SAFE_INTEGER) {
+    return `${minInclusive.toLocaleString()}+`;
+  }
+  if (minInclusive === maxInclusive) {
+    return minInclusive.toLocaleString();
+  }
+  return `${minInclusive.toLocaleString()}-${maxInclusive.toLocaleString()}`;
+}
+
 export function CommitsPanel() {
   const data = useStore((state) => state.data);
 
@@ -80,6 +90,22 @@ export function CommitsPanel() {
     sortDirection: 'desc',
     limit: 1,
   })[0] ?? null;
+  const largestCommits = queryCommitAnalytics(data.commitAnalytics, {
+    sortBy: 'changedLines',
+    sortDirection: 'desc',
+    limit: 5,
+  });
+  const contributorPatterns = [...data.commitAnalytics.contributorSummaries]
+    .sort((a, b) => b.averageChangedLines - a.averageChangedLines || b.totalCommits - a.totalCommits)
+    .slice(0, 8);
+  const maxChangedLineBucketCount = Math.max(
+    1,
+    ...data.commitAnalytics.changedLineBuckets.map((bucket) => bucket.count)
+  );
+  const maxFileBucketCount = Math.max(
+    1,
+    ...data.commitAnalytics.fileChangeBuckets.map((bucket) => bucket.count)
+  );
 
   return (
     <div className="commits-panel">
@@ -109,6 +135,80 @@ export function CommitsPanel() {
           </span>
           <span className="commit-summary-label">Largest commit</span>
         </div>
+      </div>
+
+      <div className="commit-insight-grid">
+        <section className="commit-insight-card">
+          <h3>Changed Lines Distribution</h3>
+          <div className="commit-bar-list">
+            {data.commitAnalytics.changedLineBuckets.map((bucket) => (
+              <div key={`${bucket.minInclusive}-${bucket.maxInclusive}`} className="commit-bar-row">
+                <span className="commit-bar-label">{formatBucketLabel(bucket.minInclusive, bucket.maxInclusive)}</span>
+                <div className="commit-bar-track">
+                  <div
+                    className="commit-bar-fill"
+                    style={{ width: `${(bucket.count / maxChangedLineBucketCount) * 100}%` }}
+                  />
+                </div>
+                <span className="commit-bar-value">{bucket.count.toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="commit-insight-card">
+          <h3>Files Changed Distribution</h3>
+          <div className="commit-bar-list">
+            {data.commitAnalytics.fileChangeBuckets.map((bucket) => (
+              <div key={`${bucket.minInclusive}-${bucket.maxInclusive}`} className="commit-bar-row">
+                <span className="commit-bar-label">{formatBucketLabel(bucket.minInclusive, bucket.maxInclusive)}</span>
+                <div className="commit-bar-track">
+                  <div
+                    className="commit-bar-fill files"
+                    style={{ width: `${(bucket.count / maxFileBucketCount) * 100}%` }}
+                  />
+                </div>
+                <span className="commit-bar-value">{bucket.count.toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="commit-insight-card">
+          <h3>Contributor Commit-Size Patterns</h3>
+          <div className="commit-pattern-list">
+            {contributorPatterns.map((pattern) => (
+              <div key={pattern.authorEmail} className="commit-pattern-row">
+                <div>
+                  <div className="commit-pattern-name">{pattern.authorName}</div>
+                  <div className="commit-pattern-meta">{pattern.totalCommits.toLocaleString()} commits</div>
+                </div>
+                <div className="commit-pattern-metrics">
+                  <span>avg Δ {Math.round(pattern.averageChangedLines).toLocaleString()}</span>
+                  <span>median Δ {Math.round(pattern.medianChangedLines).toLocaleString()}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="commit-insight-card">
+          <h3>Largest Commits</h3>
+          <div className="largest-commit-list">
+            {largestCommits.map((record) => {
+              const authorName = data.commitAnalytics.authorDirectory.namesById[record.authorId] ?? 'Unknown';
+              return (
+                <div key={record.sha} className="largest-commit-row">
+                  <div>
+                    <div className="largest-commit-summary">{record.summary}</div>
+                    <div className="largest-commit-meta">{authorName} · {formatDate(record.committedAt)} · {record.sha.slice(0, 8)}</div>
+                  </div>
+                  <strong>Δ {record.changedLines.toLocaleString()}</strong>
+                </div>
+              );
+            })}
+          </div>
+        </section>
       </div>
 
       <div className="commit-filter-grid">
