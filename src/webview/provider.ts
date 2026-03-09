@@ -26,6 +26,11 @@ import { EvolutionCacheManager } from '../cache/evolutionCacheManager.js';
 import { createCoreSettingsHash } from '../cache/coreSettingsHash.js';
 import { buildScopedSettingValue } from './scopedSettings.js';
 import {
+  createEvolutionAnalysisSettingsSnapshot,
+  flattenSettingsUpdate,
+  settingsAffectCoreAnalysis,
+} from '../shared/settings.js';
+import {
   buildRepositoryOption,
   selectPreferredRepositoryPath,
 } from './repositorySelection.js';
@@ -458,51 +463,11 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     const configTarget = this.toConfigurationTarget(target);
     const previousSettings = this.getSettings(repository);
 
-    if (settings.excludePatterns !== undefined) {
-      await config.update('excludePatterns', settings.excludePatterns, configTarget);
-    }
-    if (settings.maxCommitsToAnalyze !== undefined) {
-      await config.update('maxCommitsToAnalyze', settings.maxCommitsToAnalyze, configTarget);
-    }
-    if (settings.defaultColorMode !== undefined) {
-      await config.update('defaultColorMode', settings.defaultColorMode, configTarget);
-    }
-    if (settings.generatedPatterns !== undefined) {
-      await config.update('generatedPatterns', settings.generatedPatterns, configTarget);
-    }
-    if (settings.binaryExtensions !== undefined) {
-      await config.update('binaryExtensions', settings.binaryExtensions, configTarget);
-    }
-    if (settings.locExcludedExtensions !== undefined) {
-      await config.update('locExcludedExtensions', settings.locExcludedExtensions, configTarget);
-    }
-    if (settings.includeSubmodules !== undefined) {
-      await config.update('includeSubmodules', settings.includeSubmodules, configTarget);
-    }
-    if (settings.showEmptyTimePeriods !== undefined) {
-      await config.update('showEmptyTimePeriods', settings.showEmptyTimePeriods, configTarget);
-    }
-    if (settings.defaultGranularityMode !== undefined) {
-      await config.update('defaultGranularityMode', settings.defaultGranularityMode, configTarget);
-    }
-    if (settings.autoGranularityThreshold !== undefined) {
-      await config.update('autoGranularityThreshold', settings.autoGranularityThreshold, configTarget);
-    }
-    if (settings.overviewDisplayMode !== undefined) {
-      await config.update('overviewDisplayMode', settings.overviewDisplayMode, configTarget);
-    }
-    if (settings.tooltipSettings !== undefined) {
-      await config.update('tooltipSettings', settings.tooltipSettings, configTarget);
-    }
-    if (settings.evolution !== undefined) {
-      await config.update('evolution.autoRun', settings.evolution.autoRun, configTarget);
-      await config.update('evolution.snapshotIntervalDays', settings.evolution.snapshotIntervalDays, configTarget);
-      await config.update('evolution.maxSnapshots', settings.evolution.maxSnapshots, configTarget);
-      await config.update('evolution.maxSeries', settings.evolution.maxSeries, configTarget);
-      await config.update('evolution.cohortFormat', settings.evolution.cohortFormat, configTarget);
+    for (const update of flattenSettingsUpdate(settings)) {
+      await config.update(update.key, update.value, configTarget);
     }
 
-    return previousSettings.includeSubmodules !== this.getSettings(repository).includeSubmodules;
+    return settingsAffectCoreAnalysis(previousSettings, this.getSettings(repository));
   }
 
   private async updateScopedSetting<K extends RepoScopableSettingKey>(
@@ -518,7 +483,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     const config = this.getConfig(repository);
     const previousSettings = this.getSettings(repository);
     await config.update(key, value, this.toConfigurationTarget(target));
-    return createCoreSettingsHash(previousSettings) !== createCoreSettingsHash(this.getSettings(repository));
+    return settingsAffectCoreAnalysis(previousSettings, this.getSettings(repository));
   }
 
   private async resetScopedSettingOverride(key: RepoScopableSettingKey): Promise<boolean> {
@@ -530,7 +495,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     const config = this.getConfig(repository);
     const previousSettings = this.getSettings(repository);
     await config.update(key, undefined, vscode.ConfigurationTarget.WorkspaceFolder);
-    return createCoreSettingsHash(previousSettings) !== createCoreSettingsHash(this.getSettings(repository));
+    return settingsAffectCoreAnalysis(previousSettings, this.getSettings(repository));
   }
 
   private toConfigurationTarget(target: SettingWriteTarget): vscode.ConfigurationTarget {
@@ -977,11 +942,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
 // ============================================================================
 
 function createEvolutionSettingsHash(settings: ExtensionSettings): string {
-  const payload = JSON.stringify({
-    excludePatterns: settings.excludePatterns,
-    binaryExtensions: settings.binaryExtensions,
-    evolution: settings.evolution,
-  });
+  const payload = JSON.stringify(createEvolutionAnalysisSettingsSnapshot(settings));
   return crypto.createHash('sha1').update(payload).digest('hex').slice(0, 16);
 }
 

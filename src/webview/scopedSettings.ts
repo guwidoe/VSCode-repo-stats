@@ -2,9 +2,13 @@ import type {
   RepoScopableSettingKey,
   RepoScopableSettingValueMap,
   RepoScopedSettings,
-  ScopedSettingSource,
   ScopedSettingValue,
 } from '../types/index.js';
+import {
+  buildScopedSettingValue as buildSharedScopedSettingValue,
+  getScopedSettingDisplayValue,
+  resolveScopedSettingSource as resolveSharedScopedSettingSource,
+} from '../shared/settings.js';
 
 export interface ConfigInspectValue<T> {
   defaultValue?: T;
@@ -12,38 +16,26 @@ export interface ConfigInspectValue<T> {
   workspaceFolderValue?: T;
 }
 
-export function resolveScopedSettingSource<T>(inspect: ConfigInspectValue<T>): ScopedSettingSource {
-  if (inspect.workspaceFolderValue !== undefined) {
-    return 'repo';
-  }
-  if (inspect.globalValue !== undefined) {
-    return 'global';
-  }
-  return 'default';
+export function resolveScopedSettingSource<T>(inspect: ConfigInspectValue<T>) {
+  return resolveSharedScopedSettingSource({
+    globalValue: inspect.globalValue,
+    repoValue: inspect.workspaceFolderValue,
+  });
 }
 
 export function buildScopedSettingValue<T>(inspect: ConfigInspectValue<T>): ScopedSettingValue<T> {
-  if (inspect.defaultValue === undefined) {
-    throw new Error('Missing defaultValue for scoped setting. Check package.json configuration defaults.');
-  }
-
-  return {
+  return buildSharedScopedSettingValue({
     defaultValue: inspect.defaultValue,
     globalValue: inspect.globalValue,
     repoValue: inspect.workspaceFolderValue,
-    source: resolveScopedSettingSource(inspect),
-  };
+  });
 }
 
-export function getScopedSettingDisplayValue<K extends RepoScopableSettingKey>(
-  scopedSettings: RepoScopedSettings,
-  key: K,
-  target: 'global' | 'repo'
-): RepoScopableSettingValueMap[K] {
-  const setting = scopedSettings[key];
-  if (target === 'repo') {
-    return (setting.repoValue ?? setting.globalValue ?? setting.defaultValue) as RepoScopableSettingValueMap[K];
-  }
+export { getScopedSettingDisplayValue };
 
-  return (setting.globalValue ?? setting.defaultValue) as RepoScopableSettingValueMap[K];
-}
+export type ScopedSettingDisplayValue = ReturnType<
+  typeof getScopedSettingDisplayValue<RepoScopableSettingKey>
+>;
+
+export type ScopedSettingValueMap = RepoScopableSettingValueMap;
+export type ScopedSettings = RepoScopedSettings;

@@ -1,4 +1,9 @@
 import type { ExtensionSettings } from '../types';
+import {
+  applySettingsPatch,
+  settingsAffectCoreAnalysis,
+  settingsAffectEvolutionAnalysis,
+} from '../../../src/shared/settings';
 
 interface SettingsStalenessInput {
   currentSettings: ExtensionSettings;
@@ -11,27 +16,6 @@ interface SettingsStalenessInput {
   };
 }
 
-function arraysEqual(a: string[], b: string[]): boolean {
-  if (a.length !== b.length) {
-    return false;
-  }
-
-  return a.every((value, index) => value === b[index]);
-}
-
-function evolutionSettingsEqual(
-  current: ExtensionSettings['evolution'],
-  next: ExtensionSettings['evolution']
-): boolean {
-  return (
-    current.autoRun === next.autoRun &&
-    current.snapshotIntervalDays === next.snapshotIntervalDays &&
-    current.maxSnapshots === next.maxSnapshots &&
-    current.maxSeries === next.maxSeries &&
-    current.cohortFormat === next.cohortFormat
-  );
-}
-
 export function getOptimisticStalenessForSettingsChange({
   currentSettings,
   nextSettings,
@@ -39,22 +23,10 @@ export function getOptimisticStalenessForSettingsChange({
   hasEvolutionData,
   currentStaleness,
 }: SettingsStalenessInput): { coreStale: boolean; evolutionStale: boolean } {
-  const mergedSettings: ExtensionSettings = {
-    ...currentSettings,
-    ...nextSettings,
-  };
+  const mergedSettings = applySettingsPatch(currentSettings, nextSettings);
 
-  const coreSettingsChanged =
-    !arraysEqual(currentSettings.excludePatterns, mergedSettings.excludePatterns) ||
-    currentSettings.maxCommitsToAnalyze !== mergedSettings.maxCommitsToAnalyze ||
-    !arraysEqual(currentSettings.binaryExtensions, mergedSettings.binaryExtensions) ||
-    !arraysEqual(currentSettings.locExcludedExtensions, mergedSettings.locExcludedExtensions) ||
-    currentSettings.includeSubmodules !== mergedSettings.includeSubmodules;
-
-  const evolutionSettingsChanged =
-    !arraysEqual(currentSettings.excludePatterns, mergedSettings.excludePatterns) ||
-    !arraysEqual(currentSettings.binaryExtensions, mergedSettings.binaryExtensions) ||
-    !evolutionSettingsEqual(currentSettings.evolution, mergedSettings.evolution);
+  const coreSettingsChanged = settingsAffectCoreAnalysis(currentSettings, mergedSettings);
+  const evolutionSettingsChanged = settingsAffectEvolutionAnalysis(currentSettings, mergedSettings);
 
   return {
     coreStale: currentStaleness.coreStale || (hasCoreData && coreSettingsChanged),
