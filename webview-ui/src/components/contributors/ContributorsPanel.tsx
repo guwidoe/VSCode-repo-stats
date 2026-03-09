@@ -33,6 +33,12 @@ export function ContributorsPanel() {
   const deferredContributors = useDeferredValue(contributors);
   const deferredTimeRangeWeeks = useDeferredValue(timeRangeWeeks);
   const deferredGranularity = useDeferredValue(contributorGranularity);
+  const contributorCommitSummaryByEmail = new Map(
+    (data?.commitAnalytics.contributorSummaries ?? []).map((summary) => [
+      summary.authorEmail.toLowerCase(),
+      summary,
+    ])
+  );
 
   // Pagination: how many contributors to display
   const [displayCount, setDisplayCount] = useState(INITIAL_DISPLAY_COUNT);
@@ -90,6 +96,7 @@ export function ContributorsPanel() {
             rank={index + 1}
             timeRangeWeeks={deferredTimeRangeWeeks}
             granularity={deferredGranularity}
+            commitSummary={contributorCommitSummaryByEmail.get(contributor.email.toLowerCase())}
           />
         ))}
       </div>

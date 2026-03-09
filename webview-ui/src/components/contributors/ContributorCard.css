@@ -96,6 +96,35 @@
   color: var(--vscode-gitDecoration-deletedResourceForeground, #f85149);
 }
 
+.commit-size-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.commit-size-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 6px;
+  background: var(--vscode-editorWidget-background, color-mix(in srgb, var(--vscode-editor-background) 92%, black 8%));
+}
+
+.commit-size-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+
+.commit-size-label {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
 .sparkline-container {
   height: 30px;
 }

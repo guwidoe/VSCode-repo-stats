@@ -2,7 +2,7 @@
  * Contributor Card - Displays individual contributor stats.
  */
 
-import type { ContributorStats, FrequencyGranularity } from '../../types';
+import type { CommitContributorSummary, ContributorStats, FrequencyGranularity } from '../../types';
 import { getAvatarColor, getInitials, formatNumber } from '../../utils/colors';
 import { Sparkline } from './Sparkline';
 import './ContributorCard.css';
@@ -12,9 +12,10 @@ interface Props {
   rank: number;
   timeRangeWeeks: string[];
   granularity: FrequencyGranularity;
+  commitSummary?: CommitContributorSummary;
 }
 
-export function ContributorCard({ contributor, rank, timeRangeWeeks, granularity }: Props) {
+export function ContributorCard({ contributor, rank, timeRangeWeeks, granularity, commitSummary }: Props) {
   const avatarColor = getAvatarColor(contributor.email);
   const initials = getInitials(contributor.name);
 
@@ -48,6 +49,19 @@ export function ContributorCard({ contributor, rank, timeRangeWeeks, granularity
           <span className="stat-label">deleted</span>
         </div>
       </div>
+
+      {commitSummary && (
+        <div className="commit-size-row">
+          <div className="commit-size-stat">
+            <span className="commit-size-value">Δ {formatNumber(Math.round(commitSummary.averageChangedLines))}</span>
+            <span className="commit-size-label">avg / commit</span>
+          </div>
+          <div className="commit-size-stat">
+            <span className="commit-size-value">Δ {formatNumber(Math.round(commitSummary.medianChangedLines))}</span>
+            <span className="commit-size-label">median / commit</span>
+          </div>
+        </div>
+      )}
 
       <div className="sparkline-container">
         <Sparkline
