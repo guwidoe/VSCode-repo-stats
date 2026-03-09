@@ -37,8 +37,33 @@
 .commit-summary-card {
   padding: 14px;
   display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.commit-summary-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  color: var(--vscode-button-foreground);
+  background: color-mix(in srgb, var(--vscode-button-background) 78%, transparent);
+}
+
+.commit-summary-icon-svg {
+  width: 20px;
+  height: 20px;
+}
+
+.commit-summary-content {
+  display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 
 .commit-summary-value {

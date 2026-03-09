@@ -36,8 +36,20 @@
 }
 
 .stat-card-icon {
-  font-size: 28px;
-  opacity: 0.8;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  color: var(--vscode-button-foreground);
+  background: color-mix(in srgb, var(--vscode-button-background) 78%, transparent);
+}
+
+.stat-card-icon-svg {
+  width: 22px;
+  height: 22px;
 }
 
 .stat-card-content {

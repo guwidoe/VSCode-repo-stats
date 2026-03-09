@@ -1,7 +1,21 @@
+import {
+  Activity,
+  ChartColumnIncreasing,
+  GitCommitHorizontal,
+  Maximize2,
+  type LucideIcon,
+} from 'lucide-react';
 import { useCommitPanelState, formatCommitBucketLabel, formatCommitDate } from '../../hooks/useCommitPanelState';
 import type { CommitSortDirection, CommitSortField } from '../../types';
 import { CommitResultsList } from './CommitResultsList';
 import './CommitsPanel.css';
+
+const COMMIT_SUMMARY_ICONS: Record<'repository' | 'average' | 'median' | 'largest', LucideIcon> = {
+  repository: GitCommitHorizontal,
+  average: Activity,
+  median: ChartColumnIncreasing,
+  largest: Maximize2,
+};
 
 export function CommitsPanel() {
   const {
@@ -25,6 +39,31 @@ export function CommitsPanel() {
 
   const analyzedCommitCount = summary.totalCommits;
   const repositoryCommitCount = data.repository.commitCount;
+  const summaryCards = [
+    {
+      key: 'repository' as const,
+      label: 'Repository commits',
+      value: repositoryCommitCount.toLocaleString(),
+      caption: data.limitReached
+        ? `${analyzedCommitCount.toLocaleString()} analyzed by current limit`
+        : 'All commits included in analytics',
+    },
+    {
+      key: 'average' as const,
+      label: 'Average changed lines / commit',
+      value: `Δ ${Math.round(summary.averageChangedLines).toLocaleString()}`,
+    },
+    {
+      key: 'median' as const,
+      label: 'Median changed lines / commit',
+      value: `Δ ${Math.round(summary.medianChangedLines).toLocaleString()}`,
+    },
+    {
+      key: 'largest' as const,
+      label: 'Largest commit',
+      value: largestCommit ? `Δ ${largestCommit.changedLines.toLocaleString()}` : '—',
+    },
+  ];
 
   return (
     <div className="commits-panel">
@@ -37,29 +76,21 @@ export function CommitsPanel() {
       </div>
 
       <div className="commit-summary-grid">
-        <div className="commit-summary-card">
-          <span className="commit-summary-value">{repositoryCommitCount.toLocaleString()}</span>
-          <span className="commit-summary-label">Repository commits</span>
-          <span className="commit-summary-caption">
-            {data.limitReached
-              ? `${analyzedCommitCount.toLocaleString()} analyzed by current limit`
-              : 'All commits included in analytics'}
-          </span>
-        </div>
-        <div className="commit-summary-card">
-          <span className="commit-summary-value">Δ {Math.round(summary.averageChangedLines).toLocaleString()}</span>
-          <span className="commit-summary-label">Average changed lines / commit</span>
-        </div>
-        <div className="commit-summary-card">
-          <span className="commit-summary-value">Δ {Math.round(summary.medianChangedLines).toLocaleString()}</span>
-          <span className="commit-summary-label">Median changed lines / commit</span>
-        </div>
-        <div className="commit-summary-card">
-          <span className="commit-summary-value">
-            {largestCommit ? `Δ ${largestCommit.changedLines.toLocaleString()}` : '—'}
-          </span>
-          <span className="commit-summary-label">Largest commit</span>
-        </div>
+        {summaryCards.map((card) => {
+          const Icon = COMMIT_SUMMARY_ICONS[card.key];
+          return (
+            <div key={card.key} className="commit-summary-card">
+              <div className="commit-summary-icon" aria-hidden="true">
+                <Icon className="commit-summary-icon-svg" strokeWidth={1.9} />
+              </div>
+              <div className="commit-summary-content">
+                <span className="commit-summary-value">{card.value}</span>
+                <span className="commit-summary-label">{card.label}</span>
+                {card.caption && <span className="commit-summary-caption">{card.caption}</span>}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       <div className="commit-insight-grid">
