@@ -85,8 +85,24 @@ describe('GitAnalyzer', () => {
     const analyzer = new GitAnalyzer(repoPath);
     const excluded = ['**/backend/fixtures/**'];
 
+    const analytics = await analyzer.getCommitAnalytics(10, excluded);
     const contributors = await analyzer.getContributorStats(10, excluded);
     const frequency = await analyzer.getCodeFrequency(10, excluded);
+
+    expect(analytics.summary).toMatchObject({
+      totalCommits: 2,
+      totalChangedLines: 4,
+    });
+    expect(analytics.contributorSummaries).toEqual([
+      expect.objectContaining({
+        authorName: 'Alice',
+        totalCommits: 1,
+      }),
+      expect.objectContaining({
+        authorName: 'Bob',
+        totalCommits: 1,
+      }),
+    ]);
 
     expect(contributors).toHaveLength(2);
 

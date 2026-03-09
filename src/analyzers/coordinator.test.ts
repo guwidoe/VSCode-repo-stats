@@ -5,6 +5,7 @@ import type { LOCClient } from './locCounter';
 import type {
   BlameFileCacheEntry,
   CodeFrequency,
+  CommitAnalytics,
   ContributorStats,
   ExtensionSettings,
   RepositoryInfo,
@@ -24,6 +25,34 @@ class FakeGitClient implements GitClient {
       branch: 'main',
       commitCount: 1,
       headSha: 'abc123',
+    };
+  }
+
+  async getCommitAnalytics(): Promise<CommitAnalytics> {
+    return {
+      authorDirectory: {
+        idByEmail: {},
+        namesById: [],
+        emailsById: [],
+      },
+      records: [],
+      summary: {
+        totalCommits: 0,
+        totalAdditions: 0,
+        totalDeletions: 0,
+        totalChangedLines: 0,
+        averageChangedLines: 0,
+        medianChangedLines: 0,
+        averageFilesChanged: 0,
+      },
+      contributorSummaries: [],
+      changedLineBuckets: [],
+      fileChangeBuckets: [],
+      indexes: {
+        byTimestampAsc: [],
+        byChangedLinesDesc: [],
+        byFilesChangedDesc: [],
+      },
     };
   }
 

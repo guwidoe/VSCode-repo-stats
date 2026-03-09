@@ -5,13 +5,19 @@
 
 import simpleGit, { SimpleGit } from 'simple-git';
 import {
+  CommitAnalytics,
   ContributorStats,
   CodeFrequency,
   RepositoryInfo,
   NotAGitRepoError,
   GitNotFoundError,
 } from '../types/index.js';
-import { createPathPatternMatcher } from './pathMatching.js';
+import {
+  buildCodeFrequencyFromCommitAnalytics,
+  buildCommitAnalytics,
+  buildContributorStatsFromCommitAnalytics,
+  parseCommitHistoryLog,
+} from './commitAnalytics.js';
 
 // ============================================================================
 // Interfaces for Dependency Injection
@@ -20,6 +26,7 @@ import { createPathPatternMatcher } from './pathMatching.js';
 export interface GitClient {
   isRepo(): Promise<boolean>;
   getRepoInfo(): Promise<RepositoryInfo>;
+  getCommitAnalytics(maxCommits: number, excludePatterns?: string[]): Promise<CommitAnalytics>;
   getContributorStats(maxCommits: number, excludePatterns?: string[]): Promise<ContributorStats[]>;
   getCodeFrequency(maxCommits: number, excludePatterns?: string[]): Promise<CodeFrequency[]>;
   getFileModificationDates(): Promise<Map<string, string>>;
@@ -29,16 +36,6 @@ export interface GitClient {
   raw(args: string[]): Promise<string>;
 }
 
-interface ParsedCommitStat {
-  date: string;
-  name?: string;
-  email?: string;
-  additions: number;
-  deletions: number;
-  hasIncludedChanges: boolean;
-  sawAnyFileStats: boolean;
-}
-
 // ============================================================================
 // Git Analyzer Implementation
 // ============================================================================
@@ -46,6 +43,7 @@ interface ParsedCommitStat {
 export class GitAnalyzer implements GitClient {
   private git: SimpleGit;
   private repoPath: string;
+  private commitAnalyticsCache = new Map<string, CommitAnalytics>();
 
   constructor(repoPath: string) {
     this.repoPath = repoPath;
@@ -89,102 +87,53 @@ export class GitAnalyzer implements GitClient {
     }
   }
 
-  async getContributorStats(
+  async getCommitAnalytics(
     maxCommits: number,
     excludePatterns: string[] = []
-  ): Promise<ContributorStats[]> {
+  ): Promise<CommitAnalytics> {
     if (!(await this.isRepo())) {
       throw new NotAGitRepoError(this.repoPath);
     }
 
-    const commits = await this.getParsedCommitStats(maxCommits, true, excludePatterns);
-    const contributorMap = new Map<string, ContributorStats>();
-
-    for (const commit of commits) {
-      if (!commit.email || !commit.name) {
-        continue;
-      }
-
-      const key = commit.email.toLowerCase();
-      if (!contributorMap.has(key)) {
-        contributorMap.set(key, {
-          name: commit.name,
-          email: commit.email,
-          commits: 0,
-          linesAdded: 0,
-          linesDeleted: 0,
-          firstCommit: commit.date,
-          lastCommit: commit.date,
-          weeklyActivity: [],
-        });
-      }
-
-      const contributor = contributorMap.get(key)!;
-      contributor.commits++;
-      contributor.linesAdded += commit.additions;
-      contributor.linesDeleted += commit.deletions;
-
-      if (commit.date < contributor.firstCommit) {
-        contributor.firstCommit = commit.date;
-      }
-      if (commit.date > contributor.lastCommit) {
-        contributor.lastCommit = commit.date;
-      }
-
-      const week = this.getISOWeek(new Date(commit.date));
-      let weeklyEntry = contributor.weeklyActivity.find((entry) => entry.week === week);
-      if (!weeklyEntry) {
-        weeklyEntry = { week, commits: 0, additions: 0, deletions: 0 };
-        contributor.weeklyActivity.push(weeklyEntry);
-      }
-
-      weeklyEntry.commits++;
-      weeklyEntry.additions += commit.additions;
-      weeklyEntry.deletions += commit.deletions;
+    const cacheKey = JSON.stringify({
+      maxCommits,
+      excludePatterns: [...excludePatterns].sort((a, b) => a.localeCompare(b)),
+    });
+    const cached = this.commitAnalyticsCache.get(cacheKey);
+    if (cached) {
+      return cached;
     }
 
-    const contributors = Array.from(contributorMap.values());
-    contributors.sort((a, b) => b.commits - a.commits);
+    const rawLog = await this.git.raw([
+      'log',
+      '--all',
+      `--max-count=${maxCommits}`,
+      '--no-renames',
+      '--format=__COMMIT__|%H|%an|%ae|%aI|%s',
+      '--numstat',
+    ]);
 
-    for (const contributor of contributors) {
-      contributor.weeklyActivity.sort((a, b) => a.week.localeCompare(b.week));
-    }
+    const analytics = buildCommitAnalytics(
+      parseCommitHistoryLog(rawLog, excludePatterns)
+    );
+    this.commitAnalyticsCache.set(cacheKey, analytics);
+    return analytics;
+  }
 
-    return contributors;
+  async getContributorStats(
+    maxCommits: number,
+    excludePatterns: string[] = []
+  ): Promise<ContributorStats[]> {
+    const analytics = await this.getCommitAnalytics(maxCommits, excludePatterns);
+    return buildContributorStatsFromCommitAnalytics(analytics);
   }
 
   async getCodeFrequency(
     maxCommits: number,
     excludePatterns: string[] = []
   ): Promise<CodeFrequency[]> {
-    if (!(await this.isRepo())) {
-      throw new NotAGitRepoError(this.repoPath);
-    }
-
-    const commits = await this.getParsedCommitStats(maxCommits, false, excludePatterns);
-    const weeklyMap = new Map<string, CodeFrequency>();
-
-    for (const commit of commits) {
-      const week = this.getISOWeek(new Date(commit.date));
-      if (!weeklyMap.has(week)) {
-        weeklyMap.set(week, {
-          week,
-          additions: 0,
-          deletions: 0,
-          netChange: 0,
-        });
-      }
-
-      const entry = weeklyMap.get(week)!;
-      entry.additions += commit.additions;
-      entry.deletions += commit.deletions;
-      entry.netChange = entry.additions - entry.deletions;
-    }
-
-    const frequency = Array.from(weeklyMap.values());
-    frequency.sort((a, b) => a.week.localeCompare(b.week));
-
-    return frequency;
+    const analytics = await this.getCommitAnalytics(maxCommits, excludePatterns);
+    return buildCodeFrequencyFromCommitAnalytics(analytics);
   }
 
   /**
@@ -332,118 +281,6 @@ export class GitAnalyzer implements GitClient {
     return this.git.raw(args);
   }
 
-  private async getParsedCommitStats(
-    maxCommits: number,
-    includeAuthorFields: boolean,
-    excludePatterns: string[]
-  ): Promise<ParsedCommitStat[]> {
-    const shouldExcludePath = createPathPatternMatcher(excludePatterns);
-    const format = includeAuthorFields
-      ? '__COMMIT__|%an|%ae|%aI'
-      : '__COMMIT__|%aI';
-    const rawLog = await this.git.raw([
-      'log',
-      '--all',
-      `--max-count=${maxCommits}`,
-      '--no-renames',
-      `--format=${format}`,
-      '--numstat',
-    ]);
-
-    const commits: ParsedCommitStat[] = [];
-    let current: ParsedCommitStat | null = null;
-
-    const pushCurrent = () => {
-      if (!current) {
-        return;
-      }
-
-      if (current.hasIncludedChanges || !current.sawAnyFileStats) {
-        commits.push(current);
-      }
-    };
-
-    for (const line of rawLog.split('\n')) {
-      const trimmed = line.trim();
-      if (!trimmed) {
-        continue;
-      }
-
-      if (trimmed.startsWith('__COMMIT__|')) {
-        pushCurrent();
-        current = this.createParsedCommit(trimmed, includeAuthorFields);
-        continue;
-      }
-
-      if (!current) {
-        continue;
-      }
-
-      const fileStat = this.parseNumstatLine(line);
-      if (!fileStat) {
-        continue;
-      }
-
-      current.sawAnyFileStats = true;
-      if (shouldExcludePath(fileStat.filePath)) {
-        continue;
-      }
-
-      current.hasIncludedChanges = true;
-      current.additions += fileStat.additions;
-      current.deletions += fileStat.deletions;
-    }
-
-    pushCurrent();
-    return commits;
-  }
-
-  private createParsedCommit(line: string, includeAuthorFields: boolean): ParsedCommitStat {
-    const parts = line.split('|');
-    if (includeAuthorFields) {
-      return {
-        name: parts[1],
-        email: parts[2],
-        date: parts[3],
-        additions: 0,
-        deletions: 0,
-        hasIncludedChanges: false,
-        sawAnyFileStats: false,
-      };
-    }
-
-    return {
-      date: parts[1],
-      additions: 0,
-      deletions: 0,
-      hasIncludedChanges: false,
-      sawAnyFileStats: false,
-    };
-  }
-
-  private parseNumstatLine(
-    line: string
-  ): { additions: number; deletions: number; filePath: string } | null {
-    const parts = line.split('\t');
-    if (parts.length < 3) {
-      return null;
-    }
-
-    const filePath = parts[parts.length - 1].trim();
-    if (!filePath) {
-      return null;
-    }
-
-    const additions = parts[0] === '-' ? 0 : parseInt(parts[0], 10);
-    const deletions = parts[1] === '-' ? 0 : parseInt(parts[1], 10);
-
-    if (!Number.isFinite(additions) || !Number.isFinite(deletions)) {
-      return null;
-    }
-
-    return { additions, deletions, filePath };
-  }
-
   private getRepositoryName(): string {
     const name = this.repoPath.split('/').pop()?.trim() ?? '';
     if (!name) {
@@ -451,16 +288,6 @@ export class GitAnalyzer implements GitClient {
     }
 
     return name;
-  }
-
-  private getISOWeek(date: Date): string {
-    // Get the ISO week number
-    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const dayNum = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    const weekNum = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
-    return `${d.getUTCFullYear()}-W${weekNum.toString().padStart(2, '0')}`;
   }
 }
 

@@ -234,6 +234,21 @@ export interface CommitStatBucket {
   count: number;
 }
 
+export type CommitSortField = 'timestamp' | 'changedLines' | 'filesChanged';
+export type CommitSortDirection = 'asc' | 'desc';
+
+export interface CommitAnalyticsQuery {
+  authorIds?: number[];
+  minChangedLines?: number;
+  maxChangedLines?: number;
+  minFilesChanged?: number;
+  maxFilesChanged?: number;
+  sortBy?: CommitSortField;
+  sortDirection?: CommitSortDirection;
+  offset?: number;
+  limit?: number;
+}
+
 export interface CommitMetricSummary {
   totalCommits: number;
   totalAdditions: number;
