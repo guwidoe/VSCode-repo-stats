@@ -1,111 +1,24 @@
-import { useMemo, useState } from 'react';
-import { queryCommitAnalytics } from '../../../../src/shared/commitAnalyticsQuery';
-import { useStore } from '../../store';
-import type { CommitAnalyticsQuery, CommitSortDirection, CommitSortField } from '../../types';
+import { useCommitPanelState, formatCommitBucketLabel, formatCommitDate } from '../../hooks/useCommitPanelState';
+import type { CommitSortDirection, CommitSortField } from '../../types';
 import './CommitsPanel.css';
 
-function parseOptionalNumber(value: string): number | undefined {
-  if (!value.trim()) {
-    return undefined;
-  }
-
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) ? parsed : undefined;
-}
-
-function formatDate(isoDate: string): string {
-  const date = new Date(isoDate);
-  if (Number.isNaN(date.getTime())) {
-    return isoDate;
-  }
-
-  return new Intl.DateTimeFormat(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: '2-digit',
-  }).format(date);
-}
-
-function formatBucketLabel(minInclusive: number, maxInclusive: number): string {
-  if (maxInclusive === Number.MAX_SAFE_INTEGER) {
-    return `${minInclusive.toLocaleString()}+`;
-  }
-  if (minInclusive === maxInclusive) {
-    return minInclusive.toLocaleString();
-  }
-  return `${minInclusive.toLocaleString()}-${maxInclusive.toLocaleString()}`;
-}
-
 export function CommitsPanel() {
-  const data = useStore((state) => state.data);
+  const {
+    data,
+    rows,
+    authorOptions,
+    summary,
+    largestCommit,
+    largestCommits,
+    contributorPatterns,
+    maxChangedLineBucketCount,
+    maxFileBucketCount,
+    filters,
+  } = useCommitPanelState();
 
-  const [messageText, setMessageText] = useState('');
-  const [authorId, setAuthorId] = useState<string>('all');
-  const [committedAfter, setCommittedAfter] = useState('');
-  const [committedBefore, setCommittedBefore] = useState('');
-  const [minChangedLines, setMinChangedLines] = useState('');
-  const [maxChangedLines, setMaxChangedLines] = useState('');
-  const [minFilesChanged, setMinFilesChanged] = useState('');
-  const [maxFilesChanged, setMaxFilesChanged] = useState('');
-  const [sortBy, setSortBy] = useState<CommitSortField>('timestamp');
-  const [sortDirection, setSortDirection] = useState<CommitSortDirection>('desc');
-
-  if (!data) {
+  if (!data || !summary) {
     return null;
   }
-
-  const query = useMemo<CommitAnalyticsQuery>(() => ({
-    messageText: messageText.trim() || undefined,
-    authorIds: authorId === 'all' ? undefined : [Number(authorId)],
-    committedAfter: committedAfter || undefined,
-    committedBefore: committedBefore || undefined,
-    minChangedLines: parseOptionalNumber(minChangedLines),
-    maxChangedLines: parseOptionalNumber(maxChangedLines),
-    minFilesChanged: parseOptionalNumber(minFilesChanged),
-    maxFilesChanged: parseOptionalNumber(maxFilesChanged),
-    sortBy,
-    sortDirection,
-  }), [
-    messageText,
-    authorId,
-    committedAfter,
-    committedBefore,
-    minChangedLines,
-    maxChangedLines,
-    minFilesChanged,
-    maxFilesChanged,
-    sortBy,
-    sortDirection,
-  ]);
-
-  const rows = useMemo(
-    () => queryCommitAnalytics(data.commitAnalytics, query),
-    [data.commitAnalytics, query]
-  );
-
-  const authorOptions = data.commitAnalytics.contributorSummaries;
-  const summary = data.commitAnalytics.summary;
-  const largestCommit = queryCommitAnalytics(data.commitAnalytics, {
-    sortBy: 'changedLines',
-    sortDirection: 'desc',
-    limit: 1,
-  })[0] ?? null;
-  const largestCommits = queryCommitAnalytics(data.commitAnalytics, {
-    sortBy: 'changedLines',
-    sortDirection: 'desc',
-    limit: 5,
-  });
-  const contributorPatterns = [...data.commitAnalytics.contributorSummaries]
-    .sort((a, b) => b.averageChangedLines - a.averageChangedLines || b.totalCommits - a.totalCommits)
-    .slice(0, 8);
-  const maxChangedLineBucketCount = Math.max(
-    1,
-    ...data.commitAnalytics.changedLineBuckets.map((bucket) => bucket.count)
-  );
-  const maxFileBucketCount = Math.max(
-    1,
-    ...data.commitAnalytics.fileChangeBuckets.map((bucket) => bucket.count)
-  );
 
   return (
     <div className="commits-panel">
@@ -143,7 +56,7 @@ export function CommitsPanel() {
           <div className="commit-bar-list">
             {data.commitAnalytics.changedLineBuckets.map((bucket) => (
               <div key={`${bucket.minInclusive}-${bucket.maxInclusive}`} className="commit-bar-row">
-                <span className="commit-bar-label">{formatBucketLabel(bucket.minInclusive, bucket.maxInclusive)}</span>
+                <span className="commit-bar-label">{formatCommitBucketLabel(bucket.minInclusive, bucket.maxInclusive)}</span>
                 <div className="commit-bar-track">
                   <div
                     className="commit-bar-fill"
@@ -161,7 +74,7 @@ export function CommitsPanel() {
           <div className="commit-bar-list">
             {data.commitAnalytics.fileChangeBuckets.map((bucket) => (
               <div key={`${bucket.minInclusive}-${bucket.maxInclusive}`} className="commit-bar-row">
-                <span className="commit-bar-label">{formatBucketLabel(bucket.minInclusive, bucket.maxInclusive)}</span>
+                <span className="commit-bar-label">{formatCommitBucketLabel(bucket.minInclusive, bucket.maxInclusive)}</span>
                 <div className="commit-bar-track">
                   <div
                     className="commit-bar-fill files"
@@ -201,7 +114,7 @@ export function CommitsPanel() {
                 <div key={record.sha} className="largest-commit-row">
                   <div>
                     <div className="largest-commit-summary">{record.summary}</div>
-                    <div className="largest-commit-meta">{authorName} · {formatDate(record.committedAt)} · {record.sha.slice(0, 8)}</div>
+                    <div className="largest-commit-meta">{authorName} · {formatCommitDate(record.committedAt)} · {record.sha.slice(0, 8)}</div>
                   </div>
                   <strong>Δ {record.changedLines.toLocaleString()}</strong>
                 </div>
@@ -214,12 +127,12 @@ export function CommitsPanel() {
       <div className="commit-filter-grid">
         <label>
           <span>Message</span>
-          <input value={messageText} onChange={(event) => setMessageText(event.target.value)} placeholder="Search commit summary" />
+          <input value={filters.messageText} onChange={(event) => filters.setMessageText(event.target.value)} placeholder="Search commit summary" />
         </label>
 
         <label>
           <span>Author</span>
-          <select value={authorId} onChange={(event) => setAuthorId(event.target.value)}>
+          <select value={filters.authorId} onChange={(event) => filters.setAuthorId(event.target.value)}>
             <option value="all">All authors</option>
             {authorOptions.map((author) => (
               <option key={author.authorId} value={author.authorId}>
@@ -231,37 +144,37 @@ export function CommitsPanel() {
 
         <label>
           <span>From date</span>
-          <input type="date" value={committedAfter} onChange={(event) => setCommittedAfter(event.target.value)} />
+          <input type="date" value={filters.committedAfter} onChange={(event) => filters.setCommittedAfter(event.target.value)} />
         </label>
 
         <label>
           <span>To date</span>
-          <input type="date" value={committedBefore} onChange={(event) => setCommittedBefore(event.target.value)} />
+          <input type="date" value={filters.committedBefore} onChange={(event) => filters.setCommittedBefore(event.target.value)} />
         </label>
 
         <label>
           <span>Min Δ lines</span>
-          <input value={minChangedLines} onChange={(event) => setMinChangedLines(event.target.value)} inputMode="numeric" placeholder="0" />
+          <input value={filters.minChangedLines} onChange={(event) => filters.setMinChangedLines(event.target.value)} inputMode="numeric" placeholder="0" />
         </label>
 
         <label>
           <span>Max Δ lines</span>
-          <input value={maxChangedLines} onChange={(event) => setMaxChangedLines(event.target.value)} inputMode="numeric" placeholder="∞" />
+          <input value={filters.maxChangedLines} onChange={(event) => filters.setMaxChangedLines(event.target.value)} inputMode="numeric" placeholder="∞" />
         </label>
 
         <label>
           <span>Min files changed</span>
-          <input value={minFilesChanged} onChange={(event) => setMinFilesChanged(event.target.value)} inputMode="numeric" placeholder="0" />
+          <input value={filters.minFilesChanged} onChange={(event) => filters.setMinFilesChanged(event.target.value)} inputMode="numeric" placeholder="0" />
         </label>
 
         <label>
           <span>Max files changed</span>
-          <input value={maxFilesChanged} onChange={(event) => setMaxFilesChanged(event.target.value)} inputMode="numeric" placeholder="∞" />
+          <input value={filters.maxFilesChanged} onChange={(event) => filters.setMaxFilesChanged(event.target.value)} inputMode="numeric" placeholder="∞" />
         </label>
 
         <label>
           <span>Sort by</span>
-          <select value={sortBy} onChange={(event) => setSortBy(event.target.value as CommitSortField)}>
+          <select value={filters.sortBy} onChange={(event) => filters.setSortBy(event.target.value as CommitSortField)}>
             <option value="timestamp">Date</option>
             <option value="additions">Additions</option>
             <option value="deletions">Deletions</option>
@@ -272,7 +185,7 @@ export function CommitsPanel() {
 
         <label>
           <span>Direction</span>
-          <select value={sortDirection} onChange={(event) => setSortDirection(event.target.value as CommitSortDirection)}>
+          <select value={filters.sortDirection} onChange={(event) => filters.setSortDirection(event.target.value as CommitSortDirection)}>
             <option value="desc">Descending</option>
             <option value="asc">Ascending</option>
           </select>
@@ -298,7 +211,7 @@ export function CommitsPanel() {
               const authorName = data.commitAnalytics.authorDirectory.namesById[record.authorId] ?? 'Unknown';
               return (
                 <tr key={record.sha}>
-                  <td>{formatDate(record.committedAt)}</td>
+                  <td>{formatCommitDate(record.committedAt)}</td>
                   <td>{authorName}</td>
                   <td className="commit-summary-cell" title={record.summary}>{record.summary}</td>
                   <td><code>{record.sha.slice(0, 8)}</code></td>
