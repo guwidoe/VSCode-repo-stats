@@ -81,4 +81,22 @@ describe('getOptimisticStalenessForSettingsChange', () => {
       })
     ).toEqual({ coreStale: false, evolutionStale: true });
   });
+
+  it('does not mark analysis stale for evolution presentation-only setting changes', () => {
+    expect(
+      getOptimisticStalenessForSettingsChange({
+        currentSettings: createSettings(),
+        nextSettings: {
+          evolution: {
+            ...createSettings().evolution,
+            showInactivePeriods: true,
+            maxSeries: 10,
+          },
+        },
+        hasCoreData: true,
+        hasEvolutionData: true,
+        currentStaleness: { coreStale: false, evolutionStale: false },
+      })
+    ).toEqual({ coreStale: false, evolutionStale: false });
+  });
 });

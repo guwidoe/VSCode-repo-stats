@@ -30,18 +30,25 @@ export function processEvolutionSeries(
   data: EvolutionTimeSeriesData,
   maxSeries: number,
   normalize: boolean,
-  dimension: EvolutionDimension
+  dimension: EvolutionDimension,
+  showInactivePeriods: boolean = false
 ): ProcessedSeriesData {
-  const ts = data.ts;
-  const snapshots = data.snapshots ?? ts.map((committedAt, index) => ({
+  const baseTs = data.ts;
+  const baseSnapshots = data.snapshots ?? baseTs.map((committedAt, index) => ({
     commitSha: '',
     commitIndex: index,
-    totalCommitCount: ts.length,
+    totalCommitCount: baseTs.length,
     committedAt,
     samplingMode: 'time' as const,
   }));
   const labels = [...data.labels];
-  const y = data.y.map((series) => [...series]);
+  const baseY = data.y.map((series) => [...series]);
+  const expanded = showInactivePeriods
+    ? fillInactivePeriods(baseSnapshots, baseY)
+    : { snapshots: baseSnapshots, ts: baseTs, y: baseY };
+  const ts = expanded.ts;
+  const snapshots = expanded.snapshots;
+  const y = expanded.y;
 
   const indexed = labels.map((label, index) => ({
     label,
@@ -238,6 +245,89 @@ export function formatTimeLabel(
     default:
       return `${month} ${year}`;
   }
+}
+
+function fillInactivePeriods(
+  snapshots: EvolutionSnapshotPoint[],
+  y: number[][]
+): { snapshots: EvolutionSnapshotPoint[]; ts: string[]; y: number[][] } {
+  if (snapshots.length < 2) {
+    return {
+      snapshots,
+      ts: snapshots.map((snapshot) => snapshot.committedAt),
+      y,
+    };
+  }
+
+  const granularity = inferEvolutionTimeGranularity(snapshots.map((snapshot) => snapshot.committedAt));
+  const expandedSnapshots: EvolutionSnapshotPoint[] = [snapshots[0]];
+  const expandedY = y.map((series) => [series[0] ?? 0]);
+
+  for (let snapshotIndex = 1; snapshotIndex < snapshots.length; snapshotIndex++) {
+    const previousSnapshot = snapshots[snapshotIndex - 1];
+    const currentSnapshot = snapshots[snapshotIndex];
+    let cursor = addGranularity(previousSnapshot.committedAt, granularity);
+    const currentTime = new Date(currentSnapshot.committedAt).getTime();
+
+    while (cursor !== null && cursor.getTime() < currentTime) {
+      const committedAt = cursor.toISOString();
+      expandedSnapshots.push({
+        ...previousSnapshot,
+        committedAt,
+        synthetic: true,
+      });
+      for (let seriesIndex = 0; seriesIndex < expandedY.length; seriesIndex++) {
+        expandedY[seriesIndex].push(y[seriesIndex]?.[snapshotIndex - 1] ?? 0);
+      }
+      cursor = addGranularity(committedAt, granularity);
+    }
+
+    expandedSnapshots.push(currentSnapshot);
+    for (let seriesIndex = 0; seriesIndex < expandedY.length; seriesIndex++) {
+      expandedY[seriesIndex].push(y[seriesIndex]?.[snapshotIndex] ?? 0);
+    }
+  }
+
+  return {
+    snapshots: expandedSnapshots,
+    ts: expandedSnapshots.map((snapshot) => snapshot.committedAt),
+    y: expandedY,
+  };
+}
+
+function addGranularity(
+  isoDate: string,
+  granularity: EvolutionTimeGranularity
+): Date | null {
+  const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  const next = new Date(date);
+  switch (granularity) {
+    case 'daily':
+      next.setUTCDate(next.getUTCDate() + 1);
+      break;
+    case 'weekly':
+      next.setUTCDate(next.getUTCDate() + 7);
+      break;
+    case 'biweekly':
+      next.setUTCDate(next.getUTCDate() + 14);
+      break;
+    case 'quarterly':
+      next.setUTCMonth(next.getUTCMonth() + 3);
+      break;
+    case 'yearly':
+      next.setUTCFullYear(next.getUTCFullYear() + 1);
+      break;
+    case 'monthly':
+    default:
+      next.setUTCMonth(next.getUTCMonth() + 1);
+      break;
+  }
+
+  return next.getTime() > date.getTime() ? next : null;
 }
 
 function formatSnapshotHoverLabel(

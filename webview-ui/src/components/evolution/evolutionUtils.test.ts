@@ -51,6 +51,59 @@ describe('processEvolutionSeries', () => {
     expect(Math.round(secondColumnTotal)).toBe(100);
   });
 
+  it('fills inactive periods with synthetic carry-forward points when requested', () => {
+    const processed = processEvolutionSeries(
+      {
+        snapshots: [
+          {
+            commitSha: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+            commitIndex: 0,
+            totalCommitCount: 3,
+            committedAt: '2026-01-01T00:00:00.000Z',
+            samplingMode: 'time',
+          },
+          {
+            commitSha: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+            commitIndex: 1,
+            totalCommitCount: 3,
+            committedAt: '2026-01-03T00:00:00.000Z',
+            samplingMode: 'time',
+          },
+          {
+            commitSha: 'cccccccccccccccccccccccccccccccccccccccc',
+            commitIndex: 2,
+            totalCommitCount: 3,
+            committedAt: '2026-01-07T00:00:00.000Z',
+            samplingMode: 'time',
+          },
+        ],
+        ts: [
+          '2026-01-01T00:00:00.000Z',
+          '2026-01-03T00:00:00.000Z',
+          '2026-01-07T00:00:00.000Z',
+        ],
+        labels: ['Alice'],
+        y: [[10, 20, 30]],
+      },
+      1,
+      false,
+      'author',
+      true
+    );
+
+    expect(processed.ts).toEqual([
+      '2026-01-01T00:00:00.000Z',
+      '2026-01-02T00:00:00.000Z',
+      '2026-01-03T00:00:00.000Z',
+      '2026-01-04T00:00:00.000Z',
+      '2026-01-05T00:00:00.000Z',
+      '2026-01-06T00:00:00.000Z',
+      '2026-01-07T00:00:00.000Z',
+    ]);
+    expect(processed.y[0]).toEqual([10, 10, 20, 20, 20, 20, 30]);
+    expect(processed.snapshots.filter((snapshot) => snapshot.synthetic)).toHaveLength(4);
+  });
+
   it('orders cohort labels chronologically', () => {
     const processed = processEvolutionSeries(
       {

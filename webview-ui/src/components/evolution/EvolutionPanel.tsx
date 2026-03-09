@@ -48,8 +48,14 @@ export function EvolutionPanel() {
       return null;
     }
 
-    return processEvolutionSeries(sourceData, maxSeries, normalize, dimension);
-  }, [sourceData, maxSeries, normalize, dimension]);
+    return processEvolutionSeries(
+      sourceData,
+      maxSeries,
+      normalize,
+      dimension,
+      settings.evolution.showInactivePeriods
+    );
+  }, [sourceData, maxSeries, normalize, dimension, settings.evolution.showInactivePeriods]);
 
   const runLabel = evolutionStatus === 'stale' ? 'Recompute Evolution' : 'Run Evolution Analysis';
 
