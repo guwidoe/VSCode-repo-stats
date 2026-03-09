@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useDeferredValue, useMemo, useState } from 'react';
 import { queryCommitAnalytics } from '../../../src/shared/commitAnalyticsQuery';
 import { useStore } from '../store';
 import type { CommitAnalyticsQuery, CommitSortDirection, CommitSortField } from '../types';
@@ -73,10 +73,11 @@ export function useCommitPanelState() {
     sortDirection,
   ]);
 
+  const deferredQuery = useDeferredValue(query);
   const analytics = data?.commitAnalytics ?? null;
   const rows = useMemo(
-    () => (analytics ? queryCommitAnalytics(analytics, query) : []),
-    [analytics, query]
+    () => (analytics ? queryCommitAnalytics(analytics, deferredQuery) : []),
+    [analytics, deferredQuery]
   );
   const largestCommit = useMemo(
     () => analytics

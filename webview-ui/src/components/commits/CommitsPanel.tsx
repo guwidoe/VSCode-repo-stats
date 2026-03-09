@@ -1,5 +1,6 @@
 import { useCommitPanelState, formatCommitBucketLabel, formatCommitDate } from '../../hooks/useCommitPanelState';
 import type { CommitSortDirection, CommitSortField } from '../../types';
+import { CommitResultsList } from './CommitResultsList';
 import './CommitsPanel.css';
 
 export function CommitsPanel() {
@@ -193,41 +194,16 @@ export function CommitsPanel() {
       </div>
 
       <div className="commit-table-card">
-        <table className="commit-table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Author</th>
-              <th>Summary</th>
-              <th>SHA</th>
-              <th>+Add</th>
-              <th>-Del</th>
-              <th>Δ Lines</th>
-              <th>Files</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((record) => {
-              const authorName = data.commitAnalytics.authorDirectory.namesById[record.authorId] ?? 'Unknown';
-              return (
-                <tr key={record.sha}>
-                  <td>{formatCommitDate(record.committedAt)}</td>
-                  <td>{authorName}</td>
-                  <td className="commit-summary-cell" title={record.summary}>{record.summary}</td>
-                  <td><code>{record.sha.slice(0, 8)}</code></td>
-                  <td className="commit-positive">+{record.additions.toLocaleString()}</td>
-                  <td className="commit-negative">-{record.deletions.toLocaleString()}</td>
-                  <td>{record.changedLines.toLocaleString()}</td>
-                  <td>{record.filesChanged.toLocaleString()}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-
-        {rows.length === 0 && (
-          <div className="commit-empty-state">No commits match the current filters.</div>
-        )}
+        <div className="commit-results-toolbar">
+          <div>
+            <strong>{rows.length.toLocaleString()}</strong> matching commits
+          </div>
+          <span className="commit-results-note">Virtualized list for smoother scrolling in large repositories</span>
+        </div>
+        <CommitResultsList
+          rows={rows}
+          authorNamesById={data.commitAnalytics.authorDirectory.namesById}
+        />
       </div>
     </div>
   );

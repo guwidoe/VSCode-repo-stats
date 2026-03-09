@@ -158,30 +158,66 @@
   overflow: hidden;
 }
 
-.commit-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.commit-table th,
-.commit-table td {
-  padding: 10px 12px;
+.commit-results-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
   border-bottom: 1px solid var(--vscode-panel-border);
-  text-align: left;
   font-size: 12px;
-  vertical-align: top;
 }
 
-.commit-table th {
+.commit-results-note {
+  color: var(--vscode-descriptionForeground);
+}
+
+.commit-results-shell {
+  min-height: 460px;
+}
+
+.commit-results-grid {
+  display: grid;
+  grid-template-columns: 110px 160px minmax(260px, 1.8fr) 90px 90px 90px 90px 70px;
+  gap: 12px;
+  align-items: center;
+  min-width: 980px;
+}
+
+.commit-results-header {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--vscode-panel-border);
   font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.04em;
   color: var(--vscode-descriptionForeground);
   background: color-mix(in srgb, var(--vscode-editor-background) 94%, black 6%);
 }
 
+.commit-results-viewport {
+  max-height: 560px;
+  overflow: auto;
+}
+
+.commit-results-inner {
+  position: relative;
+}
+
+.commit-results-row {
+  position: absolute;
+  inset: 0 0 auto 0;
+  padding: 0 14px;
+  min-height: 48px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  font-size: 12px;
+  background: var(--vscode-editor-background);
+}
+
 .commit-summary-cell {
-  max-width: 420px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .commit-positive {
@@ -193,6 +229,10 @@
 }
 
 .commit-empty-state {
+  min-height: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 20px;
   text-align: center;
   color: var(--vscode-descriptionForeground);
