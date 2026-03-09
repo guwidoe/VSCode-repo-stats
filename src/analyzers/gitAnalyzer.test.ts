@@ -85,9 +85,12 @@ describe('GitAnalyzer', () => {
     const analyzer = new GitAnalyzer(repoPath);
     const excluded = ['**/backend/fixtures/**'];
 
+    const repoInfo = await analyzer.getRepoInfo();
     const analytics = await analyzer.getCommitAnalytics(10, excluded);
     const contributors = await analyzer.getContributorStats(10, excluded);
     const frequency = await analyzer.getCodeFrequency(10, excluded);
+
+    expect(repoInfo.commitCount).toBe(3);
 
     expect(analytics.summary).toMatchObject({
       totalCommits: 2,

@@ -64,19 +64,20 @@ export class GitAnalyzer implements GitClient {
     }
 
     try {
-      const [branch, headSha, log] = await Promise.all([
+      const [branch, headSha, commitCountRaw] = await Promise.all([
         this.git.revparse(['--abbrev-ref', 'HEAD']),
         this.git.revparse(['HEAD']),
-        this.git.log(['--oneline']),
+        this.git.raw(['rev-list', '--all', '--count']),
       ]);
 
       const name = this.getRepositoryName();
+      const commitCount = Number.parseInt(commitCountRaw.trim(), 10);
 
       return {
         name,
         path: this.repoPath,
         branch: branch.trim(),
-        commitCount: log.total,
+        commitCount: Number.isFinite(commitCount) ? commitCount : 0,
         headSha: headSha.trim(),
       };
     } catch (error) {
