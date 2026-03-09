@@ -157,14 +157,14 @@ export const selectFilteredCodeFrequency = (state: RepoStatsState) => {
     return [];
   }
 
-  const frequency = state.data.codeFrequency;
+  const frequency = state.data.codeFrequency.filter((entry) => parseISOWeek(entry.week) !== null);
   const cutoffDate = getCutoffDate(state.timePeriod);
 
   let filtered = frequency;
   if (cutoffDate) {
     filtered = frequency.filter((f) => {
       const weekDate = parseISOWeek(f.week);
-      return weekDate >= cutoffDate;
+      return weekDate !== null && weekDate >= cutoffDate;
     });
   }
 
@@ -197,14 +197,18 @@ function getCutoffDate(period: TimePeriod): Date | null {
   }
 }
 
-function parseISOWeek(isoWeek: string): Date {
+function parseISOWeek(isoWeek: string): Date | null {
   const match = isoWeek.match(/^(\d{4})-W(\d{2})$/);
   if (!match) {
-    return new Date(0);
+    return null;
   }
 
   const year = parseInt(match[1], 10);
   const week = parseInt(match[2], 10);
+  if (year < 1970 || year > 2100 || week < 1 || week > 53) {
+    return null;
+  }
+
   const jan4 = new Date(year, 0, 4);
   const dayOfWeek = jan4.getDay() || 7;
   const week1Monday = new Date(jan4);
@@ -223,6 +227,10 @@ function aggregateToMonthly(
 
   for (const week of weekly) {
     const date = parseISOWeek(week.week);
+    if (!date) {
+      continue;
+    }
+
     const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
     if (!monthlyMap.has(monthKey)) {

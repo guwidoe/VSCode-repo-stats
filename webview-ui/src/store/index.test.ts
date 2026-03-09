@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useStore, selectFilteredTreemapNode } from './index';
+import { useStore, selectFilteredCodeFrequency, selectFilteredTreemapNode } from './index';
 import type { AnalysisResult, TreemapNode } from '../types';
 
 const mockAnalysisResult: AnalysisResult = {
@@ -223,6 +223,25 @@ describe('useStore', () => {
     it('should change color mode', () => {
       useStore.getState().setColorMode('age');
       expect(useStore.getState().colorMode).toBe('age');
+    });
+  });
+
+  describe('code frequency selector', () => {
+    it('ignores invalid weeks when aggregating monthly data', () => {
+      const invalidWeekResult: AnalysisResult = {
+        ...mockAnalysisResult,
+        codeFrequency: [
+          { week: 'not-a-week', additions: 10, deletions: 5, netChange: 5 },
+          { week: '2024-W02', additions: 20, deletions: 8, netChange: 12 },
+        ],
+      };
+
+      useStore.getState().setData(invalidWeekResult);
+      useStore.getState().setFrequencyGranularity('monthly');
+
+      expect(selectFilteredCodeFrequency(useStore.getState())).toEqual([
+        { week: '2024-01', additions: 20, deletions: 8, netChange: 12 },
+      ]);
     });
   });
 
