@@ -359,13 +359,22 @@
 }
 
 .commit-results-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 14px;
+  border: none;
   border-bottom: 1px solid var(--vscode-panel-border);
+  border-radius: 0;
+  background: transparent;
+  padding: 12px 14px;
   font-size: 12px;
+}
+
+.commit-results-frame {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.commit-results-body {
+  overflow: hidden;
 }
 
 .commit-results-note {

@@ -16,14 +16,7 @@
 }
 
 .files-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  border: 1px solid var(--vscode-panel-border);
-  border-radius: 8px;
-  background: var(--vscode-editor-background);
-  padding: 8px 10px;
+  gap: 8px;
 }
 
 .toolbar-left {

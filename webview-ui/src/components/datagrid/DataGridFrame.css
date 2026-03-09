@@ -1,0 +1,56 @@
+.data-grid-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 8px;
+  background: var(--vscode-editor-background);
+  padding: 8px 10px;
+}
+
+.data-grid-toolbar-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.data-grid-toolbar-start,
+.data-grid-toolbar-end {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.data-grid-toolbar-summary {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.data-grid-shell {
+  flex: 1;
+  min-height: 0;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 8px;
+  background: var(--vscode-editor-background);
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.data-grid-table {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.data-grid-header {
+  flex-shrink: 0;
+}
+
+.data-grid-body {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}

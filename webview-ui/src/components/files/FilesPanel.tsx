@@ -9,6 +9,8 @@ import { useStore } from '../../store';
 import { useFileCatalog } from '../../hooks/useFileCatalog';
 import { useVsCodeApi } from '../../hooks/useVsCodeApi';
 import { buildDefaultColumnWidths, DEFAULT_COLUMN_ORDER, getColumnConfig } from './columns';
+import { DataGridFrame } from '../datagrid/DataGridFrame';
+import { DataGridToolbar } from '../datagrid/DataGridToolbar';
 import { ColumnManagerPopover } from './ColumnManagerPopover';
 import { FilesHeaderCell } from './FilesHeaderCell';
 import { FilesTableRow } from './FilesTableRow';
@@ -256,62 +258,71 @@ export function FilesPanel() {
         </div>
       )}
 
-      <div className="files-toolbar">
-        <div className="toolbar-left">
-          <div className="toolbar-popover-anchor">
+      <DataGridToolbar
+        className="files-toolbar"
+        start={(
+          <div className="toolbar-left">
+            <div className="toolbar-popover-anchor">
+              <button
+                className="toolbar-button"
+                type="button"
+                onClick={() => {
+                  setShowColumnManager((open) => !open);
+                  setActiveFilterColumn(null);
+                }}
+              >
+                Columns
+              </button>
+
+              {showColumnManager && (
+                <ColumnManagerPopover
+                  columnOrder={columnOrder}
+                  hiddenColumns={hiddenColumns}
+                  onToggleColumn={toggleColumnVisibility}
+                  onMoveColumn={moveColumn}
+                  onResetColumns={() => {
+                    setColumnOrder(DEFAULT_COLUMN_ORDER);
+                    setColumnWidths(buildDefaultColumnWidths());
+                    setHiddenColumns(new Set());
+                  }}
+                  onClose={() => setShowColumnManager(false)}
+                />
+              )}
+            </div>
+
             <button
               className="toolbar-button"
               type="button"
-              onClick={() => {
-                setShowColumnManager((open) => !open);
-                setActiveFilterColumn(null);
-              }}
+              onClick={clearAllFilters}
+              disabled={activeFilterCount === 0}
             >
-              Columns
+              Clear filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
             </button>
 
-            {showColumnManager && (
-              <ColumnManagerPopover
-                columnOrder={columnOrder}
-                hiddenColumns={hiddenColumns}
-                onToggleColumn={toggleColumnVisibility}
-                onMoveColumn={moveColumn}
-                onResetColumns={() => {
-                  setColumnOrder(DEFAULT_COLUMN_ORDER);
-                  setColumnWidths(buildDefaultColumnWidths());
-                  setHiddenColumns(new Set());
-                }}
-                onClose={() => setShowColumnManager(false)}
-              />
-            )}
+            <button
+              className="toolbar-button"
+              type="button"
+              onClick={() => setSortRules(DEFAULT_SORT_RULES)}
+            >
+              Reset sort
+            </button>
           </div>
+        )}
+        summary={(
+          <div className="results-summary">
+            Showing <strong>{sortedRows.length.toLocaleString()}</strong> of{' '}
+            <strong>{catalog.rows.length.toLocaleString()}</strong> files
+          </div>
+        )}
+      />
 
-          <button
-            className="toolbar-button"
-            type="button"
-            onClick={clearAllFilters}
-            disabled={activeFilterCount === 0}
-          >
-            Clear filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
-          </button>
-
-          <button
-            className="toolbar-button"
-            type="button"
-            onClick={() => setSortRules(DEFAULT_SORT_RULES)}
-          >
-            Reset sort
-          </button>
-        </div>
-
-        <div className="results-summary">
-          Showing <strong>{sortedRows.length.toLocaleString()}</strong> of{' '}
-          <strong>{catalog.rows.length.toLocaleString()}</strong> files
-        </div>
-      </div>
-
-      <div className="files-table-shell">
-        <div className="files-table" style={{ minWidth: `${minTableWidth}px` }}>
+      <DataGridFrame
+        className="files-table-shell"
+        tableClassName="files-table"
+        bodyClassName="files-table-body"
+        bodyRef={tableContainerRef}
+        minWidth={minTableWidth}
+        header={(
           <div className="files-table-header" role="row" style={{ gridTemplateColumns }}>
             {visibleColumns.map((column) => (
               <FilesHeaderCell
@@ -331,35 +342,33 @@ export function FilesPanel() {
               />
             ))}
           </div>
+        )}
+      >
+        {sortedRows.length === 0 ? (
+          <div className="files-empty">No files match the active column filters.</div>
+        ) : (
+          <div
+            className="files-virtualizer-space"
+            style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
+          >
+            {virtualRows.map((virtualRow) => {
+              const row = sortedRows[virtualRow.index];
 
-          <div className="files-table-body" ref={tableContainerRef}>
-            {sortedRows.length === 0 ? (
-              <div className="files-empty">No files match the active column filters.</div>
-            ) : (
-              <div
-                className="files-virtualizer-space"
-                style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
-              >
-                {virtualRows.map((virtualRow) => {
-                  const row = sortedRows[virtualRow.index];
-
-                  return (
-                    <FilesTableRow
-                      key={row.path}
-                      row={row}
-                      columns={visibleColumns}
-                      gridTemplateColumns={gridTemplateColumns}
-                      start={virtualRow.start}
-                      onOpenFile={openFile}
-                      onRevealInExplorer={revealInExplorer}
-                    />
-                  );
-                })}
-              </div>
-            )}
+              return (
+                <FilesTableRow
+                  key={row.path}
+                  row={row}
+                  columns={visibleColumns}
+                  gridTemplateColumns={gridTemplateColumns}
+                  start={virtualRow.start}
+                  onOpenFile={openFile}
+                  onRevealInExplorer={revealInExplorer}
+                />
+              );
+            })}
           </div>
-        </div>
-      </div>
+        )}
+      </DataGridFrame>
     </div>
   );
 }

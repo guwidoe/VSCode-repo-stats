@@ -22,24 +22,12 @@ export function CommitResultsList({ rows, authorNamesById }: CommitResultsListPr
   }
 
   return (
-    <div className="commit-results-shell">
-      <div className="commit-results-header commit-results-grid" role="row">
-        <span>Date</span>
-        <span>Author</span>
-        <span>Summary</span>
-        <span>SHA</span>
-        <span>+Add</span>
-        <span>-Del</span>
-        <span>Δ Lines</span>
-        <span>Files</span>
-      </div>
-
-      <div className="commit-results-viewport" ref={parentRef}>
-        <div
-          className="commit-results-inner"
-          style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
-        >
-          {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+    <div className="commit-results-viewport" ref={parentRef}>
+      <div
+        className="commit-results-inner"
+        style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
+      >
+        {rowVirtualizer.getVirtualItems().map((virtualRow) => {
             const record = rows[virtualRow.index];
             if (!record) {
               return null;
@@ -65,7 +53,6 @@ export function CommitResultsList({ rows, authorNamesById }: CommitResultsListPr
               </div>
             );
           })}
-        </div>
       </div>
     </div>
   );

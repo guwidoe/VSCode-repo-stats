@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { useCommitPanelState, formatCommitBucketLabel, formatCommitDate } from '../../hooks/useCommitPanelState';
 import type { CommitSortDirection, CommitSortField } from '../../types';
+import { DataGridFrame } from '../datagrid/DataGridFrame';
+import { DataGridToolbar } from '../datagrid/DataGridToolbar';
 import { CommitResultsList } from './CommitResultsList';
 import './CommitsPanel.css';
 
@@ -304,16 +306,33 @@ export function CommitsPanel() {
       </section>
 
       <div className="commit-table-card">
-        <div className="commit-results-toolbar">
-          <div>
-            <strong>{rows.length.toLocaleString()}</strong> matching commits
-          </div>
-          <span className="commit-results-note">Virtualized list for smoother scrolling in large repositories</span>
-        </div>
-        <CommitResultsList
-          rows={rows}
-          authorNamesById={data.commitAnalytics.authorDirectory.namesById}
+        <DataGridToolbar
+          className="commit-results-toolbar"
+          start={<div><strong>{rows.length.toLocaleString()}</strong> matching commits</div>}
+          end={<span className="commit-results-note">Virtualized list for smoother scrolling in large repositories</span>}
         />
+        <DataGridFrame
+          className="commit-results-frame"
+          tableClassName="commit-results-shell"
+          bodyClassName="commit-results-body"
+          header={(
+            <div className="commit-results-header commit-results-grid" role="row">
+              <span>Date</span>
+              <span>Author</span>
+              <span>Summary</span>
+              <span>SHA</span>
+              <span>+Add</span>
+              <span>-Del</span>
+              <span>Δ Lines</span>
+              <span>Files</span>
+            </div>
+          )}
+        >
+          <CommitResultsList
+            rows={rows}
+            authorNamesById={data.commitAnalytics.authorDirectory.namesById}
+          />
+        </DataGridFrame>
       </div>
     </div>
   );
