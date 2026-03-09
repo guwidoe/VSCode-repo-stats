@@ -9,9 +9,11 @@
  * - TreemapLegend: Color legend based on mode
  */
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useStore, selectFilteredTreemapNode } from '../../store';
 import { useVsCodeApi } from '../../hooks/useVsCodeApi';
+import type { TreemapNode } from '../../types';
+import { getScopedSettingDisplayValue } from '../../utils/scopedSettings';
 import { TreemapCanvas } from './TreemapCanvas';
 import { TreemapFilter } from './TreemapFilter';
 import { TreemapControls } from './TreemapControls';
@@ -22,8 +24,16 @@ import { HelpModal } from '../help/HelpModal';
 import { collectLanguageCounts, calculateMaxDepth } from './utils/layout';
 import './TreemapPanel.css';
 
+function buildRepoExcludePattern(node: TreemapNode): string | null {
+  if (!node.path) {
+    return null;
+  }
+
+  return `/${node.path}`;
+}
+
 export function TreemapPanel() {
-  const { openFile, revealInExplorer, copyPath } = useVsCodeApi();
+  const { openFile, revealInExplorer, copyPath, updateScopedSetting } = useVsCodeApi();
   const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   // Store state - use the filtered treemap node from the selector
@@ -34,6 +44,7 @@ export function TreemapPanel() {
   const maxNestingDepth = useStore(state => state.maxNestingDepth);
   const hoveredNode = useStore(state => state.hoveredNode);
   const selectedNode = useStore(state => state.selectedNode);
+  const scopedSettings = useStore(state => state.scopedSettings);
 
   // Store actions
   const navigateToTreemapPath = useStore(state => state.navigateToTreemapPath);
@@ -47,6 +58,24 @@ export function TreemapPanel() {
   const data = useStore(state => state.data);
   const treemapFilter = useStore(state => state.treemapFilter);
   const hasData = !!data?.fileTree;
+
+  const handleAddToRepoExcludePatterns = useCallback((node: TreemapNode) => {
+    if (!scopedSettings) {
+      return;
+    }
+
+    const nextPattern = buildRepoExcludePattern(node);
+    if (!nextPattern) {
+      return;
+    }
+
+    const currentPatterns = getScopedSettingDisplayValue(scopedSettings, 'excludePatterns', 'repo');
+    if (currentPatterns.includes(nextPattern)) {
+      return;
+    }
+
+    updateScopedSetting('excludePatterns', [...currentPatterns, nextPattern], 'repo');
+  }, [scopedSettings, updateScopedSetting]);
 
   // Calculate language counts for legend
   const languageCounts = filteredTreemapNode
@@ -106,6 +135,10 @@ export function TreemapPanel() {
         onSelect={setSelectedNode}
         onHover={setHoveredNode}
         onNavigate={navigateToTreemapPath}
+        onOpenFile={openFile}
+        onRevealInExplorer={revealInExplorer}
+        onCopyPath={copyPath}
+        onAddToRepoExcludePatterns={handleAddToRepoExcludePatterns}
       />
 
       <div className="treemap-content">
@@ -134,6 +167,7 @@ export function TreemapPanel() {
             onOpenFile={openFile}
             onRevealInExplorer={revealInExplorer}
             onCopyPath={copyPath}
+            onAddToRepoExcludePatterns={handleAddToRepoExcludePatterns}
           />
         ) : null}
       </div>

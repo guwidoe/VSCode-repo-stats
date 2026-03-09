@@ -141,7 +141,7 @@ This extension uses [scc](https://github.com/boyter/scc) for accurate lines-of-c
 
 | Setting | Default | Description |
 | --- | --- | --- |
-| `repoStats.excludePatterns` | `[]` | Additional repo-relative directory patterns to exclude beyond `.gitignore` |
+| `repoStats.excludePatterns` | `[]` | Additional file or folder exclude patterns beyond `.gitignore` |
 | `repoStats.maxCommitsToAnalyze` | `10000` | Maximum commits to analyze for history-based views |
 | `repoStats.defaultColorMode` | `"language"` | Default treemap color mode (`language`, `age`, `complexity`, or `density`) |
 | `repoStats.showEmptyTimePeriods` | `true` | Show weeks/months with no activity in charts |
@@ -161,7 +161,7 @@ This extension uses [scc](https://github.com/boyter/scc) for accurate lines-of-c
 
 Tip: If assets like `.svg` files inflate LOC totals for your project, add `.svg` to `repoStats.locExcludedExtensions`.
 
-`repoStats.excludePatterns` accepts simple directory names (`vendor`), repo-relative paths (`backend/fixtures`), and glob-style directory patterns (`**/backend/fixtures/**`).
+`repoStats.excludePatterns` accepts simple directory names (`vendor`), repo-relative paths (`backend/fixtures`), exact repo-root paths prefixed with `/` (`/src`, `/README.md`), and glob-style patterns (`**/backend/fixtures/**`).
 
 The following settings can be saved per-repository via the Settings UI and VS Code workspace-folder settings (`.vscode/settings.json`): `excludePatterns`, `generatedPatterns`, `binaryExtensions`, `locExcludedExtensions`, `includeSubmodules`, `maxCommitsToAnalyze`, `evolution.snapshotIntervalDays`, `evolution.maxSnapshots`, `evolution.maxSeries`, and `evolution.cohortFormat`.
 

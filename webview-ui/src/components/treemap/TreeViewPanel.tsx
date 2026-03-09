@@ -7,6 +7,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import type { TreemapNode, ColorMode } from '../../types';
 import { TreeViewRow } from './TreeViewRow';
+import { TreemapContextMenu } from './TreemapContextMenu';
 import { InfoTooltip } from '../common/InfoTooltip';
 import './TreeViewPanel.css';
 
@@ -18,6 +19,17 @@ interface TreeViewPanelProps {
   onSelect: (node: TreemapNode | null) => void;
   onHover: (node: TreemapNode | null) => void;
   onNavigate: (path: string[]) => void;
+  onOpenFile: (path: string) => void;
+  onRevealInExplorer: (path: string) => void;
+  onCopyPath: (path: string) => void;
+  onAddToRepoExcludePatterns: (node: TreemapNode) => void;
+}
+
+interface ContextMenuState {
+  visible: boolean;
+  x: number;
+  y: number;
+  node: TreemapNode | null;
 }
 
 const MIN_HEIGHT = 100;
@@ -31,10 +43,20 @@ export function TreeViewPanel({
   onSelect,
   onHover,
   onNavigate,
+  onOpenFile,
+  onRevealInExplorer,
+  onCopyPath,
+  onAddToRepoExcludePatterns,
 }: TreeViewPanelProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [height, setHeight] = useState(DEFAULT_HEIGHT);
   const [isResizing, setIsResizing] = useState(false);
+  const [contextMenuState, setContextMenuState] = useState<ContextMenuState>({
+    visible: false,
+    x: 0,
+    y: 0,
+    node: null,
+  });
   const panelRef = useRef<HTMLDivElement>(null);
   const startY = useRef(0);
   const startHeight = useRef(0);
@@ -147,8 +169,20 @@ export function TreeViewPanel({
     if (node.type === 'directory') {
       const pathParts = node.path.split('/').filter(Boolean);
       onNavigate(pathParts);
+      return;
     }
-  }, [onNavigate]);
+
+    onOpenFile(node.path);
+  }, [onNavigate, onOpenFile]);
+
+  const handleContextMenu = useCallback((event: React.MouseEvent, node: TreemapNode) => {
+    setContextMenuState({
+      visible: true,
+      x: event.clientX,
+      y: event.clientY,
+      node,
+    });
+  }, []);
 
   // Sort children: directories first, then by lines descending
   const sortedRoot = useMemo(() => {
@@ -234,6 +268,7 @@ export function TreeViewPanel({
                   onSelect={handleSelect}
                   onHover={onHover}
                   onDoubleClick={handleDoubleClick}
+                  onContextMenu={handleContextMenu}
                 />
               ))}
             </div>
@@ -244,6 +279,18 @@ export function TreeViewPanel({
           </div>
         </>
       )}
+
+      <TreemapContextMenu
+        visible={contextMenuState.visible}
+        x={contextMenuState.x}
+        y={contextMenuState.y}
+        node={contextMenuState.node}
+        onOpenFile={onOpenFile}
+        onRevealInExplorer={onRevealInExplorer}
+        onCopyPath={onCopyPath}
+        onAddToRepoExcludePatterns={onAddToRepoExcludePatterns}
+        onClose={() => setContextMenuState((prev) => ({ ...prev, visible: false }))}
+      />
     </div>
   );
 }

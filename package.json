@@ -55,7 +55,7 @@
           "type": "array",
           "scope": "resource",
           "default": [],
-          "description": "Additional repo-relative directory patterns to exclude beyond .gitignore (e.g. vendor, backend/fixtures, **/fixtures/**)"
+          "description": "Additional file or folder exclude patterns beyond .gitignore (e.g. vendor, backend/fixtures, /src, /README.md, **/fixtures/**)"
         },
         "repoStats.maxCommitsToAnalyze": {
           "type": "number",

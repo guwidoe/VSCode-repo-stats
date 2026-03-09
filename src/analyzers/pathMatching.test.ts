@@ -15,11 +15,31 @@ describe('matchesPathPattern', () => {
     expect(matchesPathPattern('vendor/index.js', 'vendor')).toBe(true);
     expect(matchesPathPattern('packages/api/source/index.js', 'vendor')).toBe(false);
   });
+
+  it('treats slash-separated plain paths as repo-relative prefixes', () => {
+    expect(matchesPathPattern('backend/fixtures/seed.ts', 'backend/fixtures')).toBe(true);
+    expect(matchesPathPattern('packages/backend/fixtures/seed.ts', 'backend/fixtures')).toBe(false);
+  });
+
+  it('supports exact file paths without requiring glob syntax', () => {
+    expect(matchesPathPattern('src/components/index.ts', 'src/components/index.ts')).toBe(true);
+    expect(matchesPathPattern('src/components/index.ts.map', 'src/components/index.ts')).toBe(false);
+    expect(matchesPathPattern('README.md', '/README.md')).toBe(true);
+    expect(matchesPathPattern('docs/README.md', '/README.md')).toBe(false);
+  });
 });
 
 describe('createPathPatternMatcher', () => {
   it('returns false when no patterns are configured', () => {
     expect(createPathPatternMatcher([])('src/app.ts')).toBe(false);
+  });
+
+  it('supports mixed plain and anchored patterns', () => {
+    const matcher = createPathPatternMatcher(['vendor', '/README.md']);
+
+    expect(matcher('packages/app/vendor/index.js')).toBe(true);
+    expect(matcher('README.md')).toBe(true);
+    expect(matcher('docs/README.md')).toBe(false);
   });
 });
 

@@ -102,10 +102,10 @@ export function GeneralSettings({
       <div className="settings-sections">
         <PatternListSetting
           title="Additional Exclude Patterns"
-          description="Extra repo-relative directory patterns to exclude beyond .gitignore (e.g. vendor, backend/fixtures, **/fixtures/**)"
+          description="Extra file or folder exclude patterns beyond .gitignore (e.g. vendor, backend/fixtures, /src, /README.md, **/fixtures/**)"
           patterns={getScopedSettingDisplayValue(scopedSettings, 'excludePatterns', resolvedTargets.excludePatterns)}
           onChange={(patterns) => updateScopedSetting('excludePatterns', patterns, resolvedTargets.excludePatterns)}
-          placeholder="e.g., vendor, backend/fixtures"
+          placeholder="e.g., vendor, backend/fixtures, /src, /README.md"
           headerContent={renderScopedHeader('excludePatterns')}
         />
 

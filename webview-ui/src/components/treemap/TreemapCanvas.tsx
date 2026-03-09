@@ -22,6 +22,7 @@ interface TreemapCanvasProps {
   onOpenFile: (path: string) => void;
   onRevealInExplorer: (path: string) => void;
   onCopyPath: (path: string) => void;
+  onAddToRepoExcludePatterns: (node: TreemapNode) => void;
 }
 
 interface TooltipState {
@@ -52,6 +53,7 @@ export function TreemapCanvas({
   onOpenFile,
   onRevealInExplorer,
   onCopyPath,
+  onAddToRepoExcludePatterns,
 }: TreemapCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -281,6 +283,7 @@ export function TreemapCanvas({
         onOpenFile={onOpenFile}
         onRevealInExplorer={onRevealInExplorer}
         onCopyPath={onCopyPath}
+        onAddToRepoExcludePatterns={onAddToRepoExcludePatterns}
         onClose={() => setContextMenuState((prev) => ({ ...prev, visible: false }))}
       />
     </div>

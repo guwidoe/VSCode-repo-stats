@@ -15,6 +15,7 @@ interface TreeRowProps {
   onSelect: (node: TreemapNode) => void;
   onHover: (node: TreemapNode | null) => void;
   onDoubleClick: (node: TreemapNode) => void;
+  onContextMenu: (event: React.MouseEvent, node: TreemapNode) => void;
 }
 
 export function TreeViewRow({
@@ -27,6 +28,7 @@ export function TreeViewRow({
   onSelect,
   onHover,
   onDoubleClick,
+  onContextMenu,
 }: TreeRowProps) {
   const isDirectory = node.type === 'directory';
   const isExpanded = expandedPaths.has(node.path);
@@ -64,6 +66,13 @@ export function TreeViewRow({
     }
   };
 
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onSelect(node);
+    onContextMenu(e, node);
+  };
+
   return (
     <>
       <div
@@ -71,6 +80,7 @@ export function TreeViewRow({
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
+        onContextMenu={handleContextMenu}
         onMouseEnter={() => onHover(node)}
         onMouseLeave={() => onHover(null)}
       >
@@ -108,6 +118,7 @@ export function TreeViewRow({
           onSelect={onSelect}
           onHover={onHover}
           onDoubleClick={onDoubleClick}
+          onContextMenu={onContextMenu}
         />
       ))}
     </>

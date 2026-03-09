@@ -1,5 +1,11 @@
 const GLOB_CHARS = /[*?[]/;
 
+interface ParsedPattern {
+  normalized: string;
+  hasGlob: boolean;
+  anchored: boolean;
+}
+
 function normalizeValue(value: string): string {
   return value
     .trim()
@@ -13,21 +19,23 @@ function hasGlobChars(value: string): boolean {
   return GLOB_CHARS.test(value);
 }
 
-function toDirectoryPattern(pattern: string): string {
-  return `**/${pattern}/**`;
-}
+function parsePattern(pattern: string): ParsedPattern | null {
+  const trimmed = pattern.trim().replace(/\\/g, '/');
+  if (!trimmed) {
+    return null;
+  }
 
-function normalizePattern(pattern: string): string | null {
-  const normalized = normalizeValue(pattern);
+  const anchored = trimmed.startsWith('./') || trimmed.startsWith('/');
+  const normalized = normalizeValue(trimmed);
   if (!normalized) {
     return null;
   }
 
-  if (!hasGlobChars(normalized)) {
-    return toDirectoryPattern(normalized);
-  }
-
-  return normalized;
+  return {
+    normalized,
+    hasGlob: hasGlobChars(normalized),
+    anchored,
+  };
 }
 
 function splitSegments(value: string): string[] {
@@ -107,9 +115,31 @@ function matchSegments(
   return result;
 }
 
+function matchesPlainPath(filePath: string, pattern: string, anchored: boolean): boolean {
+  if (anchored || pattern.includes('/') || pattern.includes('.')) {
+    return filePath === pattern || filePath.startsWith(`${pattern}/`);
+  }
+
+  return splitSegments(filePath).includes(pattern);
+}
+
+function matchesParsedPattern(normalizedPath: string, pattern: ParsedPattern): boolean {
+  if (!pattern.hasGlob) {
+    return matchesPlainPath(normalizedPath, pattern.normalized, pattern.anchored);
+  }
+
+  return matchSegments(
+    splitSegments(normalizedPath),
+    splitSegments(pattern.normalized),
+    0,
+    0,
+    new Map<string, boolean>()
+  );
+}
+
 export function matchesPathPattern(filePath: string, pattern: string): boolean {
-  const normalizedPattern = normalizePattern(pattern);
-  if (!normalizedPattern) {
+  const parsedPattern = parsePattern(pattern);
+  if (!parsedPattern) {
     return false;
   }
 
@@ -118,25 +148,26 @@ export function matchesPathPattern(filePath: string, pattern: string): boolean {
     return false;
   }
 
-  return matchSegments(
-    splitSegments(normalizedPath),
-    splitSegments(normalizedPattern),
-    0,
-    0,
-    new Map<string, boolean>()
-  );
+  return matchesParsedPattern(normalizedPath, parsedPattern);
 }
 
 export function createPathPatternMatcher(patterns: string[]): (filePath: string) => boolean {
-  const normalizedPatterns = patterns
-    .map((pattern) => normalizePattern(pattern))
-    .filter((pattern): pattern is string => pattern !== null);
+  const parsedPatterns = patterns
+    .map((pattern) => parsePattern(pattern))
+    .filter((pattern): pattern is ParsedPattern => pattern !== null);
 
-  if (normalizedPatterns.length === 0) {
+  if (parsedPatterns.length === 0) {
     return () => false;
   }
 
-  return (filePath: string) => normalizedPatterns.some((pattern) => matchesPathPattern(filePath, pattern));
+  return (filePath: string) => {
+    const normalizedPath = normalizeValue(filePath);
+    if (!normalizedPath) {
+      return false;
+    }
+
+    return parsedPatterns.some((pattern) => matchesParsedPattern(normalizedPath, pattern));
+  };
 }
 
 export function getLiteralExcludeDirNames(patterns: string[]): string[] {

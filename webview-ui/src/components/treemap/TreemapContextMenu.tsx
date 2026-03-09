@@ -2,9 +2,11 @@
  * TreemapContextMenu - Context menu for right-click actions on treemap nodes.
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { TreemapNode } from '../../types';
 import './TreemapContextMenu.css';
+
+const VIEWPORT_PADDING = 8;
 
 interface TreemapContextMenuProps {
   visible: boolean;
@@ -14,6 +16,7 @@ interface TreemapContextMenuProps {
   onOpenFile: (path: string) => void;
   onRevealInExplorer: (path: string) => void;
   onCopyPath: (path: string) => void;
+  onAddToRepoExcludePatterns: (node: TreemapNode) => void;
   onClose: () => void;
 }
 
@@ -25,9 +28,26 @@ export function TreemapContextMenu({
   onOpenFile,
   onRevealInExplorer,
   onCopyPath,
+  onAddToRepoExcludePatterns,
   onClose,
 }: TreemapContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({ left: x, top: y });
+
+  useLayoutEffect(() => {
+    if (!visible || !node || !menuRef.current) {
+      return;
+    }
+
+    const rect = menuRef.current.getBoundingClientRect();
+    const maxLeft = Math.max(VIEWPORT_PADDING, window.innerWidth - rect.width - VIEWPORT_PADDING);
+    const maxTop = Math.max(VIEWPORT_PADDING, window.innerHeight - rect.height - VIEWPORT_PADDING);
+
+    setPosition({
+      left: Math.min(Math.max(x, VIEWPORT_PADDING), maxLeft),
+      top: Math.min(Math.max(y, VIEWPORT_PADDING), maxTop),
+    });
+  }, [visible, x, y, node]);
 
   useEffect(() => {
     if (!visible) {return;}
@@ -56,12 +76,13 @@ export function TreemapContextMenu({
   if (!visible || !node) {return null;}
 
   const isFile = node.type === 'file';
+  const canExcludeNode = node.path.length > 0;
 
   return (
     <div
       ref={menuRef}
       className="treemap-context-menu"
-      style={{ left: x, top: y }}
+      style={{ left: position.left, top: position.top }}
       role="menu"
     >
       {isFile && (
@@ -96,6 +117,18 @@ export function TreemapContextMenu({
       >
         Copy Path
       </button>
+      {canExcludeNode && (
+        <button
+          className="context-menu-item"
+          role="menuitem"
+          onClick={() => {
+            onAddToRepoExcludePatterns(node);
+            onClose();
+          }}
+        >
+          Add to Repo Exclude Patterns
+        </button>
+      )}
     </div>
   );
 }
