@@ -1,4 +1,5 @@
 .navigation {
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -21,10 +22,11 @@
 }
 
 .nav-button {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
   min-height: 38px;
+  white-space: nowrap;
   padding: 8px 14px;
   border: 1px solid transparent;
   border-radius: 999px;
@@ -95,6 +97,73 @@
   padding: 8px 10px;
 }
 
-.nav-button.nav-icon-only .nav-badge {
-  min-width: 24px;
+.nav-overflow {
+  position: relative;
+}
+
+.nav-overflow-trigger {
+  min-width: 40px;
+  justify-content: center;
+}
+
+.nav-overflow-dots {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.nav-overflow-dots span {
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.nav-overflow-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 10;
+  min-width: 210px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 12px;
+  background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.28);
+}
+
+.nav-overflow-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--vscode-foreground);
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.nav-overflow-item:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.nav-overflow-item.active {
+  background: color-mix(in srgb, var(--vscode-list-activeSelectionBackground) 78%, transparent);
+  border-color: color-mix(in srgb, var(--vscode-list-activeSelectionBackground) 55%, var(--vscode-focusBorder) 45%);
+  color: var(--vscode-list-activeSelectionForeground);
+}
+
+.nav-measure {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+  white-space: nowrap;
+  inset: auto auto auto -9999px;
 }
