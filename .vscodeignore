@@ -27,6 +27,7 @@ test/**
 # Development files
 .vscode/**
 .claude/**
+.pi/**
 .git/**
 .gitignore
 node_modules/**
