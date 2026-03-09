@@ -107,6 +107,14 @@ export function useCommitPanelState() {
     () => analytics ? Math.max(1, ...analytics.fileChangeBuckets.map((bucket) => bucket.count)) : 1,
     [analytics]
   );
+  const maxContributorPatternAverage = useMemo(
+    () => Math.max(1, ...contributorPatterns.map((pattern) => pattern.averageChangedLines)),
+    [contributorPatterns]
+  );
+  const maxLargestCommitChangedLines = useMemo(
+    () => Math.max(1, ...largestCommits.map((record) => record.changedLines)),
+    [largestCommits]
+  );
 
   const resetFilters = () => {
     setMessageText('');
@@ -144,6 +152,8 @@ export function useCommitPanelState() {
     contributorPatterns,
     maxChangedLineBucketCount,
     maxFileBucketCount,
+    maxContributorPatternAverage,
+    maxLargestCommitChangedLines,
     filters: {
       messageText,
       setMessageText,

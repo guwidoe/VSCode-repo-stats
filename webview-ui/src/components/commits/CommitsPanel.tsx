@@ -14,6 +14,8 @@ export function CommitsPanel() {
     contributorPatterns,
     maxChangedLineBucketCount,
     maxFileBucketCount,
+    maxContributorPatternAverage,
+    maxLargestCommitChangedLines,
     filters,
   } = useCommitPanelState();
 
@@ -91,15 +93,24 @@ export function CommitsPanel() {
         <section className="commit-insight-card">
           <h3>Contributor Commit-Size Patterns</h3>
           <div className="commit-pattern-list">
-            {contributorPatterns.map((pattern) => (
-              <div key={pattern.authorEmail} className="commit-pattern-row">
-                <div>
-                  <div className="commit-pattern-name">{pattern.authorName}</div>
-                  <div className="commit-pattern-meta">{pattern.totalCommits.toLocaleString()} commits</div>
-                </div>
-                <div className="commit-pattern-metrics">
-                  <span>avg Δ {Math.round(pattern.averageChangedLines).toLocaleString()}</span>
-                  <span>median Δ {Math.round(pattern.medianChangedLines).toLocaleString()}</span>
+            {contributorPatterns.map((pattern, index) => (
+              <div key={pattern.authorEmail} className="commit-rank-row">
+                <div className="commit-rank-index">{index + 1}</div>
+                <div className="commit-rank-body">
+                  <div className="commit-rank-header">
+                    <div className="commit-pattern-name">{pattern.authorName}</div>
+                    <span className="commit-metric-pill">{pattern.totalCommits.toLocaleString()} commits</span>
+                  </div>
+                  <div className="commit-rank-meter">
+                    <div
+                      className="commit-rank-meter-fill"
+                      style={{ width: `${(pattern.averageChangedLines / maxContributorPatternAverage) * 100}%` }}
+                    />
+                  </div>
+                  <div className="commit-rank-meta">
+                    <span>avg Δ {Math.round(pattern.averageChangedLines).toLocaleString()}</span>
+                    <span>median Δ {Math.round(pattern.medianChangedLines).toLocaleString()}</span>
+                  </div>
                 </div>
               </div>
             ))}
@@ -109,15 +120,24 @@ export function CommitsPanel() {
         <section className="commit-insight-card">
           <h3>Largest Commits</h3>
           <div className="largest-commit-list">
-            {largestCommits.map((record) => {
+            {largestCommits.map((record, index) => {
               const authorName = data.commitAnalytics.authorDirectory.namesById[record.authorId] ?? 'Unknown';
               return (
-                <div key={record.sha} className="largest-commit-row">
-                  <div>
-                    <div className="largest-commit-summary">{record.summary}</div>
+                <div key={record.sha} className="commit-rank-row largest">
+                  <div className="commit-rank-index">{index + 1}</div>
+                  <div className="commit-rank-body">
+                    <div className="commit-rank-header">
+                      <div className="largest-commit-summary">{record.summary}</div>
+                      <span className="commit-metric-pill strong">Δ {record.changedLines.toLocaleString()}</span>
+                    </div>
+                    <div className="commit-rank-meter">
+                      <div
+                        className="commit-rank-meter-fill large"
+                        style={{ width: `${(record.changedLines / maxLargestCommitChangedLines) * 100}%` }}
+                      />
+                    </div>
                     <div className="largest-commit-meta">{authorName} · {formatCommitDate(record.committedAt)} · {record.sha.slice(0, 8)}</div>
                   </div>
-                  <strong>Δ {record.changedLines.toLocaleString()}</strong>
                 </div>
               );
             })}

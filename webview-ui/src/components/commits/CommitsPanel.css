@@ -80,9 +80,7 @@
   gap: 8px;
 }
 
-.commit-bar-row,
-.commit-pattern-row,
-.largest-commit-row {
+.commit-bar-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -91,7 +89,7 @@
 
 .commit-bar-label,
 .commit-bar-value,
-.commit-pattern-meta,
+.commit-rank-meta,
 .largest-commit-meta {
   font-size: 12px;
   color: var(--vscode-descriptionForeground);
@@ -126,12 +124,83 @@
   color: var(--vscode-foreground);
 }
 
-.commit-pattern-metrics {
+.commit-rank-row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 75%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--vscode-editor-background) 96%, white 4%);
+}
+
+.commit-rank-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--vscode-badge-background) 70%, transparent);
+  color: var(--vscode-badge-foreground);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.commit-rank-body {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  font-size: 12px;
-  text-align: right;
+  gap: 8px;
+  min-width: 0;
+}
+
+.commit-rank-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.commit-rank-meter {
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--vscode-panel-border);
+}
+
+.commit-rank-meter-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--vscode-charts-purple, #a371f7), var(--vscode-charts-blue, #4c9aff));
+}
+
+.commit-rank-meter-fill.large {
+  background: linear-gradient(90deg, var(--vscode-charts-orange, #f29d49), var(--vscode-charts-red, #f85149));
+}
+
+.commit-rank-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.commit-metric-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--vscode-badge-background) 70%, transparent);
+  color: var(--vscode-badge-foreground);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.commit-metric-pill.strong {
+  background: color-mix(in srgb, var(--vscode-charts-orange, #f29d49) 20%, transparent);
+  color: var(--vscode-foreground);
 }
 
 .commit-filter-header {
