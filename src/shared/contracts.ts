@@ -363,7 +363,10 @@ export interface TooltipSettings {
 
 export interface EvolutionSettings {
   autoRun: boolean;
+  samplingMode: EvolutionSamplingMode;
   snapshotIntervalDays: number;
+  snapshotIntervalCommits: number;
+  showInactivePeriods: boolean;
   maxSnapshots: number;
   maxSeries: number;
   cohortFormat: string;
@@ -392,7 +395,10 @@ export interface RepoScopableSettingValueMap {
   locExcludedExtensions: string[];
   includeSubmodules: boolean;
   maxCommitsToAnalyze: number;
+  'evolution.samplingMode': EvolutionSamplingMode;
   'evolution.snapshotIntervalDays': number;
+  'evolution.snapshotIntervalCommits': number;
+  'evolution.showInactivePeriods': boolean;
   'evolution.maxSnapshots': number;
   'evolution.maxSeries': number;
   'evolution.cohortFormat': string;
@@ -405,7 +411,10 @@ export const REPO_SCOPABLE_SETTING_KEYS = [
   'locExcludedExtensions',
   'includeSubmodules',
   'maxCommitsToAnalyze',
+  'evolution.samplingMode',
   'evolution.snapshotIntervalDays',
+  'evolution.snapshotIntervalCommits',
+  'evolution.showInactivePeriods',
   'evolution.maxSnapshots',
   'evolution.maxSeries',
   'evolution.cohortFormat',

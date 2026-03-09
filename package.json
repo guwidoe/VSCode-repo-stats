@@ -262,13 +262,34 @@
           "default": false,
           "description": "Automatically run Evolution analysis when opening the Evolution tab if cached data is missing or stale"
         },
+        "repoStats.evolution.samplingMode": {
+          "type": "string",
+          "scope": "resource",
+          "enum": ["time", "commit", "auto"],
+          "default": "time",
+          "description": "How Evolution selects snapshots: by elapsed time, by commit interval, or auto-distributed across history"
+        },
         "repoStats.evolution.snapshotIntervalDays": {
           "type": "number",
           "scope": "resource",
           "default": 30,
           "minimum": 1,
           "maximum": 365,
-          "description": "Days between sampled snapshots for Evolution analysis"
+          "description": "Minimum days between sampled snapshots when Evolution sampling mode is time-based"
+        },
+        "repoStats.evolution.snapshotIntervalCommits": {
+          "type": "number",
+          "scope": "resource",
+          "default": 100,
+          "minimum": 1,
+          "maximum": 10000,
+          "description": "Commits between sampled snapshots when Evolution sampling mode is commit-based"
+        },
+        "repoStats.evolution.showInactivePeriods": {
+          "type": "boolean",
+          "scope": "resource",
+          "default": false,
+          "description": "Whether Evolution charts should fill and display inactive periods between sampled snapshots"
         },
         "repoStats.evolution.maxSnapshots": {
           "type": "number",

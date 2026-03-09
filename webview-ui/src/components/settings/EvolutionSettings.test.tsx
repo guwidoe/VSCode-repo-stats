@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import type { ExtensionSettings, RepoScopedSettings } from '../../types';
 import { EvolutionSettings } from './EvolutionSettings';
 
-function createSettings(snapshotIntervalDays = 30): ExtensionSettings {
+function createSettings(overrides?: Partial<ExtensionSettings['evolution']>): ExtensionSettings {
   return {
     excludePatterns: [],
     maxCommitsToAnalyze: 1000,
@@ -30,15 +30,19 @@ function createSettings(snapshotIntervalDays = 30): ExtensionSettings {
     },
     evolution: {
       autoRun: false,
-      snapshotIntervalDays,
+      samplingMode: 'time',
+      snapshotIntervalDays: 30,
+      snapshotIntervalCommits: 100,
+      showInactivePeriods: false,
       maxSnapshots: 80,
       maxSeries: 20,
       cohortFormat: '%Y',
+      ...overrides,
     },
   };
 }
 
-function createScopedSettings(snapshotIntervalDays = 30): RepoScopedSettings {
+function createScopedSettings(overrides?: Partial<RepoScopedSettings>): RepoScopedSettings {
   return {
     excludePatterns: { defaultValue: [], source: 'default' },
     generatedPatterns: { defaultValue: [], source: 'default' },
@@ -46,20 +50,36 @@ function createScopedSettings(snapshotIntervalDays = 30): RepoScopedSettings {
     locExcludedExtensions: { defaultValue: [], source: 'default' },
     includeSubmodules: { defaultValue: false, source: 'default' },
     maxCommitsToAnalyze: { defaultValue: 10000, source: 'default' },
+    'evolution.samplingMode': {
+      defaultValue: 'time',
+      repoValue: 'time',
+      source: 'repo',
+    },
     'evolution.snapshotIntervalDays': {
       defaultValue: 30,
       globalValue: 14,
-      repoValue: snapshotIntervalDays,
+      repoValue: 30,
+      source: 'repo',
+    },
+    'evolution.snapshotIntervalCommits': {
+      defaultValue: 100,
+      repoValue: 100,
+      source: 'repo',
+    },
+    'evolution.showInactivePeriods': {
+      defaultValue: false,
+      repoValue: false,
       source: 'repo',
     },
     'evolution.maxSnapshots': { defaultValue: 80, source: 'default' },
     'evolution.maxSeries': { defaultValue: 20, source: 'default' },
     'evolution.cohortFormat': { defaultValue: '%Y', source: 'default' },
+    ...overrides,
   };
 }
 
 describe('EvolutionSettings', () => {
-  it('applies snapshot granularity presets through scoped updates', () => {
+  it('applies time-based snapshot granularity presets through scoped updates', () => {
     const updateScopedSetting = vi.fn();
 
     render(
@@ -81,11 +101,17 @@ describe('EvolutionSettings', () => {
     );
   }, 10000);
 
-  it('shows the custom interval input for non-preset values', () => {
+  it('shows the custom time interval input for non-preset values', () => {
     render(
       <EvolutionSettings
-        settings={createSettings(45)}
-        scopedSettings={createScopedSettings(45)}
+        settings={createSettings({ snapshotIntervalDays: 45 })}
+        scopedSettings={createScopedSettings({
+          'evolution.snapshotIntervalDays': {
+            defaultValue: 30,
+            repoValue: 45,
+            source: 'repo',
+          },
+        })}
         updateSettings={vi.fn()}
         updateScopedSetting={vi.fn()}
         resetScopedSetting={vi.fn()}
@@ -95,7 +121,7 @@ describe('EvolutionSettings', () => {
     expect(screen.getByText('Custom Snapshot Interval (Days)')).toBeInTheDocument();
   });
 
-  it('lets users switch from a preset to a custom interval', () => {
+  it('lets users switch from a preset to a custom time interval', () => {
     render(
       <EvolutionSettings
         settings={createSettings()}
@@ -113,6 +139,28 @@ describe('EvolutionSettings', () => {
     expect(screen.getByText('Custom Snapshot Interval (Days)')).toBeInTheDocument();
   });
 
+  it('switches to commit mode and updates commit interval in scoped settings', () => {
+    const updateScopedSetting = vi.fn();
+
+    render(
+      <EvolutionSettings
+        settings={createSettings({ samplingMode: 'commit' })}
+        scopedSettings={createScopedSettings({
+          'evolution.samplingMode': {
+            defaultValue: 'time',
+            repoValue: 'commit',
+            source: 'repo',
+          },
+        })}
+        updateSettings={vi.fn()}
+        updateScopedSetting={updateScopedSetting}
+        resetScopedSetting={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('Commit Snapshot Interval')).toBeInTheDocument();
+  });
+
   it('can switch evolution sampling controls to global scope', () => {
     const updateScopedSetting = vi.fn();
 
@@ -126,7 +174,7 @@ describe('EvolutionSettings', () => {
       />
     );
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Global' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Global' })[1]);
     fireEvent.click(screen.getByRole('button', { name: 'Weekly' }));
 
     expect(updateScopedSetting).toHaveBeenCalledWith(

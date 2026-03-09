@@ -135,7 +135,10 @@ function createSettings(): ExtensionSettings {
     },
     evolution: {
       autoRun: false,
+      samplingMode: 'time',
       snapshotIntervalDays: 30,
+      snapshotIntervalCommits: 100,
+      showInactivePeriods: false,
       maxSnapshots: 80,
       maxSeries: 20,
       cohortFormat: '%Y',

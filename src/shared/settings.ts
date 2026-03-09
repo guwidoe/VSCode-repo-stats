@@ -68,12 +68,36 @@ export function setScopedSettingValue<K extends RepoScopableSettingKey>(
   value: RepoScopableSettingValueMap[K]
 ): ExtensionSettings {
   switch (key) {
+    case 'evolution.samplingMode':
+      return {
+        ...settings,
+        evolution: {
+          ...settings.evolution,
+          samplingMode: value as ExtensionSettings['evolution']['samplingMode'],
+        },
+      };
     case 'evolution.snapshotIntervalDays':
       return {
         ...settings,
         evolution: {
           ...settings.evolution,
           snapshotIntervalDays: value as number,
+        },
+      };
+    case 'evolution.snapshotIntervalCommits':
+      return {
+        ...settings,
+        evolution: {
+          ...settings.evolution,
+          snapshotIntervalCommits: value as number,
+        },
+      };
+    case 'evolution.showInactivePeriods':
+      return {
+        ...settings,
+        evolution: {
+          ...settings.evolution,
+          showInactivePeriods: value as boolean,
         },
       };
     case 'evolution.maxSnapshots':
@@ -218,10 +242,10 @@ export function createEvolutionAnalysisSettingsSnapshot(settings: ExtensionSetti
     excludePatterns: sorted(settings.excludePatterns),
     binaryExtensions: sorted(settings.binaryExtensions),
     evolution: {
-      autoRun: settings.evolution.autoRun,
+      samplingMode: settings.evolution.samplingMode,
       snapshotIntervalDays: settings.evolution.snapshotIntervalDays,
+      snapshotIntervalCommits: settings.evolution.snapshotIntervalCommits,
       maxSnapshots: settings.evolution.maxSnapshots,
-      maxSeries: settings.evolution.maxSeries,
       cohortFormat: settings.evolution.cohortFormat,
     },
   };
@@ -284,7 +308,10 @@ export function flattenSettingsUpdate(settings: Partial<ExtensionSettings>): Set
   }
   if (settings.evolution !== undefined) {
     updates.push({ key: 'evolution.autoRun', value: settings.evolution.autoRun });
+    updates.push({ key: 'evolution.samplingMode', value: settings.evolution.samplingMode });
     updates.push({ key: 'evolution.snapshotIntervalDays', value: settings.evolution.snapshotIntervalDays });
+    updates.push({ key: 'evolution.snapshotIntervalCommits', value: settings.evolution.snapshotIntervalCommits });
+    updates.push({ key: 'evolution.showInactivePeriods', value: settings.evolution.showInactivePeriods });
     updates.push({ key: 'evolution.maxSnapshots', value: settings.evolution.maxSnapshots });
     updates.push({ key: 'evolution.maxSeries', value: settings.evolution.maxSeries });
     updates.push({ key: 'evolution.cohortFormat', value: settings.evolution.cohortFormat });

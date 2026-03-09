@@ -62,10 +62,22 @@ describe('getScopedSettingDisplayValue', () => {
       repoValue: 500,
       source: 'repo',
     },
+    'evolution.samplingMode': {
+      defaultValue: 'time',
+      source: 'default',
+    },
     'evolution.snapshotIntervalDays': {
       defaultValue: 30,
       globalValue: 14,
       source: 'global',
+    },
+    'evolution.snapshotIntervalCommits': {
+      defaultValue: 100,
+      source: 'default',
+    },
+    'evolution.showInactivePeriods': {
+      defaultValue: false,
+      source: 'default',
     },
     'evolution.maxSnapshots': {
       defaultValue: 80,

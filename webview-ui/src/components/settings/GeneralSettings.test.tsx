@@ -32,8 +32,20 @@ function createScopedSettings(): RepoScopedSettings {
       globalValue: 1000,
       source: 'global',
     },
+    'evolution.samplingMode': {
+      defaultValue: 'time',
+      source: 'default',
+    },
     'evolution.snapshotIntervalDays': {
       defaultValue: 30,
+      source: 'default',
+    },
+    'evolution.snapshotIntervalCommits': {
+      defaultValue: 100,
+      source: 'default',
+    },
+    'evolution.showInactivePeriods': {
+      defaultValue: false,
       source: 'default',
     },
     'evolution.maxSnapshots': {

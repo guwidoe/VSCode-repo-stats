@@ -34,7 +34,10 @@ function createSettings(): ExtensionSettings {
     },
     evolution: {
       autoRun: false,
+      samplingMode: 'time',
       snapshotIntervalDays: 30,
+      snapshotIntervalCommits: 100,
+      showInactivePeriods: false,
       maxSnapshots: 80,
       maxSeries: 20,
       cohortFormat: '%Y',
@@ -72,10 +75,22 @@ function createScopedSettings(): RepoScopedSettings {
       globalValue: 2000,
       source: 'global',
     },
+    'evolution.samplingMode': {
+      defaultValue: 'time',
+      source: 'default',
+    },
     'evolution.snapshotIntervalDays': {
       defaultValue: 30,
       globalValue: 14,
       source: 'global',
+    },
+    'evolution.snapshotIntervalCommits': {
+      defaultValue: 100,
+      source: 'default',
+    },
+    'evolution.showInactivePeriods': {
+      defaultValue: false,
+      source: 'default',
     },
     'evolution.maxSnapshots': {
       defaultValue: 80,

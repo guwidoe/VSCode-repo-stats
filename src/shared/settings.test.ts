@@ -36,7 +36,10 @@ function createSettings(): ExtensionSettings {
     },
     evolution: {
       autoRun: false,
+      samplingMode: 'time',
       snapshotIntervalDays: 30,
+      snapshotIntervalCommits: 100,
+      showInactivePeriods: false,
       maxSnapshots: 80,
       maxSeries: 20,
       cohortFormat: '%Y',
@@ -108,7 +111,10 @@ describe('flattenSettingsUpdate', () => {
         overviewDisplayMode: 'count',
         evolution: {
           autoRun: true,
+          samplingMode: 'commit',
           snapshotIntervalDays: 14,
+          snapshotIntervalCommits: 50,
+          showInactivePeriods: true,
           maxSnapshots: 25,
           maxSeries: 15,
           cohortFormat: '%Y-%m',
@@ -117,7 +123,10 @@ describe('flattenSettingsUpdate', () => {
     ).toEqual([
       { key: 'overviewDisplayMode', value: 'count' },
       { key: 'evolution.autoRun', value: true },
+      { key: 'evolution.samplingMode', value: 'commit' },
       { key: 'evolution.snapshotIntervalDays', value: 14 },
+      { key: 'evolution.snapshotIntervalCommits', value: 50 },
+      { key: 'evolution.showInactivePeriods', value: true },
       { key: 'evolution.maxSnapshots', value: 25 },
       { key: 'evolution.maxSeries', value: 15 },
       { key: 'evolution.cohortFormat', value: '%Y-%m' },

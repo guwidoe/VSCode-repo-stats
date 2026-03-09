@@ -252,46 +252,100 @@ export class EvolutionAnalyzer {
       return [];
     }
 
+    const samplingMode = this.settings.evolution.samplingMode;
+    const maxSnapshots = Math.max(2, this.settings.evolution.maxSnapshots);
+
+    if (samplingMode === 'auto') {
+      onProgress?.('Auto-distributing snapshots', 4);
+      return this.downsampleSnapshots(
+        allCommits.map((commit) => ({ ...commit, samplingMode: 'auto' })),
+        maxSnapshots
+      );
+    }
+
+    if (samplingMode === 'commit') {
+      const commitInterval = Math.max(1, this.settings.evolution.snapshotIntervalCommits);
+      const commitSampled: SnapshotCommit[] = [];
+
+      for (let i = 0; i < allCommits.length; i += commitInterval) {
+        commitSampled.push({
+          ...allCommits[i],
+          samplingMode: 'commit',
+        });
+      }
+
+      const lastCommit = allCommits[allCommits.length - 1];
+      if (commitSampled[commitSampled.length - 1]?.sha !== lastCommit.sha) {
+        commitSampled.push({
+          ...lastCommit,
+          samplingMode: 'commit',
+        });
+      }
+
+      return commitSampled.length <= maxSnapshots
+        ? commitSampled
+        : this.downsampleSnapshots(commitSampled, maxSnapshots);
+    }
+
     const intervalSeconds = Math.max(1, this.settings.evolution.snapshotIntervalDays) * 24 * 60 * 60;
     const intervalSampled: SnapshotCommit[] = [];
 
-    intervalSampled.push(allCommits[0]);
+    intervalSampled.push({
+      ...allCommits[0],
+      samplingMode: 'time',
+    });
     let lastTimestamp = allCommits[0].timestamp;
 
     for (let i = 1; i < allCommits.length; i++) {
       const commit = allCommits[i];
       if (commit.timestamp >= lastTimestamp + intervalSeconds) {
-        intervalSampled.push(commit);
+        intervalSampled.push({
+          ...commit,
+          samplingMode: 'time',
+        });
         lastTimestamp = commit.timestamp;
       }
     }
 
     const lastCommit = allCommits[allCommits.length - 1];
     if (intervalSampled[intervalSampled.length - 1].sha !== lastCommit.sha) {
-      intervalSampled.push(lastCommit);
+      intervalSampled.push({
+        ...lastCommit,
+        samplingMode: 'time',
+      });
     }
 
-    const maxSnapshots = Math.max(2, this.settings.evolution.maxSnapshots);
     if (intervalSampled.length <= maxSnapshots) {
       return intervalSampled;
     }
 
     onProgress?.('Downsampling snapshots', 4);
+    return this.downsampleSnapshots(intervalSampled, maxSnapshots);
+  }
+
+  private downsampleSnapshots(
+    snapshots: SnapshotCommit[],
+    maxSnapshots: number
+  ): SnapshotCommit[] {
+    if (snapshots.length <= maxSnapshots) {
+      return snapshots;
+    }
 
     const downsampled: SnapshotCommit[] = [];
-    const maxIndex = intervalSampled.length - 1;
+    const maxIndex = snapshots.length - 1;
     const step = maxIndex / (maxSnapshots - 1);
     let lastAddedSha = '';
 
     for (let i = 0; i < maxSnapshots; i++) {
       const index = Math.round(i * step);
-      const commit = intervalSampled[index];
+      const commit = snapshots[index];
       if (commit && commit.sha !== lastAddedSha) {
         downsampled.push(commit);
         lastAddedSha = commit.sha;
       }
     }
 
+    const lastCommit = snapshots[snapshots.length - 1];
     if (downsampled[downsampled.length - 1]?.sha !== lastCommit.sha) {
       downsampled.push(lastCommit);
     }
