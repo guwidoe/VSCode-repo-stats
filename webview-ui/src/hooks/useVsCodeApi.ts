@@ -64,6 +64,8 @@ export function useVsCodeApi() {
     setLoading,
     setSettings,
     setScopedSettings,
+    setRepositorySelection,
+    resetAnalysisState,
     setEvolutionData,
     setEvolutionError,
     setEvolutionLoading,
@@ -97,6 +99,15 @@ export function useVsCodeApi() {
         case 'analysisError':
           setError(message.error);
           break;
+
+        case 'repositorySelectionLoaded': {
+          const currentSelectedRepoPath = useStore.getState().selectedRepoPath;
+          if (currentSelectedRepoPath !== message.selectedRepoPath) {
+            resetAnalysisState();
+          }
+          setRepositorySelection(message.repositories, message.selectedRepoPath);
+          break;
+        }
 
         case 'evolutionStarted':
           setEvolutionLoading({ isLoading: true, phase: 'Starting evolution analysis...', progress: 0 });
@@ -168,6 +179,8 @@ export function useVsCodeApi() {
     setLoading,
     setSettings,
     setScopedSettings,
+    setRepositorySelection,
+    resetAnalysisState,
     setEvolutionData,
     setEvolutionError,
     setEvolutionLoading,
@@ -202,6 +215,10 @@ export function useVsCodeApi() {
 
   const copyPath = useCallback((path: string) => {
     getVsCodeApi().postMessage({ type: 'copyPath', path });
+  }, []);
+
+  const selectRepository = useCallback((repoPath: string) => {
+    getVsCodeApi().postMessage({ type: 'selectRepository', repoPath });
   }, []);
 
   const updateSettings = useCallback((settings: Partial<ExtensionSettings>) => {
@@ -303,6 +320,7 @@ export function useVsCodeApi() {
     openFile,
     revealInExplorer,
     copyPath,
+    selectRepository,
     updateSettings,
     updateScopedSetting,
     resetScopedSetting,

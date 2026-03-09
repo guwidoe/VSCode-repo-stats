@@ -17,6 +17,7 @@ import type {
   TreemapFilterState,
   ExtensionSettings,
   RepoScopedSettings,
+  RepositoryOption,
 } from '../types';
 import type { SizeDisplayMode } from '../components/treemap/types';
 import { isCodeLanguage } from '../utils/fileTypes';
@@ -42,6 +43,8 @@ interface RepoStatsState {
   // Settings
   settings: ExtensionSettings | null;
   scopedSettings: RepoScopedSettings | null;
+  availableRepositories: RepositoryOption[];
+  selectedRepoPath: string | null;
 
   // Staleness (tracked independently for core and evolution analyses)
   coreStale: boolean;
@@ -83,6 +86,8 @@ interface RepoStatsState {
   setStaleness: (status: { coreStale: boolean; evolutionStale: boolean }) => void;
   setSettings: (settings: ExtensionSettings) => void;
   setScopedSettings: (settings: RepoScopedSettings) => void;
+  setRepositorySelection: (repositories: RepositoryOption[], selectedRepoPath: string | null) => void;
+  resetAnalysisState: () => void;
   setActiveView: (view: ViewType) => void;
   setTimePeriod: (period: TimePeriod) => void;
   setFrequencyGranularity: (granularity: FrequencyGranularity) => void;
@@ -122,6 +127,8 @@ const initialState = {
   },
   settings: null as ExtensionSettings | null,
   scopedSettings: null as RepoScopedSettings | null,
+  availableRepositories: [] as RepositoryOption[],
+  selectedRepoPath: null as string | null,
   coreStale: false,
   evolutionStale: false,
   activeView: 'overview' as ViewType,
@@ -299,6 +306,38 @@ export const useStore = create<RepoStatsState>((set, get) => ({
 
   setScopedSettings: (scopedSettings: RepoScopedSettings) => {
     set({ scopedSettings });
+  },
+
+  setRepositorySelection: (availableRepositories: RepositoryOption[], selectedRepoPath: string | null) => {
+    set({ availableRepositories, selectedRepoPath });
+  },
+
+  resetAnalysisState: () => {
+    set((state) => ({
+      data: null,
+      error: null,
+      evolutionData: null,
+      evolutionStatus: 'idle',
+      evolutionError: null,
+      loading: { isLoading: false, phase: '', progress: 0 },
+      evolutionLoading: { isLoading: false, phase: '', progress: 0 },
+      settings: null,
+      scopedSettings: null,
+      coreStale: false,
+      evolutionStale: false,
+      treemapPath: [],
+      currentTreemapNode: null,
+      hoveredNode: null,
+      selectedNode: null,
+      timeRangeStart: null,
+      timeRangeEnd: null,
+      frequencyGranularity: state.settings
+        ? computeDefaultGranularity(null, state.settings)
+        : state.frequencyGranularity,
+      contributorGranularity: state.settings
+        ? computeDefaultGranularity(null, state.settings)
+        : state.contributorGranularity,
+    }));
   },
 
   setActiveView: (view: ViewType) => {

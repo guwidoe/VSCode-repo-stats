@@ -100,6 +100,13 @@ export interface RepositoryInfo {
   headSha: string;
 }
 
+export interface RepositoryOption {
+  path: string;
+  name: string;
+  workspaceFolderName: string;
+  relativePath: string;
+}
+
 export interface SccInfo {
   version: string;
   source: 'system' | 'downloaded' | 'none';
@@ -241,6 +248,7 @@ export type ExtensionMessage =
   | { type: 'analysisProgress'; phase: string; progress: number }
   | { type: 'analysisComplete'; data: AnalysisResult }
   | { type: 'analysisError'; error: string }
+  | { type: 'repositorySelectionLoaded'; repositories: RepositoryOption[]; selectedRepoPath: string | null }
   | { type: 'incrementalUpdate'; data: Partial<AnalysisResult> }
   | { type: 'evolutionStarted' }
   | { type: 'evolutionProgress'; phase: string; progress: number }
@@ -256,6 +264,7 @@ export type WebviewMessage =
   | { type: 'requestEvolutionAnalysis' }
   | { type: 'requestEvolutionRefresh' }
   | { type: 'checkStaleness' }
+  | { type: 'selectRepository'; repoPath: string }
   | { type: 'openFile'; path: string }
   | { type: 'revealInExplorer'; path: string }
   | { type: 'copyPath'; path: string }

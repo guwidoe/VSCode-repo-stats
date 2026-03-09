@@ -2,7 +2,8 @@
  * Main App component for the Repo Stats webview.
  */
 
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
+import type { RepositoryOption } from './types';
 import { useStore } from './store';
 import { useVsCodeApi } from './hooks/useVsCodeApi';
 import { Navigation } from './components/Navigation';
@@ -20,9 +21,32 @@ import { EmptyState } from './components/common/EmptyState';
 import { LimitWarning } from './components/common/LimitWarning';
 import './App.css';
 
+function formatRepositoryOption(option: RepositoryOption): string {
+  if (option.relativePath === '.') {
+    return `${option.name} — ${option.workspaceFolderName}`;
+  }
+
+  return `${option.name} — ${option.workspaceFolderName}/${option.relativePath}`;
+}
+
 export function App() {
-  const { activeView, loading, error, data, settings, coreStale, evolutionStale } = useStore();
-  const { requestRefresh } = useVsCodeApi();
+  const {
+    activeView,
+    loading,
+    error,
+    data,
+    settings,
+    coreStale,
+    evolutionStale,
+    availableRepositories,
+    selectedRepoPath,
+  } = useStore();
+  const { requestRefresh, selectRepository } = useVsCodeApi();
+
+  const selectedRepository = useMemo(
+    () => availableRepositories.find((repository) => repository.path === selectedRepoPath) ?? null,
+    [availableRepositories, selectedRepoPath]
+  );
 
   // Request initial analysis on mount
   useEffect(() => {
@@ -35,10 +59,28 @@ export function App() {
       <header className="app-header">
         <div className="header-content">
           <h1>Repository Statistics</h1>
-          {data && (
+          {data ? (
             <span className="repo-info">
               {data.repository.name} ({data.repository.branch})
             </span>
+          ) : selectedRepository ? (
+            <span className="repo-info">{formatRepositoryOption(selectedRepository)}</span>
+          ) : null}
+          {availableRepositories.length > 1 && selectedRepoPath && (
+            <label className="repo-selector">
+              <span className="repo-selector-label">Repository</span>
+              <select
+                className="repo-selector-input"
+                value={selectedRepoPath}
+                onChange={(event) => selectRepository(event.target.value)}
+              >
+                {availableRepositories.map((repository) => (
+                  <option key={repository.path} value={repository.path}>
+                    {formatRepositoryOption(repository)}
+                  </option>
+                ))}
+              </select>
+            </label>
           )}
         </div>
         <div className="header-actions">
@@ -81,8 +123,8 @@ export function App() {
         {/* Core views depend on settings + global analysis */}
         {activeView !== 'settings' && activeView !== 'about' && activeView !== 'evolution' && (
           <>
-            {!settings && <LoadingState phase="Loading settings..." progress={0} />}
-            {settings && error && <ErrorState message={error} onRetry={requestRefresh} />}
+            {error && !loading.isLoading && <ErrorState message={error} onRetry={requestRefresh} />}
+            {!error && !settings && <LoadingState phase="Loading settings..." progress={0} />}
             {settings && !error && !data && loading.isLoading && (
               <LoadingState phase={loading.phase} progress={loading.progress} />
             )}

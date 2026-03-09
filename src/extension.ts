@@ -32,9 +32,17 @@ export function activate(context: vscode.ExtensionContext): void {
     }
   );
 
+  const selectRepositoryCommand = vscode.commands.registerCommand(
+    'repoStats.selectRepository',
+    async () => {
+      await provider?.promptRepositorySelection();
+    }
+  );
+
   // Add commands to subscriptions for cleanup
   context.subscriptions.push(showDashboardCommand);
   context.subscriptions.push(refreshCommand);
+  context.subscriptions.push(selectRepositoryCommand);
 
   // Create status bar button for quick access to dashboard
   const statusBarItem = vscode.window.createStatusBarItem(

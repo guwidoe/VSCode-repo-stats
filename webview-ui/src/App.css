@@ -37,6 +37,7 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
 }
 
 .app-header h1 {
@@ -49,6 +50,31 @@ body {
 .repo-info {
   font-size: 13px;
   color: var(--vscode-descriptionForeground);
+  white-space: nowrap;
+}
+
+.repo-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.repo-selector-label {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  white-space: nowrap;
+}
+
+.repo-selector-input {
+  min-width: 240px;
+  max-width: min(420px, 45vw);
+  padding: 4px 8px;
+  border: 1px solid var(--vscode-dropdown-border, var(--vscode-panel-border));
+  border-radius: 4px;
+  background: var(--vscode-dropdown-background, var(--vscode-input-background));
+  color: var(--vscode-dropdown-foreground, var(--vscode-input-foreground));
+  font: inherit;
 }
 
 .header-actions {

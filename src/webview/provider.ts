@@ -16,6 +16,7 @@ import {
   RepoScopableSettingKey,
   RepoScopableSettingValueMap,
   RepoScopedSettings,
+  RepositoryOption,
   SettingWriteTarget,
 } from '../types/index.js';
 import { AnalysisCoordinator } from '../analyzers/coordinator.js';
@@ -24,6 +25,10 @@ import { CacheManager, CacheStorage } from '../cache/cacheManager.js';
 import { EvolutionCacheManager } from '../cache/evolutionCacheManager.js';
 import { createCoreSettingsHash } from '../cache/coreSettingsHash.js';
 import { buildScopedSettingValue } from './scopedSettings.js';
+import {
+  buildRepositoryOption,
+  selectPreferredRepositoryPath,
+} from './repositorySelection.js';
 
 // ============================================================================
 // VSCode Workspace State Storage Adapter
@@ -41,6 +46,29 @@ class WorkspaceStateStorage implements CacheStorage {
   }
 }
 
+interface GitRepositoryHandle {
+  rootUri: vscode.Uri;
+}
+
+interface GitApi {
+  repositories: GitRepositoryHandle[];
+}
+
+interface GitExtensionExports {
+  getAPI(version: number): GitApi;
+}
+
+interface RepositoryContext {
+  option: RepositoryOption;
+  rootUri: vscode.Uri;
+  workspaceFolder: vscode.WorkspaceFolder;
+}
+
+interface RepositorySelection {
+  repositories: RepositoryContext[];
+  selected: RepositoryContext | null;
+}
+
 // ============================================================================
 // Webview Provider
 // ============================================================================
@@ -48,14 +76,14 @@ class WorkspaceStateStorage implements CacheStorage {
 export class RepoStatsProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'repoStats.dashboardView';
 
+  private static readonly selectedRepoPathStateKey = 'repoStats.selectedRepoPath';
+
   private panel: vscode.WebviewPanel | undefined;
   private extensionUri: vscode.Uri;
   private workspaceState: vscode.Memento;
   private globalStoragePath: string;
-  private lastCoreHeadSha: string | null = null;
-  private lastCoreSettingsHash: string | null = null;
-  private lastEvolutionHeadSha: string | null = null;
-  private lastEvolutionSettingsHash: string | null = null;
+  private lastCoreStateByRepo = new Map<string, { headSha: string; settingsHash: string }>();
+  private lastEvolutionStateByRepo = new Map<string, { headSha: string; settingsHash: string }>();
 
   constructor(
     extensionUri: vscode.Uri,
@@ -116,20 +144,19 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       this.panel = undefined;
     });
 
-    // Send settings after a brief delay to ensure webview is ready
-    // Also send again after analysis in case the first one was missed
+    // Send repository context after a brief delay to ensure webview is ready.
     setTimeout(() => {
       if (this.panel) {
-        console.log('[RepoStats] Sending initial settings');
-        this.sendSettingsLoaded(this.panel.webview);
+        console.log('[RepoStats] Sending initial repository context');
+        void this.sendCurrentRepositoryContext(this.panel.webview);
       }
     }, 100);
 
     // Start analysis automatically
     await this.runAnalysis(this.panel.webview);
 
-    // Send settings again after analysis completes (webview should definitely be ready now)
-    this.sendSettingsLoaded(this.panel.webview);
+    // Send context again after analysis completes (webview should definitely be ready now)
+    await this.sendCurrentRepositoryContext(this.panel.webview);
   }
 
   /**
@@ -141,16 +168,16 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       return;
     }
 
-    const repoPath = this.getWorkspacePath();
-    if (repoPath) {
+    const selection = await this.resolveRepositorySelection();
+    if (selection.selected) {
       const storage = new WorkspaceStateStorage(this.workspaceState);
-      const cacheManager = new CacheManager(storage, repoPath);
-      const evolutionCacheManager = new EvolutionCacheManager(storage, repoPath);
+      const cacheManager = new CacheManager(storage, selection.selected.rootUri.fsPath);
+      const evolutionCacheManager = new EvolutionCacheManager(storage, selection.selected.rootUri.fsPath);
       cacheManager.clear();
       evolutionCacheManager.clear();
     }
 
-    await this.runAnalysis(this.panel.webview);
+    await this.runAnalysis(this.panel.webview, selection.selected ?? undefined);
   }
 
   private async handleWebviewMessage(message: WebviewMessage, webview: vscode.Webview): Promise<void> {
@@ -176,10 +203,15 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
         await this.sendStalenessStatus(webview);
         break;
 
+      case 'selectRepository': {
+        await this.selectRepository(message.repoPath, webview);
+        break;
+      }
+
       case 'openFile': {
-        const repoPath = this.getWorkspacePath();
-        if (repoPath) {
-          const filePath = path.join(repoPath, message.path);
+        const repository = await this.getSelectedRepository();
+        if (repository) {
+          const filePath = path.join(repository.rootUri.fsPath, message.path);
           const uri = vscode.Uri.file(filePath);
           await vscode.window.showTextDocument(uri);
         }
@@ -187,9 +219,9 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       }
 
       case 'revealInExplorer': {
-        const repoPath = this.getWorkspacePath();
-        if (repoPath) {
-          const filePath = path.join(repoPath, message.path);
+        const repository = await this.getSelectedRepository();
+        if (repository) {
+          const filePath = path.join(repository.rootUri.fsPath, message.path);
           const uri = vscode.Uri.file(filePath);
           await vscode.commands.executeCommand('revealInExplorer', uri);
         }
@@ -204,7 +236,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
 
       case 'getSettings': {
         console.log('[RepoStats] Handling getSettings request');
-        this.sendSettingsLoaded(webview);
+        await this.sendCurrentRepositoryContext(webview);
         break;
       }
 
@@ -213,7 +245,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
           message.settings,
           message.target ?? 'global'
         );
-        this.sendSettingsLoaded(webview);
+        await this.sendCurrentRepositoryContext(webview);
         await this.sendStalenessStatus(webview);
 
         if (shouldPromptReanalysis) {
@@ -228,7 +260,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
           message.value,
           message.target
         );
-        this.sendSettingsLoaded(webview);
+        await this.sendCurrentRepositoryContext(webview);
         await this.sendStalenessStatus(webview);
 
         if (shouldPromptReanalysis) {
@@ -239,7 +271,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
 
       case 'resetScopedSetting': {
         const shouldPromptReanalysis = await this.resetScopedSettingOverride(message.key);
-        this.sendSettingsLoaded(webview);
+        await this.sendCurrentRepositoryContext(webview);
         await this.sendStalenessStatus(webview);
 
         if (shouldPromptReanalysis) {
@@ -250,13 +282,181 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     }
   }
 
+  public async promptRepositorySelection(): Promise<void> {
+    const selection = await this.resolveRepositorySelection();
+    if (selection.repositories.length === 0) {
+      vscode.window.showInformationMessage('No Git repositories were found in the current workspace.');
+      return;
+    }
+
+    const picked = await vscode.window.showQuickPick(
+      selection.repositories.map((repository) => ({
+        label: repository.option.name,
+        description:
+          repository.option.relativePath === '.'
+            ? repository.option.workspaceFolderName
+            : `${repository.option.workspaceFolderName}/${repository.option.relativePath}`,
+        detail: repository.option.path,
+        repository,
+      })),
+      {
+        title: 'Select Repository',
+        placeHolder: 'Choose the repository to analyze in Repo Stats',
+      }
+    );
+
+    if (!picked) {
+      return;
+    }
+
+    await this.persistSelectedRepoPath(picked.repository.option.path);
+
+    if (!this.panel) {
+      await this.showDashboard();
+      return;
+    }
+
+    await this.selectRepository(picked.repository.option.path, this.panel.webview);
+  }
+
+  private async selectRepository(repoPath: string, webview: vscode.Webview): Promise<void> {
+    const selection = await this.resolveRepositorySelection(repoPath);
+    await this.sendCurrentRepositoryContext(webview, selection);
+    await this.sendStalenessStatus(webview, selection.selected ?? undefined);
+    await this.runAnalysis(webview, selection.selected ?? undefined);
+  }
+
+  private async sendCurrentRepositoryContext(
+    webview: vscode.Webview,
+    selection?: RepositorySelection
+  ): Promise<RepositorySelection> {
+    const resolved = selection ?? await this.resolveRepositorySelection();
+
+    this.sendMessage(webview, {
+      type: 'repositorySelectionLoaded',
+      repositories: resolved.repositories.map((repository) => repository.option),
+      selectedRepoPath: resolved.selected?.option.path ?? null,
+    });
+
+    if (resolved.selected) {
+      this.sendMessage(webview, {
+        type: 'settingsLoaded',
+        settings: this.getSettings(resolved.selected),
+        scopedSettings: this.getRepoScopedSettings(resolved.selected),
+      });
+    }
+
+    return resolved;
+  }
+
+  private async getSelectedRepository(): Promise<RepositoryContext | undefined> {
+    const selection = await this.resolveRepositorySelection();
+    return selection.selected ?? undefined;
+  }
+
+  private async resolveRepositorySelection(preferredRepoPath?: string): Promise<RepositorySelection> {
+    const repositories = await this.listAvailableRepositories();
+    const persistedRepoPath = preferredRepoPath ?? this.workspaceState.get<string>(RepoStatsProvider.selectedRepoPathStateKey);
+    const selectedRepoPath = selectPreferredRepositoryPath(
+      repositories.map((repository) => repository.option),
+      persistedRepoPath
+    );
+
+    await this.persistSelectedRepoPath(selectedRepoPath);
+
+    return {
+      repositories,
+      selected: repositories.find((repository) => repository.option.path === selectedRepoPath) ?? null,
+    };
+  }
+
+  private async persistSelectedRepoPath(repoPath: string | null): Promise<void> {
+    await this.workspaceState.update(RepoStatsProvider.selectedRepoPathStateKey, repoPath ?? undefined);
+  }
+
+  private async listAvailableRepositories(): Promise<RepositoryContext[]> {
+    const workspaceFolders = vscode.workspace.workspaceFolders ?? [];
+    if (workspaceFolders.length === 0) {
+      return [];
+    }
+
+    const repositoryRoots = await this.getRepositoryRootUris(workspaceFolders);
+
+    return repositoryRoots
+      .map((rootUri) => {
+        const workspaceFolder = vscode.workspace.getWorkspaceFolder(rootUri);
+        if (!workspaceFolder) {
+          return null;
+        }
+
+        return {
+          option: buildRepositoryOption({
+            repoPath: rootUri.fsPath,
+            workspaceFolderPath: workspaceFolder.uri.fsPath,
+            workspaceFolderName: workspaceFolder.name,
+          }),
+          rootUri,
+          workspaceFolder,
+        } satisfies RepositoryContext;
+      })
+      .filter((repository): repository is RepositoryContext => repository !== null)
+      .sort((a, b) =>
+        a.option.workspaceFolderName.localeCompare(b.option.workspaceFolderName) ||
+        a.option.relativePath.localeCompare(b.option.relativePath) ||
+        a.option.name.localeCompare(b.option.name)
+      );
+  }
+
+  private async getRepositoryRootUris(workspaceFolders: readonly vscode.WorkspaceFolder[]): Promise<vscode.Uri[]> {
+    const seen = new Set<string>();
+    const repositories: vscode.Uri[] = [];
+
+    const gitExtension = vscode.extensions.getExtension<GitExtensionExports>('vscode.git');
+    if (gitExtension) {
+      const gitApi = (gitExtension.isActive ? gitExtension.exports : await gitExtension.activate()) as GitExtensionExports;
+      try {
+        for (const repository of gitApi.getAPI(1).repositories) {
+          const workspaceFolder = vscode.workspace.getWorkspaceFolder(repository.rootUri);
+          if (!workspaceFolder || seen.has(repository.rootUri.fsPath)) {
+            continue;
+          }
+          seen.add(repository.rootUri.fsPath);
+          repositories.push(repository.rootUri);
+        }
+      } catch (error) {
+        console.warn('[RepoStats] Failed to read repositories from Git extension:', error);
+      }
+    }
+
+    if (repositories.length > 0) {
+      return repositories;
+    }
+
+    for (const workspaceFolder of workspaceFolders) {
+      const git = simpleGit(workspaceFolder.uri.fsPath);
+      if (await git.checkIsRepo()) {
+        if (!seen.has(workspaceFolder.uri.fsPath)) {
+          seen.add(workspaceFolder.uri.fsPath);
+          repositories.push(workspaceFolder.uri);
+        }
+      }
+    }
+
+    return repositories;
+  }
+
   private async updateSettings(
     settings: Partial<ExtensionSettings>,
     target: SettingWriteTarget
   ): Promise<boolean> {
-    const config = this.getConfig();
+    const repository = await this.getSelectedRepository();
+    if (!repository) {
+      return false;
+    }
+
+    const config = this.getConfig(repository);
     const configTarget = this.toConfigurationTarget(target);
-    const previousSettings = this.getSettings();
+    const previousSettings = this.getSettings(repository);
 
     if (settings.excludePatterns !== undefined) {
       await config.update('excludePatterns', settings.excludePatterns, configTarget);
@@ -302,7 +502,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       await config.update('evolution.cohortFormat', settings.evolution.cohortFormat, configTarget);
     }
 
-    return previousSettings.includeSubmodules !== this.getSettings().includeSubmodules;
+    return previousSettings.includeSubmodules !== this.getSettings(repository).includeSubmodules;
   }
 
   private async updateScopedSetting<K extends RepoScopableSettingKey>(
@@ -310,17 +510,27 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     value: RepoScopableSettingValueMap[K],
     target: SettingWriteTarget
   ): Promise<boolean> {
-    const config = this.getConfig();
-    const previousSettings = this.getSettings();
+    const repository = await this.getSelectedRepository();
+    if (!repository) {
+      return false;
+    }
+
+    const config = this.getConfig(repository);
+    const previousSettings = this.getSettings(repository);
     await config.update(key, value, this.toConfigurationTarget(target));
-    return createCoreSettingsHash(previousSettings) !== createCoreSettingsHash(this.getSettings());
+    return createCoreSettingsHash(previousSettings) !== createCoreSettingsHash(this.getSettings(repository));
   }
 
   private async resetScopedSettingOverride(key: RepoScopableSettingKey): Promise<boolean> {
-    const config = this.getConfig();
-    const previousSettings = this.getSettings();
+    const repository = await this.getSelectedRepository();
+    if (!repository) {
+      return false;
+    }
+
+    const config = this.getConfig(repository);
+    const previousSettings = this.getSettings(repository);
     await config.update(key, undefined, vscode.ConfigurationTarget.WorkspaceFolder);
-    return createCoreSettingsHash(previousSettings) !== createCoreSettingsHash(this.getSettings());
+    return createCoreSettingsHash(previousSettings) !== createCoreSettingsHash(this.getSettings(repository));
   }
 
   private toConfigurationTarget(target: SettingWriteTarget): vscode.ConfigurationTarget {
@@ -340,19 +550,24 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  private async runAnalysis(webview: vscode.Webview): Promise<void> {
-    const repoPath = this.getWorkspacePath();
+  private async runAnalysis(
+    webview: vscode.Webview,
+    repository?: RepositoryContext
+  ): Promise<void> {
+    const selectedRepository = repository ?? await this.getSelectedRepository();
 
-    if (!repoPath) {
+    if (!selectedRepository) {
       this.sendMessage(webview, {
         type: 'analysisError',
-        error: 'No workspace folder is open. Please open a folder containing a Git repository.',
+        error: 'No Git repositories were found in the current workspace.',
       });
       return;
     }
 
+    const repoPath = selectedRepository.rootUri.fsPath;
+
     try {
-      const settings = this.getSettings();
+      const settings = this.getSettings(selectedRepository);
       const settingsHash = createCoreSettingsHash(settings);
       const storage = new WorkspaceStateStorage(this.workspaceState);
       const cacheManager = new CacheManager(storage, repoPath);
@@ -374,13 +589,15 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       if (cached) {
         // Update with fresh repo info
         cached.repository = repoInfo;
-        this.lastCoreHeadSha = cached.repository.headSha;
-        this.lastCoreSettingsHash = settingsHash;
+        this.lastCoreStateByRepo.set(repoPath, {
+          headSha: cached.repository.headSha,
+          settingsHash,
+        });
         this.sendMessage(webview, {
           type: 'analysisComplete',
           data: cached,
         });
-        await this.sendStalenessStatus(webview);
+        await this.sendStalenessStatus(webview, selectedRepository);
         return;
       }
 
@@ -396,8 +613,10 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
           });
         },
         onCoreReady: (coreResult) => {
-          this.lastCoreHeadSha = coreResult.repository.headSha;
-          this.lastCoreSettingsHash = settingsHash;
+          this.lastCoreStateByRepo.set(repoPath, {
+            headSha: coreResult.repository.headSha,
+            settingsHash,
+          });
           this.sendMessage(webview, {
             type: 'analysisComplete',
             data: coreResult,
@@ -414,18 +633,20 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       // Save to cache
       cacheManager.save(result, coordinator.getLatestBlameFileCache(), settingsHash);
 
-      this.lastCoreHeadSha = result.repository.headSha;
-      this.lastCoreSettingsHash = settingsHash;
+      this.lastCoreStateByRepo.set(repoPath, {
+        headSha: result.repository.headSha,
+        settingsHash,
+      });
       this.sendMessage(webview, {
         type: 'analysisComplete',
         data: result,
       });
-      await this.sendStalenessStatus(webview);
+      await this.sendStalenessStatus(webview, selectedRepository);
     } catch (error) {
       let errorMessage = 'An unexpected error occurred during analysis.';
 
       if (error instanceof NotAGitRepoError) {
-        errorMessage = 'This folder is not a Git repository. Please open a folder containing a Git repository.';
+        errorMessage = `"${repoPath}" is not a Git repository.`;
       } else if (error instanceof Error) {
         errorMessage = error.message;
       }
@@ -438,18 +659,20 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
   }
 
   private async runEvolutionAnalysis(webview: vscode.Webview, forceRefresh: boolean): Promise<void> {
-    const repoPath = this.getWorkspacePath();
+    const selectedRepository = await this.getSelectedRepository();
 
-    if (!repoPath) {
+    if (!selectedRepository) {
       this.sendMessage(webview, {
         type: 'evolutionError',
-        error: 'No workspace folder is open. Please open a folder containing a Git repository.',
+        error: 'No Git repositories were found in the current workspace.',
       });
       return;
     }
 
+    const repoPath = selectedRepository.rootUri.fsPath;
+
     try {
-      const settings = this.getSettings();
+      const settings = this.getSettings(selectedRepository);
       const storage = new WorkspaceStateStorage(this.workspaceState);
       const evolutionCacheManager = new EvolutionCacheManager(storage, repoPath);
       const coordinator = new AnalysisCoordinator(repoPath, settings, path.join(this.globalStoragePath, 'scc'));
@@ -463,21 +686,25 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       );
 
       if (validCached && !forceRefresh) {
-        this.lastEvolutionHeadSha = validCached.headSha;
-        this.lastEvolutionSettingsHash = validCached.settingsHash;
+        this.lastEvolutionStateByRepo.set(repoPath, {
+          headSha: validCached.headSha,
+          settingsHash: validCached.settingsHash,
+        });
         this.sendMessage(webview, {
           type: 'evolutionComplete',
           data: validCached,
         });
-        await this.sendStalenessStatus(webview);
+        await this.sendStalenessStatus(webview, selectedRepository);
         return;
       }
 
       if (!forceRefresh) {
         const latestCached = evolutionCacheManager.getLatest();
         if (latestCached) {
-          this.lastEvolutionHeadSha = latestCached.headSha;
-          this.lastEvolutionSettingsHash = latestCached.settingsHash;
+          this.lastEvolutionStateByRepo.set(repoPath, {
+            headSha: latestCached.headSha,
+            settingsHash: latestCached.settingsHash,
+          });
           this.sendMessage(webview, {
             type: 'evolutionComplete',
             data: latestCached,
@@ -494,7 +721,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
             });
           }
 
-          await this.sendStalenessStatus(webview);
+          await this.sendStalenessStatus(webview, selectedRepository);
 
           if (!settings.evolution.autoRun) {
             return;
@@ -517,18 +744,20 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
 
       evolutionCacheManager.save(result, repoPath);
 
-      this.lastEvolutionHeadSha = result.headSha;
-      this.lastEvolutionSettingsHash = result.settingsHash;
+      this.lastEvolutionStateByRepo.set(repoPath, {
+        headSha: result.headSha,
+        settingsHash: result.settingsHash,
+      });
       this.sendMessage(webview, {
         type: 'evolutionComplete',
         data: result,
       });
-      await this.sendStalenessStatus(webview);
+      await this.sendStalenessStatus(webview, selectedRepository);
     } catch (error) {
       let errorMessage = 'An unexpected error occurred during evolution analysis.';
 
       if (error instanceof NotAGitRepoError) {
-        errorMessage = 'This folder is not a Git repository. Please open a folder containing a Git repository.';
+        errorMessage = `"${repoPath}" is not a Git repository.`;
       } else if (error instanceof Error) {
         errorMessage = error.message;
       }
@@ -540,9 +769,12 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  private async sendStalenessStatus(webview: vscode.Webview): Promise<void> {
-    const repoPath = this.getWorkspacePath();
-    if (!repoPath) {
+  private async sendStalenessStatus(
+    webview: vscode.Webview,
+    repository?: RepositoryContext
+  ): Promise<void> {
+    const selectedRepository = repository ?? await this.getSelectedRepository();
+    if (!selectedRepository) {
       this.sendMessage(webview, {
         type: 'stalenessStatus',
         coreStale: false,
@@ -551,22 +783,27 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       return;
     }
 
+    const repoPath = selectedRepository.rootUri.fsPath;
+
     try {
       const git = simpleGit(repoPath);
       const currentHeadSha = (await git.revparse(['HEAD'])).trim();
-      const settings = this.getSettings();
+      const settings = this.getSettings(selectedRepository);
       const currentCoreSettingsHash = createCoreSettingsHash(settings);
       const currentEvolutionSettingsHash = createEvolutionSettingsHash(settings);
+      const lastCoreState = this.lastCoreStateByRepo.get(repoPath);
+      const lastEvolutionState = this.lastEvolutionStateByRepo.get(repoPath);
 
-      const coreStaleByHead = this.lastCoreHeadSha !== null && this.lastCoreHeadSha !== currentHeadSha;
+      const coreStaleByHead = lastCoreState !== undefined && lastCoreState.headSha !== currentHeadSha;
       const coreStaleBySettings =
-        this.lastCoreSettingsHash !== null &&
-        this.lastCoreSettingsHash !== currentCoreSettingsHash;
+        lastCoreState !== undefined &&
+        lastCoreState.settingsHash !== currentCoreSettingsHash;
 
-      const evolutionStaleByHead = this.lastEvolutionHeadSha !== null && this.lastEvolutionHeadSha !== currentHeadSha;
+      const evolutionStaleByHead =
+        lastEvolutionState !== undefined && lastEvolutionState.headSha !== currentHeadSha;
       const evolutionStaleBySettings =
-        this.lastEvolutionSettingsHash !== null &&
-        this.lastEvolutionSettingsHash !== currentEvolutionSettingsHash;
+        lastEvolutionState !== undefined &&
+        lastEvolutionState.settingsHash !== currentEvolutionSettingsHash;
 
       this.sendMessage(webview, {
         type: 'stalenessStatus',
@@ -582,28 +819,8 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     webview.postMessage(message);
   }
 
-  private sendSettingsLoaded(webview: vscode.Webview): void {
-    this.sendMessage(webview, {
-      type: 'settingsLoaded',
-      settings: this.getSettings(),
-      scopedSettings: this.getRepoScopedSettings(),
-    });
-  }
-
-  private getWorkspaceFolderUri(): vscode.Uri | undefined {
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-    if (!workspaceFolders || workspaceFolders.length === 0) {
-      return undefined;
-    }
-    return workspaceFolders[0].uri;
-  }
-
-  private getWorkspacePath(): string | undefined {
-    return this.getWorkspaceFolderUri()?.fsPath;
-  }
-
-  private getConfig(): vscode.WorkspaceConfiguration {
-    return vscode.workspace.getConfiguration('repoStats', this.getWorkspaceFolderUri());
+  private getConfig(repository: RepositoryContext): vscode.WorkspaceConfiguration {
+    return vscode.workspace.getConfiguration('repoStats', repository.workspaceFolder.uri);
   }
 
   private getRequiredConfigValue<T>(config: vscode.WorkspaceConfiguration, key: string): T {
@@ -632,8 +849,8 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     return buildScopedSettingValue(inspect) as unknown as RepoScopedSettings[K];
   }
 
-  private getRepoScopedSettings(): RepoScopedSettings {
-    const config = this.getConfig();
+  private getRepoScopedSettings(repository: RepositoryContext): RepoScopedSettings {
+    const config = this.getConfig(repository);
 
     return {
       excludePatterns: this.getScopedSettingValue(config, 'excludePatterns'),
@@ -649,8 +866,8 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     };
   }
 
-  private getSettings(): ExtensionSettings {
-    const config = this.getConfig();
+  private getSettings(repository: RepositoryContext): ExtensionSettings {
+    const config = this.getConfig(repository);
 
     return {
       excludePatterns: this.getRequiredConfigValue<string[]>(config, 'excludePatterns'),
