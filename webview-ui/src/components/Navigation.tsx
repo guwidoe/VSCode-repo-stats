@@ -4,18 +4,6 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Blocks,
-  ChartColumnIncreasing,
-  ChartLine,
-  FileText,
-  GitCommitHorizontal,
-  Info,
-  LayoutDashboard,
-  Settings2,
-  Users,
-  type LucideIcon,
-} from 'lucide-react';
 import { useStore } from '../store';
 import type { ViewType } from '../types';
 import './Navigation.css';
@@ -23,42 +11,36 @@ import './Navigation.css';
 interface ViewConfig {
   id: ViewType;
   label: string;
+  icon: string;
+  iconKind?: 'emoji' | 'symbol';
   tone: 'neutral' | 'blue' | 'purple' | 'green' | 'orange' | 'pink';
   tooltip?: string;
 }
 
 const MAIN_VIEWS: ViewConfig[] = [
-  { id: 'overview', label: 'Overview', tone: 'blue' },
-  { id: 'files', label: 'Files', tone: 'neutral' },
-  { id: 'contributors', label: 'Contributors', tone: 'purple' },
-  { id: 'commits', label: 'Commits', tone: 'green' },
-  { id: 'frequency', label: 'Code Frequency', tone: 'orange' },
-  { id: 'evolution', label: 'Evolution', tone: 'pink' },
-  { id: 'treemap', label: 'Treemap', tone: 'blue' },
+  { id: 'overview', label: 'Overview', icon: '📋', tone: 'blue' },
+  { id: 'files', label: 'Files', icon: '📄', tone: 'neutral' },
+  { id: 'contributors', label: 'Contributors', icon: '👥', tone: 'purple' },
+  { id: 'commits', label: 'Commits', icon: '✅', tone: 'green' },
+  { id: 'frequency', label: 'Code Frequency', icon: '📊', tone: 'orange' },
+  { id: 'evolution', label: 'Evolution', icon: '🧬', tone: 'pink' },
+  { id: 'treemap', label: 'Treemap', icon: '🗂️', tone: 'blue' },
 ];
 
 const UTILITY_VIEWS: ViewConfig[] = [
-  { id: 'about', label: 'About', tone: 'neutral', tooltip: 'About & Help' },
-  { id: 'settings', label: 'Settings', tone: 'neutral', tooltip: 'Settings' },
+  { id: 'about', label: 'About', icon: 'i', iconKind: 'symbol', tone: 'neutral', tooltip: 'About & Help' },
+  { id: 'settings', label: 'Settings', icon: '⚙', iconKind: 'symbol', tone: 'neutral', tooltip: 'Settings' },
 ];
 
 const OVERFLOW_BUTTON_WIDTH = 54;
 
-const VIEW_ICONS: Record<ViewType, LucideIcon> = {
-  overview: LayoutDashboard,
-  files: FileText,
-  contributors: Users,
-  commits: GitCommitHorizontal,
-  frequency: ChartColumnIncreasing,
-  evolution: ChartLine,
-  treemap: Blocks,
-  about: Info,
-  settings: Settings2,
-};
-
-function renderViewIcon(viewId: ViewType) {
-  const Icon = VIEW_ICONS[viewId];
-  return <Icon className="nav-badge-icon" aria-hidden="true" strokeWidth={1.9} />;
+function renderViewIcon(view: ViewConfig) {
+  const iconKind = view.iconKind ?? 'emoji';
+  return (
+    <span className={`nav-badge-glyph nav-badge-glyph-${iconKind}`} aria-hidden="true">
+      {view.icon}
+    </span>
+  );
 }
 
 export function Navigation() {
@@ -178,7 +160,7 @@ export function Navigation() {
             onClick={() => handleSelectView(view.id)}
             aria-current={activeView === view.id ? 'page' : undefined}
           >
-            <span className={`nav-badge nav-badge-${view.tone}`} aria-hidden="true">{renderViewIcon(view.id)}</span>
+            <span className={`nav-badge nav-badge-${view.tone}`} aria-hidden="true">{renderViewIcon(view)}</span>
             <span className="nav-label">{view.label}</span>
           </button>
         ))}
@@ -211,7 +193,7 @@ export function Navigation() {
                     role="menuitem"
                     type="button"
                   >
-                    <span className={`nav-badge nav-badge-${view.tone}`} aria-hidden="true">{renderViewIcon(view.id)}</span>
+                    <span className={`nav-badge nav-badge-${view.tone}`} aria-hidden="true">{renderViewIcon(view)}</span>
                     <span className="nav-label">{view.label}</span>
                   </button>
                 ))}
@@ -231,7 +213,7 @@ export function Navigation() {
             title={view.tooltip || view.label}
             aria-label={view.label}
           >
-            <span className={`nav-badge nav-badge-${view.tone}`} aria-hidden="true">{renderViewIcon(view.id)}</span>
+            <span className={`nav-badge nav-badge-${view.tone}`} aria-hidden="true">{renderViewIcon(view)}</span>
           </button>
         ))}
       </div>
@@ -251,7 +233,7 @@ export function Navigation() {
             type="button"
             tabIndex={-1}
           >
-            <span className={`nav-badge nav-badge-${view.tone}`}>{renderViewIcon(view.id)}</span>
+            <span className={`nav-badge nav-badge-${view.tone}`}>{renderViewIcon(view)}</span>
             <span className="nav-label">{view.label}</span>
           </button>
         ))}

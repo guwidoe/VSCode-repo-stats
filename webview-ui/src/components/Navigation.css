@@ -61,15 +61,20 @@
   color: var(--vscode-badge-foreground);
 }
 
-.nav-badge-icon {
-  width: 14px;
-  height: 14px;
-  fill: currentColor;
-  stroke: currentColor;
+.nav-badge-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
-.nav-badge-icon * {
-  vector-effect: non-scaling-stroke;
+.nav-badge-glyph-emoji {
+  font-size: 15px;
+}
+
+.nav-badge-glyph-symbol {
+  font-size: 15px;
+  font-weight: 700;
 }
 
 .nav-badge-blue {
