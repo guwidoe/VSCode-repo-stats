@@ -34,6 +34,15 @@
   color: var(--vscode-foreground);
   cursor: pointer;
   font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.column-selector-button {
+  border-radius: 999px;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--vscode-button-background) 18%, var(--vscode-input-background));
 }
 
 .toolbar-button:hover:not(:disabled) {

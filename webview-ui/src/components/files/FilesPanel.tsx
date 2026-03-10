@@ -4,6 +4,7 @@
 
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent } from 'react';
+import { ChevronDown, Columns3 } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useStore } from '../../store';
 import { useFileCatalog } from '../../hooks/useFileCatalog';
@@ -264,14 +265,16 @@ export function FilesPanel() {
           <div className="toolbar-left">
             <div className="toolbar-popover-anchor">
               <button
-                className="toolbar-button"
+                className="toolbar-button column-selector-button"
                 type="button"
                 onClick={() => {
                   setShowColumnManager((open) => !open);
                   setActiveFilterColumn(null);
                 }}
               >
-                Columns
+                <Columns3 size={15} />
+                <span>Columns</span>
+                <ChevronDown size={14} />
               </button>
 
               {showColumnManager && (

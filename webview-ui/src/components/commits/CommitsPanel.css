@@ -3,6 +3,8 @@
   flex-direction: column;
   gap: 16px;
   padding: 16px;
+  height: 100%;
+  min-height: 0;
 }
 
 .commits-panel .panel-header {
@@ -90,6 +92,8 @@
   flex-direction: column;
   gap: 14px;
   padding: 14px;
+  flex: 1;
+  min-height: 0;
 }
 
 .commit-explorer-header {
@@ -120,6 +124,10 @@
   flex-wrap: wrap;
 }
 
+.commit-action-anchor {
+  position: relative;
+}
+
 .commit-action-button,
 .commit-subtle-button {
   height: 32px;
@@ -134,6 +142,12 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+}
+
+.commit-column-selector-button {
+  border-radius: 999px;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--vscode-button-background) 18%, var(--vscode-input-background));
 }
 
 .commit-action-button:hover:not(:disabled),
@@ -353,17 +367,19 @@
 
 .commit-results-frame {
   min-height: 0;
+  flex: 1;
 }
 
 .commit-results-shell {
   height: 100%;
+  min-height: 0;
 }
 
 .commit-results-grid {
   display: grid;
   gap: 12px;
   align-items: center;
-  min-width: 1170px;
+  min-width: 100%;
 }
 
 .commit-results-header {
@@ -462,17 +478,22 @@
   background: color-mix(in srgb, var(--vscode-textLink-foreground) 18%, transparent);
 }
 
-.commit-column-filter-popover {
+.commit-column-filter-popover,
+.commit-column-manager-popover {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
   z-index: 20;
-  width: 240px;
+  width: 260px;
   border: 1px solid var(--vscode-panel-border);
   border-radius: 8px;
   background: var(--vscode-editor-background);
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
   padding: 10px;
+}
+
+.commit-column-filter-popover {
+  width: 240px;
 }
 
 .commit-popover-title {
@@ -506,6 +527,59 @@
   font-size: 12px;
 }
 
+.commit-column-manager-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 280px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.commit-column-manager-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.commit-column-manager-row label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--vscode-foreground);
+}
+
+.commit-column-order-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.commit-order-button,
+.commit-subtle-button {
+  height: 24px;
+  min-width: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  background: var(--vscode-input-background);
+  color: var(--vscode-foreground);
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.commit-order-button:hover:not(:disabled),
+.commit-subtle-button:hover:not(:disabled) {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.commit-order-button:disabled,
+.commit-subtle-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
 .commit-popover-actions {
   display: flex;
   justify-content: flex-end;
@@ -515,16 +589,14 @@
 
 .commit-results-body {
   min-height: 0;
-  overflow: hidden;
-}
-
-.commit-results-viewport {
-  max-height: 560px;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: min(68vh, 640px);
 }
 
 .commit-results-inner {
   position: relative;
+  min-height: 100%;
 }
 
 .commit-results-row {
