@@ -1,11 +1,13 @@
 import Plot from 'react-plotly.js';
 import type { CommitContributorSummary } from '../../types';
+import { getCommitPlotTheme } from './plotTheme';
 
 interface Props {
   contributors: CommitContributorSummary[];
 }
 
 export function ContributorPatternsChart({ contributors }: Props) {
+  const theme = getCommitPlotTheme();
   const ranked = [...contributors]
     .sort((a, b) => b.averageChangedLines - a.averageChangedLines || b.totalCommits - a.totalCommits)
     .slice(0, 8);
@@ -42,6 +44,9 @@ export function ContributorPatternsChart({ contributors }: Props) {
             marker: {
               color: 'rgba(122, 162, 247, 0.92)',
             },
+            textfont: {
+              color: theme.foreground,
+            },
             customdata: ranked.map((entry) => [entry.totalCommits.toLocaleString(), Math.round(entry.medianChangedLines).toLocaleString()]),
             hovertemplate: '<b>%{y}</b><br>Average Δ %{x:,}<br>Median Δ %{customdata[1]}<br>%{customdata[0]} commits<extra></extra>',
           },
@@ -66,22 +71,27 @@ export function ContributorPatternsChart({ contributors }: Props) {
           font: {
             family: 'var(--vscode-font-family)',
             size: 11,
-            color: 'var(--vscode-foreground)',
+            color: theme.foreground,
           },
           barmode: 'group',
           legend: {
             orientation: 'h',
             x: 0,
             y: 1.15,
+            font: { color: theme.foreground },
           },
           xaxis: {
-            title: { text: 'Changed lines per commit' },
-            gridcolor: 'var(--vscode-panel-border)',
+            title: { text: 'Changed lines per commit', font: { color: theme.foreground } },
+            tickfont: { color: theme.foreground },
+            gridcolor: theme.border,
             rangemode: 'tozero',
+            automargin: true,
           },
           yaxis: {
             autorange: 'reversed',
+            tickfont: { color: theme.foreground },
             gridcolor: 'transparent',
+            automargin: true,
           },
         }}
         config={{

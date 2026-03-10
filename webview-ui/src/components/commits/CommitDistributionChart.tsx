@@ -1,6 +1,7 @@
 import Plot from 'react-plotly.js';
 import type { CommitStatBucket } from '../../types';
 import { formatCommitBucketLabel } from '../../hooks/useCommitPanelState';
+import { getCommitPlotTheme } from './plotTheme';
 
 interface Props {
   title: string;
@@ -10,6 +11,8 @@ interface Props {
 }
 
 export function CommitDistributionChart({ title, buckets, color, valueLabel }: Props) {
+  const theme = getCommitPlotTheme();
+
   return (
     <section className="commit-insight-card commit-insight-card-plot">
       <div className="commit-insight-card-header">
@@ -24,7 +27,7 @@ export function CommitDistributionChart({ title, buckets, color, valueLabel }: P
             y: buckets.map((bucket) => bucket.count),
             marker: {
               color,
-              line: { color: 'rgba(255,255,255,0.18)', width: 1 },
+              line: { color: theme.border, width: 1 },
             },
             hovertemplate: `${valueLabel} %{x}<br>%{y:,} commits<extra></extra>`,
           },
@@ -38,17 +41,21 @@ export function CommitDistributionChart({ title, buckets, color, valueLabel }: P
           font: {
             family: 'var(--vscode-font-family)',
             size: 11,
-            color: 'var(--vscode-foreground)',
+            color: theme.foreground,
           },
           xaxis: {
-            title: { text: valueLabel },
+            title: { text: valueLabel, font: { color: theme.foreground } },
+            tickfont: { color: theme.foreground },
             gridcolor: 'transparent',
             tickangle: -35,
+            automargin: true,
           },
           yaxis: {
-            title: { text: 'Commit count' },
-            gridcolor: 'var(--vscode-panel-border)',
+            title: { text: 'Commit count', font: { color: theme.foreground } },
+            tickfont: { color: theme.foreground },
+            gridcolor: theme.border,
             rangemode: 'tozero',
+            automargin: true,
           },
           bargap: 0.16,
         }}

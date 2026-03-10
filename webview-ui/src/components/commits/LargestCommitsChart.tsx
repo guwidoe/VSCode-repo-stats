@@ -1,6 +1,7 @@
 import Plot from 'react-plotly.js';
 import type { CommitTableRow } from './types';
 import { formatCommitDate } from '../../hooks/useCommitPanelState';
+import { getCommitPlotTheme } from './plotTheme';
 
 interface Props {
   rows: CommitTableRow[];
@@ -11,6 +12,7 @@ function truncateSummary(summary: string): string {
 }
 
 export function LargestCommitsChart({ rows }: Props) {
+  const theme = getCommitPlotTheme();
   const ranked = [...rows]
     .sort((a, b) => b.changedLines - a.changedLines || b.timestamp - a.timestamp)
     .slice(0, 6);
@@ -53,6 +55,9 @@ export function LargestCommitsChart({ rows }: Props) {
                 'rgba(191, 103, 171, 0.82)',
               ][index] ?? 'rgba(242, 157, 73, 0.85)'),
             },
+            textfont: {
+              color: theme.foreground,
+            },
             customdata: ranked.map((entry) => [entry.authorName, formatCommitDate(entry.committedAt), entry.sha.slice(0, 8)]),
             hovertemplate: '<b>%{y}</b><br>Δ %{x:,} lines<br>%{customdata[0]}<br>%{customdata[1]}<br>SHA %{customdata[2]}<extra></extra>',
           },
@@ -66,16 +71,20 @@ export function LargestCommitsChart({ rows }: Props) {
           font: {
             family: 'var(--vscode-font-family)',
             size: 11,
-            color: 'var(--vscode-foreground)',
+            color: theme.foreground,
           },
           xaxis: {
-            title: { text: 'Changed lines' },
-            gridcolor: 'var(--vscode-panel-border)',
+            title: { text: 'Changed lines', font: { color: theme.foreground } },
+            tickfont: { color: theme.foreground },
+            gridcolor: theme.border,
             rangemode: 'tozero',
+            automargin: true,
           },
           yaxis: {
             autorange: 'reversed',
+            tickfont: { color: theme.foreground },
             gridcolor: 'transparent',
+            automargin: true,
           },
         }}
         config={{
