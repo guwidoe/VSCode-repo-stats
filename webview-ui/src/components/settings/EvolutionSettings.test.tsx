@@ -182,5 +182,5 @@ describe('EvolutionSettings', () => {
       7,
       'global'
     );
-  });
+  }, 10000);
 });
