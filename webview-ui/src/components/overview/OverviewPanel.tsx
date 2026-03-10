@@ -3,13 +3,6 @@
  */
 
 import { useMemo, useState } from 'react';
-import {
-  ChartColumnIncreasing,
-  FileText,
-  GitCommitHorizontal,
-  Users,
-  type LucideIcon,
-} from 'lucide-react';
 import { useStore } from '../../store';
 import { useOverviewStats } from '../../hooks/useOverviewStats';
 import { getAvatarColor } from '../../utils/colors';
@@ -25,13 +18,6 @@ const DEFAULT_AGE_BUCKETS: AgeBucketDefinition[] = [
   { label: '1-2y', min: 366, max: 730, color: '#ff7043' },
   { label: '>2y', min: 731, max: Number.MAX_SAFE_INTEGER, color: '#e53935' },
 ];
-
-const STAT_CARD_ICONS: Record<'files' | 'loc' | 'commits' | 'contributors', LucideIcon> = {
-  files: FileText,
-  loc: ChartColumnIncreasing,
-  commits: GitCommitHorizontal,
-  contributors: Users,
-};
 
 export function OverviewPanel() {
   const stats = useOverviewStats();
@@ -110,18 +96,24 @@ export function OverviewPanel() {
   const statCards = [
     {
       key: 'files' as const,
+      icon: '📄',
+      tone: 'blue',
       label: 'Total Files',
       value: stats.files.total.toLocaleString(),
       subtitle: `${stats.files.codeFiles.toLocaleString()} code files`,
     },
     {
       key: 'loc' as const,
+      icon: '🧮',
+      tone: 'orange',
       label: 'Total LOC',
       value: stats.loc.total.toLocaleString(),
       subtitle: `${stats.loc.codeOnly.toLocaleString()} code-only LOC`,
     },
     {
       key: 'commits' as const,
+      icon: '✅',
+      tone: 'green',
       label: 'Total Commits',
       value: data.repository.commitCount.toLocaleString(),
       subtitle: data.limitReached
@@ -130,6 +122,8 @@ export function OverviewPanel() {
     },
     {
       key: 'contributors' as const,
+      icon: '👥',
+      tone: 'purple',
       label: 'Contributors',
       value: data.contributors.length.toLocaleString(),
       subtitle: `${data.commitAnalytics.contributorSummaries.length.toLocaleString()} with commit activity`,
@@ -139,21 +133,18 @@ export function OverviewPanel() {
   return (
     <div className="overview-panel">
       <div className="stats-row">
-        {statCards.map((card) => {
-          const Icon = STAT_CARD_ICONS[card.key];
-          return (
-            <div key={card.key} className="stat-card">
-              <div className="stat-card-icon" aria-hidden="true">
-                <Icon className="stat-card-icon-svg" strokeWidth={1.9} />
-              </div>
-              <div className="stat-card-content">
-                <span className="stat-card-value">{card.value}</span>
-                <span className="stat-card-label">{card.label}</span>
-                <span className="stat-card-subtitle">{card.subtitle}</span>
-              </div>
+        {statCards.map((card) => (
+          <div key={card.key} className="stat-card">
+            <div className={`stat-card-icon stat-card-icon-${card.tone}`} aria-hidden="true">
+              <span className="stat-card-icon-glyph">{card.icon}</span>
             </div>
-          );
-        })}
+            <div className="stat-card-content">
+              <span className="stat-card-value">{card.value}</span>
+              <span className="stat-card-label">{card.label}</span>
+              <span className="stat-card-subtitle">{card.subtitle}</span>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Charts Row */}
@@ -264,43 +255,55 @@ export function OverviewPanel() {
             </div>
           </div>
         )}
+      </div>
 
-        <div className="info-section">
-          <h3 className="section-title">
-            Blame Metrics
-            <span className="section-count">{stats.blame.totals.totalBlamedLines.toLocaleString()} LOC</span>
-          </h3>
-          <p className="section-description">
-            Files analyzed: {stats.blame.totals.filesAnalyzed.toLocaleString()} · Files skipped: {stats.blame.totals.filesSkipped.toLocaleString()} · Cache hits: {stats.blame.totals.cacheHits.toLocaleString()}
-            {blameIsUpdating && ' · Updating live…'}
-          </p>
-          <p className="section-description">
-            Blame charts use physical line ownership (including comments/blank lines). The language LOC donut uses scc code-line metrics, so totals can differ.
-          </p>
-        </div>
-
-        {stats.submodules && stats.submodules.count > 0 && (
-          <div className="info-section submodules-notice">
+      {stats.submodules.count > 0 && (
+        <div className="info-row">
+          <div className="info-section submodule-section">
             <h3 className="section-title">
               Git Submodules
-              <span className="section-count">{stats.submodules.count}</span>
+              <span className="section-count">{stats.submodules.count.toLocaleString()}</span>
             </h3>
             <p className="section-description">
-              {settings?.includeSubmodules
-                ? 'Submodule files are included in file analysis (Overview + Files + Treemap). Contributors, Code Frequency, and Evolution still use parent-repo history only.'
-                : 'Submodule files are excluded from file analysis. Enable "Include Git Submodules in File Analysis" in Settings to include them in Overview + Files + Treemap.'}
+              {stats.submodules.included
+                ? 'Submodule files are included in this analysis.'
+                : 'Submodule files are currently excluded from analysis.'}
             </p>
             <div className="submodule-list">
               {stats.submodules.paths.map((path) => (
-                <div key={path} className="submodule-path">
-                  {path}
-                </div>
+                <span key={path} className="submodule-path">{path}</span>
               ))}
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
+      {(blameIsUpdating || stats.blame.totals.filesSkipped > 0) && (
+        <div className="info-row">
+          <div className="info-section">
+            <h3 className="section-title">Blame Coverage</h3>
+            <p className="section-description">
+              {blameIsUpdating
+                ? 'Line ownership and age metrics are still updating in the background.'
+                : 'Some files were skipped during blame analysis.'}
+            </p>
+            <div className="binary-categories">
+              <div className="binary-category">
+                <span className="category-name">Files analyzed</span>
+                <span className="category-count">{stats.blame.totals.filesAnalyzed.toLocaleString()}</span>
+              </div>
+              <div className="binary-category">
+                <span className="category-name">Files skipped</span>
+                <span className="category-count">{stats.blame.totals.filesSkipped.toLocaleString()}</span>
+              </div>
+              <div className="binary-category">
+                <span className="category-name">Cache hits</span>
+                <span className="category-count">{stats.blame.totals.cacheHits.toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

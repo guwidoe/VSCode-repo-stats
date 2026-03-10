@@ -17,6 +17,7 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
   width: 100%;
+  align-items: stretch;
 }
 
 .stat-card {
@@ -43,13 +44,27 @@
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  color: var(--vscode-button-foreground);
-  background: color-mix(in srgb, var(--vscode-button-background) 78%, transparent);
 }
 
-.stat-card-icon-svg {
-  width: 22px;
-  height: 22px;
+.stat-card-icon-glyph {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.stat-card-icon-blue {
+  background: color-mix(in srgb, var(--vscode-charts-blue, #4c9aff) 22%, transparent);
+}
+
+.stat-card-icon-orange {
+  background: color-mix(in srgb, var(--vscode-charts-orange, #f29d49) 22%, transparent);
+}
+
+.stat-card-icon-green {
+  background: color-mix(in srgb, var(--vscode-charts-green, #3fb950) 22%, transparent);
+}
+
+.stat-card-icon-purple {
+  background: color-mix(in srgb, var(--vscode-charts-purple, #a371f7) 22%, transparent);
 }
 
 .stat-card-content {
@@ -82,15 +97,15 @@
   line-height: 1.4;
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1400px) {
   .stats-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    max-width: 760px;
+    max-width: 980px;
     margin-inline: auto;
   }
 }
 
-@media (max-width: 620px) {
+@media (max-width: 720px) {
   .stats-row {
     grid-template-columns: minmax(0, 1fr);
     max-width: none;
@@ -501,10 +516,6 @@
 
 /* Responsive */
 @media (max-width: 700px) {
-  .stats-row {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
   .charts-row {
     grid-template-columns: 1fr;
   }
