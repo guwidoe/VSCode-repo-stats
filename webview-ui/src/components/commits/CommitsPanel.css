@@ -178,9 +178,26 @@
   padding: 12px;
 }
 
+.commit-insight-card-plot {
+  overflow: hidden;
+}
+
+.commit-insight-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .commit-insight-card h3 {
   margin: 0;
   font-size: 13px;
+}
+
+.commit-insight-caption {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
 }
 
 .commit-bar-list,
@@ -546,6 +563,10 @@
   padding: 20px;
   text-align: center;
   color: var(--vscode-descriptionForeground);
+}
+
+.commit-empty-state-compact {
+  min-height: 200px;
 }
 
 @media (max-width: 900px) {

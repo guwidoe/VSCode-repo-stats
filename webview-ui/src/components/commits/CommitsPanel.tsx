@@ -11,10 +11,13 @@ import {
   Rows3,
   type LucideIcon,
 } from 'lucide-react';
-import { useCommitPanelState, formatCommitBucketLabel, formatCommitDate } from '../../hooks/useCommitPanelState';
+import { useCommitPanelState } from '../../hooks/useCommitPanelState';
 import { DataGridFrame } from '../datagrid/DataGridFrame';
 import { DataGridToolbar } from '../datagrid/DataGridToolbar';
 import { CommitResultsList } from './CommitResultsList';
+import { CommitDistributionChart } from './CommitDistributionChart';
+import { ContributorPatternsChart } from './ContributorPatternsChart';
+import { LargestCommitsChart } from './LargestCommitsChart';
 import { CommitsHeaderCell } from './CommitsHeaderCell';
 import { DEFAULT_COMMIT_COLUMN_ORDER, getCommitColumnConfig } from './columns';
 import './CommitsPanel.css';
@@ -37,12 +40,6 @@ export function CommitsPanel() {
     activeFilterCount,
     summary,
     largestCommit,
-    largestCommits,
-    contributorPatterns,
-    maxChangedLineBucketCount,
-    maxFileBucketCount,
-    maxContributorPatternAverage,
-    maxLargestCommitChangedLines,
     table,
   } = useCommitPanelState();
   const [showInsights, setShowInsights] = useState(false);
@@ -169,92 +166,20 @@ export function CommitsPanel() {
             </div>
 
             <div className="commit-insight-grid">
-              <section className="commit-insight-card">
-                <h3>Changed Lines Distribution</h3>
-                <div className="commit-bar-list">
-                  {data.commitAnalytics.changedLineBuckets.map((bucket) => (
-                    <div key={`${bucket.minInclusive}-${bucket.maxInclusive}`} className="commit-bar-row">
-                      <span className="commit-bar-label">{formatCommitBucketLabel(bucket.minInclusive, bucket.maxInclusive)}</span>
-                      <div className="commit-bar-track">
-                        <div
-                          className="commit-bar-fill"
-                          style={{ width: `${(bucket.count / maxChangedLineBucketCount) * 100}%` }}
-                        />
-                      </div>
-                      <span className="commit-bar-value">{bucket.count.toLocaleString()}</span>
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              <section className="commit-insight-card">
-                <h3>Files Changed Distribution</h3>
-                <div className="commit-bar-list">
-                  {data.commitAnalytics.fileChangeBuckets.map((bucket) => (
-                    <div key={`${bucket.minInclusive}-${bucket.maxInclusive}`} className="commit-bar-row">
-                      <span className="commit-bar-label">{formatCommitBucketLabel(bucket.minInclusive, bucket.maxInclusive)}</span>
-                      <div className="commit-bar-track">
-                        <div
-                          className="commit-bar-fill files"
-                          style={{ width: `${(bucket.count / maxFileBucketCount) * 100}%` }}
-                        />
-                      </div>
-                      <span className="commit-bar-value">{bucket.count.toLocaleString()}</span>
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              <section className="commit-insight-card">
-                <h3>Contributor Commit-Size Patterns</h3>
-                <div className="commit-pattern-list">
-                  {contributorPatterns.map((pattern, index) => (
-                    <div key={pattern.authorEmail} className="commit-rank-row">
-                      <div className="commit-rank-index">{index + 1}</div>
-                      <div className="commit-rank-body">
-                        <div className="commit-rank-header">
-                          <div className="commit-pattern-name">{pattern.authorName}</div>
-                          <span className="commit-metric-pill">{pattern.totalCommits.toLocaleString()} commits</span>
-                        </div>
-                        <div className="commit-rank-meter">
-                          <div
-                            className="commit-rank-meter-fill"
-                            style={{ width: `${(pattern.averageChangedLines / maxContributorPatternAverage) * 100}%` }}
-                          />
-                        </div>
-                        <div className="commit-rank-meta">
-                          <span>avg Δ {Math.round(pattern.averageChangedLines).toLocaleString()}</span>
-                          <span>median Δ {Math.round(pattern.medianChangedLines).toLocaleString()}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              <section className="commit-insight-card">
-                <h3>Largest Commits</h3>
-                <div className="largest-commit-list">
-                  {largestCommits.map((record, index) => (
-                    <div key={record.sha} className="commit-rank-row largest">
-                      <div className="commit-rank-index">{index + 1}</div>
-                      <div className="commit-rank-body">
-                        <div className="commit-rank-header">
-                          <div className="largest-commit-summary">{record.summary}</div>
-                          <span className="commit-metric-pill strong">Δ {record.changedLines.toLocaleString()}</span>
-                        </div>
-                        <div className="commit-rank-meter">
-                          <div
-                            className="commit-rank-meter-fill large"
-                            style={{ width: `${(record.changedLines / maxLargestCommitChangedLines) * 100}%` }}
-                          />
-                        </div>
-                        <div className="largest-commit-meta">{record.authorName} · {formatCommitDate(record.committedAt)} · {record.sha.slice(0, 8)}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
+              <CommitDistributionChart
+                title="Changed Lines Distribution"
+                buckets={data.commitAnalytics.changedLineBuckets}
+                color="rgba(99, 179, 237, 0.92)"
+                valueLabel="Changed lines"
+              />
+              <CommitDistributionChart
+                title="Files Changed Distribution"
+                buckets={data.commitAnalytics.fileChangeBuckets}
+                color="rgba(129, 140, 248, 0.9)"
+                valueLabel="Files changed"
+              />
+              <ContributorPatternsChart contributors={data.commitAnalytics.contributorSummaries} />
+              <LargestCommitsChart rows={rows} />
             </div>
           </div>
         )}

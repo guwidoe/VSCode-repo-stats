@@ -60,38 +60,6 @@ export function useCommitPanelState() {
       : null,
     [analytics, tableRows]
   );
-  const largestCommits = useMemo(
-    () => analytics
-      ? [...tableRows]
-        .sort((a, b) => b.changedLines - a.changedLines || b.timestamp - a.timestamp)
-        .slice(0, 5)
-      : [],
-    [analytics, tableRows]
-  );
-  const contributorPatterns = useMemo(
-    () => analytics
-      ? [...analytics.contributorSummaries]
-        .sort((a, b) => b.averageChangedLines - a.averageChangedLines || b.totalCommits - a.totalCommits)
-        .slice(0, 8)
-      : [],
-    [analytics]
-  );
-  const maxChangedLineBucketCount = useMemo(
-    () => analytics ? Math.max(1, ...analytics.changedLineBuckets.map((bucket) => bucket.count)) : 1,
-    [analytics]
-  );
-  const maxFileBucketCount = useMemo(
-    () => analytics ? Math.max(1, ...analytics.fileChangeBuckets.map((bucket) => bucket.count)) : 1,
-    [analytics]
-  );
-  const maxContributorPatternAverage = useMemo(
-    () => Math.max(1, ...contributorPatterns.map((pattern) => pattern.averageChangedLines)),
-    [contributorPatterns]
-  );
-  const maxLargestCommitChangedLines = useMemo(
-    () => Math.max(1, ...largestCommits.map((record) => record.changedLines)),
-    [largestCommits]
-  );
   const activeFilterCount = useMemo(
     () => Object.values(columnFilters).filter((filter) => isCommitColumnFilterActive(filter)).length,
     [columnFilters]
@@ -125,12 +93,6 @@ export function useCommitPanelState() {
     activeFilterCount,
     summary: analytics?.summary ?? null,
     largestCommit,
-    largestCommits,
-    contributorPatterns,
-    maxChangedLineBucketCount,
-    maxFileBucketCount,
-    maxContributorPatternAverage,
-    maxLargestCommitChangedLines,
     table: {
       sortState,
       setSortState,
