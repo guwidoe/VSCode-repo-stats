@@ -5,9 +5,10 @@ import { formatCommitDate } from '../../hooks/useCommitPanelState';
 
 interface CommitResultsListProps {
   rows: CommitTableRow[];
+  gridTemplateColumns: string;
 }
 
-export function CommitResultsList({ rows }: CommitResultsListProps) {
+export function CommitResultsList({ rows, gridTemplateColumns }: CommitResultsListProps) {
   const parentRef = useRef<HTMLDivElement | null>(null);
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
@@ -37,16 +38,19 @@ export function CommitResultsList({ rows }: CommitResultsListProps) {
               key={record.sha}
               className="commit-results-row commit-results-grid"
               role="row"
-              style={{ transform: `translateY(${virtualRow.start}px)` }}
+              style={{
+                transform: `translateY(${virtualRow.start}px)`,
+                gridTemplateColumns,
+              }}
             >
-              <span>{formatCommitDate(record.committedAt)}</span>
-              <span>{record.authorName}</span>
-              <span className="commit-summary-cell" title={record.summary}>{record.summary}</span>
-              <span><code>{record.sha.slice(0, 8)}</code></span>
-              <span className="commit-positive">+{record.additions.toLocaleString()}</span>
-              <span className="commit-negative">-{record.deletions.toLocaleString()}</span>
-              <span>{record.changedLines.toLocaleString()}</span>
-              <span>{record.filesChanged.toLocaleString()}</span>
+              <span className="commit-results-cell">{formatCommitDate(record.committedAt)}</span>
+              <span className="commit-results-cell">{record.authorName}</span>
+              <span className="commit-results-cell commit-summary-cell" title={record.summary}>{record.summary}</span>
+              <span className="commit-results-cell"><code>{record.sha.slice(0, 8)}</code></span>
+              <span className="commit-results-cell numeric commit-positive">+{record.additions.toLocaleString()}</span>
+              <span className="commit-results-cell numeric commit-negative">-{record.deletions.toLocaleString()}</span>
+              <span className="commit-results-cell numeric">{record.changedLines.toLocaleString()}</span>
+              <span className="commit-results-cell numeric">{record.filesChanged.toLocaleString()}</span>
             </div>
           );
         })}

@@ -227,7 +227,7 @@ export function CommitsPanel() {
             </div>
           )}
         >
-          <CommitResultsList rows={rows} />
+          <CommitResultsList rows={rows} gridTemplateColumns={COMMIT_GRID_TEMPLATE_COLUMNS} />
         </DataGridFrame>
       </section>
     </div>

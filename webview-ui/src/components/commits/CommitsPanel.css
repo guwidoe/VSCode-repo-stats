@@ -541,6 +541,18 @@
   background: var(--vscode-list-hoverBackground);
 }
 
+.commit-results-cell {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.commit-results-cell.numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 .commit-summary-cell {
   overflow: hidden;
   text-overflow: ellipsis;
