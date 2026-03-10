@@ -289,7 +289,7 @@
             "commit",
             "auto"
           ],
-          "default": "time",
+          "default": "auto",
           "description": "How Evolution selects snapshots: by elapsed time, by commit interval, or auto-distributed across history"
         },
         "repoStats.evolution.snapshotIntervalDays": {
