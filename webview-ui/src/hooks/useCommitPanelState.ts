@@ -1,16 +1,14 @@
 import { useDeferredValue, useMemo, useState } from 'react';
-import { queryCommitAnalytics } from '../../../src/shared/commitAnalyticsQuery';
 import { useStore } from '../store';
-import type { CommitAnalyticsQuery, CommitSortDirection, CommitSortField } from '../types';
-
-function parseOptionalNumber(value: string): number | undefined {
-  if (!value.trim()) {
-    return undefined;
-  }
-
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) ? parsed : undefined;
-}
+import {
+  buildCommitTableRows,
+  DEFAULT_COMMIT_SORT,
+  filterCommits,
+  isCommitColumnFilterActive,
+  sortCommits,
+  toggleCommitSort,
+} from '../components/commits/commitTableLogic';
+import type { CommitColumnFilter, CommitColumnKey, CommitSortState } from '../components/commits/types';
 
 export function formatCommitDate(isoDate: string): string {
   const date = new Date(isoDate);
@@ -38,58 +36,37 @@ export function formatCommitBucketLabel(minInclusive: number, maxInclusive: numb
 export function useCommitPanelState() {
   const data = useStore((state) => state.data);
 
-  const [messageText, setMessageText] = useState('');
-  const [authorId, setAuthorId] = useState<string>('all');
-  const [committedAfter, setCommittedAfter] = useState('');
-  const [committedBefore, setCommittedBefore] = useState('');
-  const [minChangedLines, setMinChangedLines] = useState('');
-  const [maxChangedLines, setMaxChangedLines] = useState('');
-  const [minFilesChanged, setMinFilesChanged] = useState('');
-  const [maxFilesChanged, setMaxFilesChanged] = useState('');
-  const [sortBy, setSortBy] = useState<CommitSortField>('timestamp');
-  const [sortDirection, setSortDirection] = useState<CommitSortDirection>('desc');
-
-  const query = useMemo<CommitAnalyticsQuery>(() => ({
-    messageText: messageText.trim() || undefined,
-    authorIds: authorId === 'all' ? undefined : [Number(authorId)],
-    committedAfter: committedAfter || undefined,
-    committedBefore: committedBefore || undefined,
-    minChangedLines: parseOptionalNumber(minChangedLines),
-    maxChangedLines: parseOptionalNumber(maxChangedLines),
-    minFilesChanged: parseOptionalNumber(minFilesChanged),
-    maxFilesChanged: parseOptionalNumber(maxFilesChanged),
-    sortBy,
-    sortDirection,
-  }), [
-    messageText,
-    authorId,
-    committedAfter,
-    committedBefore,
-    minChangedLines,
-    maxChangedLines,
-    minFilesChanged,
-    maxFilesChanged,
-    sortBy,
-    sortDirection,
-  ]);
-
-  const deferredQuery = useDeferredValue(query);
   const analytics = data?.commitAnalytics ?? null;
+  const [sortState, setSortState] = useState<CommitSortState>(DEFAULT_COMMIT_SORT);
+  const [columnFilters, setColumnFilters] = useState<Partial<Record<CommitColumnKey, CommitColumnFilter>>>({});
+  const [activeFilterColumn, setActiveFilterColumn] = useState<CommitColumnKey | null>(null);
+
+  const tableRows = useMemo(
+    () => (analytics ? buildCommitTableRows(analytics) : []),
+    [analytics]
+  );
+  const deferredFilters = useDeferredValue(columnFilters);
+  const filteredRows = useMemo(
+    () => filterCommits(tableRows, deferredFilters),
+    [tableRows, deferredFilters]
+  );
   const rows = useMemo(
-    () => (analytics ? queryCommitAnalytics(analytics, deferredQuery) : []),
-    [analytics, deferredQuery]
+    () => sortCommits(filteredRows, sortState),
+    [filteredRows, sortState]
   );
   const largestCommit = useMemo(
     () => analytics
-      ? queryCommitAnalytics(analytics, { sortBy: 'changedLines', sortDirection: 'desc', limit: 1 })[0] ?? null
+      ? [...tableRows].sort((a, b) => b.changedLines - a.changedLines || b.timestamp - a.timestamp)[0] ?? null
       : null,
-    [analytics]
+    [analytics, tableRows]
   );
   const largestCommits = useMemo(
     () => analytics
-      ? queryCommitAnalytics(analytics, { sortBy: 'changedLines', sortDirection: 'desc', limit: 5 })
+      ? [...tableRows]
+        .sort((a, b) => b.changedLines - a.changedLines || b.timestamp - a.timestamp)
+        .slice(0, 5)
       : [],
-    [analytics]
+    [analytics, tableRows]
   );
   const contributorPatterns = useMemo(
     () => analytics
@@ -115,37 +92,37 @@ export function useCommitPanelState() {
     () => Math.max(1, ...largestCommits.map((record) => record.changedLines)),
     [largestCommits]
   );
+  const activeFilterCount = useMemo(
+    () => Object.values(columnFilters).filter((filter) => isCommitColumnFilterActive(filter)).length,
+    [columnFilters]
+  );
 
-  const resetFilters = () => {
-    setMessageText('');
-    setAuthorId('all');
-    setCommittedAfter('');
-    setCommittedBefore('');
-    setMinChangedLines('');
-    setMaxChangedLines('');
-    setMinFilesChanged('');
-    setMaxFilesChanged('');
-    setSortBy('timestamp');
-    setSortDirection('desc');
+  const setFilter = (key: CommitColumnKey, filter: CommitColumnFilter) => {
+    setColumnFilters((prev) => ({ ...prev, [key]: filter }));
   };
 
-  const hasActiveFilters = Boolean(
-    messageText ||
-    authorId !== 'all' ||
-    committedAfter ||
-    committedBefore ||
-    minChangedLines ||
-    maxChangedLines ||
-    minFilesChanged ||
-    maxFilesChanged ||
-    sortBy !== 'timestamp' ||
-    sortDirection !== 'desc'
-  );
+  const clearFilter = (key: CommitColumnKey) => {
+    setColumnFilters((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  };
+
+  const clearAllFilters = () => {
+    setColumnFilters({});
+    setActiveFilterColumn(null);
+  };
+
+  const resetSort = () => {
+    setSortState(DEFAULT_COMMIT_SORT);
+  };
 
   return {
     data,
     rows,
-    authorOptions: analytics?.contributorSummaries ?? [],
+    totalRows: tableRows.length,
+    activeFilterCount,
     summary: analytics?.summary ?? null,
     largestCommit,
     largestCommits,
@@ -154,29 +131,17 @@ export function useCommitPanelState() {
     maxFileBucketCount,
     maxContributorPatternAverage,
     maxLargestCommitChangedLines,
-    filters: {
-      messageText,
-      setMessageText,
-      authorId,
-      setAuthorId,
-      committedAfter,
-      setCommittedAfter,
-      committedBefore,
-      setCommittedBefore,
-      minChangedLines,
-      setMinChangedLines,
-      maxChangedLines,
-      setMaxChangedLines,
-      minFilesChanged,
-      setMinFilesChanged,
-      maxFilesChanged,
-      setMaxFilesChanged,
-      sortBy,
-      setSortBy,
-      sortDirection,
-      setSortDirection,
-      resetFilters,
-      hasActiveFilters,
+    table: {
+      sortState,
+      setSortState,
+      toggleSort: (key: CommitColumnKey) => setSortState((current) => toggleCommitSort(current, key)),
+      resetSort,
+      columnFilters,
+      activeFilterColumn,
+      setActiveFilterColumn,
+      setFilter,
+      clearFilter,
+      clearAllFilters,
     },
   };
 }

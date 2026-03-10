@@ -1,15 +1,22 @@
+import { useEffect, useRef, useState } from 'react';
 import {
   Activity,
+  BarChart3,
   ChartColumnIncreasing,
+  ChevronDown,
+  ChevronRight,
+  FilterX,
   GitCommitHorizontal,
   Maximize2,
+  Rows3,
   type LucideIcon,
 } from 'lucide-react';
 import { useCommitPanelState, formatCommitBucketLabel, formatCommitDate } from '../../hooks/useCommitPanelState';
-import type { CommitSortDirection, CommitSortField } from '../../types';
 import { DataGridFrame } from '../datagrid/DataGridFrame';
 import { DataGridToolbar } from '../datagrid/DataGridToolbar';
 import { CommitResultsList } from './CommitResultsList';
+import { CommitsHeaderCell } from './CommitsHeaderCell';
+import { DEFAULT_COMMIT_COLUMN_ORDER, getCommitColumnConfig } from './columns';
 import './CommitsPanel.css';
 
 const COMMIT_SUMMARY_ICONS: Record<'repository' | 'average' | 'median' | 'largest', LucideIcon> = {
@@ -19,11 +26,15 @@ const COMMIT_SUMMARY_ICONS: Record<'repository' | 'average' | 'median' | 'larges
   largest: Maximize2,
 };
 
+const COMMIT_COLUMNS = DEFAULT_COMMIT_COLUMN_ORDER.map((key) => getCommitColumnConfig(key));
+const COMMIT_GRID_TEMPLATE_COLUMNS = COMMIT_COLUMNS.map((column) => `${column.width}px`).join(' ');
+
 export function CommitsPanel() {
   const {
     data,
     rows,
-    authorOptions,
+    totalRows,
+    activeFilterCount,
     summary,
     largestCommit,
     largestCommits,
@@ -32,8 +43,24 @@ export function CommitsPanel() {
     maxFileBucketCount,
     maxContributorPatternAverage,
     maxLargestCommitChangedLines,
-    filters,
+    table,
   } = useCommitPanelState();
+  const [showInsights, setShowInsights] = useState(false);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const onWindowMouseDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (!panelRef.current?.contains(target)) {
+        table.setActiveFilterColumn(null);
+      }
+    };
+
+    window.addEventListener('mousedown', onWindowMouseDown);
+    return () => {
+      window.removeEventListener('mousedown', onWindowMouseDown);
+    };
+  }, [table.setActiveFilterColumn]);
 
   if (!data || !summary) {
     return null;
@@ -66,15 +93,18 @@ export function CommitsPanel() {
       value: largestCommit ? `Δ ${largestCommit.changedLines.toLocaleString()}` : '—',
     },
   ];
+  const sortLabel = getCommitColumnConfig(table.sortState.key).label;
 
   return (
-    <div className="commits-panel">
+    <div className="commits-panel" ref={panelRef}>
       <div className="panel-header">
-        <h2>Commits</h2>
-        <span className="commits-meta">
-          Showing {rows.length.toLocaleString()} of {analyzedCommitCount.toLocaleString()} analyzed commits
-          {data.limitReached && ` • repository has ${repositoryCommitCount.toLocaleString()} total`}
-        </span>
+        <div>
+          <h2>Commits</h2>
+          <span className="commits-meta">
+            Showing {rows.length.toLocaleString()} of {analyzedCommitCount.toLocaleString()} analyzed commits
+            {data.limitReached && ` • repository has ${repositoryCommitCount.toLocaleString()} total`}
+          </span>
+        </div>
       </div>
 
       <div className="commit-summary-grid">
@@ -95,245 +125,186 @@ export function CommitsPanel() {
         })}
       </div>
 
-      <div className="commit-insight-grid">
-        <section className="commit-insight-card">
-          <h3>Changed Lines Distribution</h3>
-          <div className="commit-bar-list">
-            {data.commitAnalytics.changedLineBuckets.map((bucket) => (
-              <div key={`${bucket.minInclusive}-${bucket.maxInclusive}`} className="commit-bar-row">
-                <span className="commit-bar-label">{formatCommitBucketLabel(bucket.minInclusive, bucket.maxInclusive)}</span>
-                <div className="commit-bar-track">
-                  <div
-                    className="commit-bar-fill"
-                    style={{ width: `${(bucket.count / maxChangedLineBucketCount) * 100}%` }}
-                  />
-                </div>
-                <span className="commit-bar-value">{bucket.count.toLocaleString()}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="commit-insight-card">
-          <h3>Files Changed Distribution</h3>
-          <div className="commit-bar-list">
-            {data.commitAnalytics.fileChangeBuckets.map((bucket) => (
-              <div key={`${bucket.minInclusive}-${bucket.maxInclusive}`} className="commit-bar-row">
-                <span className="commit-bar-label">{formatCommitBucketLabel(bucket.minInclusive, bucket.maxInclusive)}</span>
-                <div className="commit-bar-track">
-                  <div
-                    className="commit-bar-fill files"
-                    style={{ width: `${(bucket.count / maxFileBucketCount) * 100}%` }}
-                  />
-                </div>
-                <span className="commit-bar-value">{bucket.count.toLocaleString()}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="commit-insight-card">
-          <h3>Contributor Commit-Size Patterns</h3>
-          <div className="commit-pattern-list">
-            {contributorPatterns.map((pattern, index) => (
-              <div key={pattern.authorEmail} className="commit-rank-row">
-                <div className="commit-rank-index">{index + 1}</div>
-                <div className="commit-rank-body">
-                  <div className="commit-rank-header">
-                    <div className="commit-pattern-name">{pattern.authorName}</div>
-                    <span className="commit-metric-pill">{pattern.totalCommits.toLocaleString()} commits</span>
-                  </div>
-                  <div className="commit-rank-meter">
-                    <div
-                      className="commit-rank-meter-fill"
-                      style={{ width: `${(pattern.averageChangedLines / maxContributorPatternAverage) * 100}%` }}
-                    />
-                  </div>
-                  <div className="commit-rank-meta">
-                    <span>avg Δ {Math.round(pattern.averageChangedLines).toLocaleString()}</span>
-                    <span>median Δ {Math.round(pattern.medianChangedLines).toLocaleString()}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="commit-insight-card">
-          <h3>Largest Commits</h3>
-          <div className="largest-commit-list">
-            {largestCommits.map((record, index) => {
-              const authorName = data.commitAnalytics.authorDirectory.namesById[record.authorId] ?? 'Unknown';
-              return (
-                <div key={record.sha} className="commit-rank-row largest">
-                  <div className="commit-rank-index">{index + 1}</div>
-                  <div className="commit-rank-body">
-                    <div className="commit-rank-header">
-                      <div className="largest-commit-summary">{record.summary}</div>
-                      <span className="commit-metric-pill strong">Δ {record.changedLines.toLocaleString()}</span>
-                    </div>
-                    <div className="commit-rank-meter">
-                      <div
-                        className="commit-rank-meter-fill large"
-                        style={{ width: `${(record.changedLines / maxLargestCommitChangedLines) * 100}%` }}
-                      />
-                    </div>
-                    <div className="largest-commit-meta">{authorName} · {formatCommitDate(record.committedAt)} · {record.sha.slice(0, 8)}</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      </div>
-
-      <section className="commit-filter-shell">
-        <div className="commit-filter-header">
+      <section className="commit-explorer-card">
+        <div className="commit-explorer-header">
           <div>
-            <h3>Filter commits</h3>
-            <p>Search by message, narrow by author and date, then tune the change-size ranges.</p>
+            <h3>Commit explorer</h3>
+            <p>Browse history in a Files-style table. Click a column label to sort and use the funnel icon in a header to filter that column.</p>
           </div>
-          <button
-            type="button"
-            className="commit-filter-reset"
-            onClick={filters.resetFilters}
-            disabled={!filters.hasActiveFilters}
-          >
-            Reset filters
-          </button>
-        </div>
-
-        <div className="commit-filter-primary">
-          <label className="commit-filter-field commit-filter-field-search">
-            <span>Search message</span>
-            <input value={filters.messageText} onChange={(event) => filters.setMessageText(event.target.value)} placeholder="Search commit summary" />
-          </label>
-
-          <label className="commit-filter-field">
-            <span>Author</span>
-            <select value={filters.authorId} onChange={(event) => filters.setAuthorId(event.target.value)}>
-              <option value="all">All authors</option>
-              {authorOptions.map((author) => (
-                <option key={author.authorId} value={author.authorId}>
-                  {author.authorName}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <div className="commit-filter-field commit-filter-sort">
-            <span>Sort results</span>
-            <div className="commit-filter-sort-row">
-              <select value={filters.sortBy} onChange={(event) => filters.setSortBy(event.target.value as CommitSortField)}>
-                <option value="timestamp">Date</option>
-                <option value="additions">Additions</option>
-                <option value="deletions">Deletions</option>
-                <option value="changedLines">Changed lines</option>
-                <option value="filesChanged">Files changed</option>
-              </select>
-              <div className="commit-segmented-control" role="group" aria-label="Sort direction">
-                <button
-                  type="button"
-                  className={filters.sortDirection === 'desc' ? 'active' : ''}
-                  onClick={() => filters.setSortDirection('desc' as CommitSortDirection)}
-                >
-                  Desc
-                </button>
-                <button
-                  type="button"
-                  className={filters.sortDirection === 'asc' ? 'active' : ''}
-                  onClick={() => filters.setSortDirection('asc' as CommitSortDirection)}
-                >
-                  Asc
-                </button>
-              </div>
-            </div>
+          <div className="commit-explorer-actions">
+            <button
+              type="button"
+              className="commit-action-button"
+              onClick={() => setShowInsights((current) => !current)}
+              aria-expanded={showInsights}
+            >
+              {showInsights ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+              {showInsights ? 'Hide insights' : 'Show insights'}
+            </button>
+            <button
+              type="button"
+              className="commit-action-button"
+              onClick={table.clearAllFilters}
+              disabled={activeFilterCount === 0}
+            >
+              <FilterX size={16} />
+              Clear filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+            </button>
+            <button
+              type="button"
+              className="commit-action-button"
+              onClick={table.resetSort}
+              disabled={table.sortState.key === 'committedAt' && table.sortState.direction === 'desc'}
+            >
+              Reset sort
+            </button>
           </div>
         </div>
 
-        <div className="commit-filter-groups">
-          <section className="commit-filter-group">
-            <div className="commit-filter-group-header">
-              <h4>Date range</h4>
-              <span>Limit the timeline window</span>
+        {showInsights && (
+          <div className="commit-insights-section">
+            <div className="commit-insights-banner">
+              <BarChart3 size={16} />
+              <span>Insights are secondary here on purpose — the commit table stays the primary workflow.</span>
             </div>
-            <div className="commit-filter-range-row">
-              <label className="commit-filter-field">
-                <span>From</span>
-                <input type="date" value={filters.committedAfter} onChange={(event) => filters.setCommittedAfter(event.target.value)} />
-              </label>
-              <label className="commit-filter-field">
-                <span>To</span>
-                <input type="date" value={filters.committedBefore} onChange={(event) => filters.setCommittedBefore(event.target.value)} />
-              </label>
-            </div>
-          </section>
 
-          <section className="commit-filter-group">
-            <div className="commit-filter-group-header">
-              <h4>Changed lines</h4>
-              <span>Filter by total additions + deletions</span>
-            </div>
-            <div className="commit-filter-range-row">
-              <label className="commit-filter-field">
-                <span>Minimum</span>
-                <input value={filters.minChangedLines} onChange={(event) => filters.setMinChangedLines(event.target.value)} inputMode="numeric" placeholder="0" />
-              </label>
-              <label className="commit-filter-field">
-                <span>Maximum</span>
-                <input value={filters.maxChangedLines} onChange={(event) => filters.setMaxChangedLines(event.target.value)} inputMode="numeric" placeholder="∞" />
-              </label>
-            </div>
-          </section>
+            <div className="commit-insight-grid">
+              <section className="commit-insight-card">
+                <h3>Changed Lines Distribution</h3>
+                <div className="commit-bar-list">
+                  {data.commitAnalytics.changedLineBuckets.map((bucket) => (
+                    <div key={`${bucket.minInclusive}-${bucket.maxInclusive}`} className="commit-bar-row">
+                      <span className="commit-bar-label">{formatCommitBucketLabel(bucket.minInclusive, bucket.maxInclusive)}</span>
+                      <div className="commit-bar-track">
+                        <div
+                          className="commit-bar-fill"
+                          style={{ width: `${(bucket.count / maxChangedLineBucketCount) * 100}%` }}
+                        />
+                      </div>
+                      <span className="commit-bar-value">{bucket.count.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
 
-          <section className="commit-filter-group">
-            <div className="commit-filter-group-header">
-              <h4>Files changed</h4>
-              <span>Focus on small surgical edits or wide sweeps</span>
-            </div>
-            <div className="commit-filter-range-row">
-              <label className="commit-filter-field">
-                <span>Minimum</span>
-                <input value={filters.minFilesChanged} onChange={(event) => filters.setMinFilesChanged(event.target.value)} inputMode="numeric" placeholder="0" />
-              </label>
-              <label className="commit-filter-field">
-                <span>Maximum</span>
-                <input value={filters.maxFilesChanged} onChange={(event) => filters.setMaxFilesChanged(event.target.value)} inputMode="numeric" placeholder="∞" />
-              </label>
-            </div>
-          </section>
-        </div>
-      </section>
+              <section className="commit-insight-card">
+                <h3>Files Changed Distribution</h3>
+                <div className="commit-bar-list">
+                  {data.commitAnalytics.fileChangeBuckets.map((bucket) => (
+                    <div key={`${bucket.minInclusive}-${bucket.maxInclusive}`} className="commit-bar-row">
+                      <span className="commit-bar-label">{formatCommitBucketLabel(bucket.minInclusive, bucket.maxInclusive)}</span>
+                      <div className="commit-bar-track">
+                        <div
+                          className="commit-bar-fill files"
+                          style={{ width: `${(bucket.count / maxFileBucketCount) * 100}%` }}
+                        />
+                      </div>
+                      <span className="commit-bar-value">{bucket.count.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
 
-      <div className="commit-table-card">
+              <section className="commit-insight-card">
+                <h3>Contributor Commit-Size Patterns</h3>
+                <div className="commit-pattern-list">
+                  {contributorPatterns.map((pattern, index) => (
+                    <div key={pattern.authorEmail} className="commit-rank-row">
+                      <div className="commit-rank-index">{index + 1}</div>
+                      <div className="commit-rank-body">
+                        <div className="commit-rank-header">
+                          <div className="commit-pattern-name">{pattern.authorName}</div>
+                          <span className="commit-metric-pill">{pattern.totalCommits.toLocaleString()} commits</span>
+                        </div>
+                        <div className="commit-rank-meter">
+                          <div
+                            className="commit-rank-meter-fill"
+                            style={{ width: `${(pattern.averageChangedLines / maxContributorPatternAverage) * 100}%` }}
+                          />
+                        </div>
+                        <div className="commit-rank-meta">
+                          <span>avg Δ {Math.round(pattern.averageChangedLines).toLocaleString()}</span>
+                          <span>median Δ {Math.round(pattern.medianChangedLines).toLocaleString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className="commit-insight-card">
+                <h3>Largest Commits</h3>
+                <div className="largest-commit-list">
+                  {largestCommits.map((record, index) => (
+                    <div key={record.sha} className="commit-rank-row largest">
+                      <div className="commit-rank-index">{index + 1}</div>
+                      <div className="commit-rank-body">
+                        <div className="commit-rank-header">
+                          <div className="largest-commit-summary">{record.summary}</div>
+                          <span className="commit-metric-pill strong">Δ {record.changedLines.toLocaleString()}</span>
+                        </div>
+                        <div className="commit-rank-meter">
+                          <div
+                            className="commit-rank-meter-fill large"
+                            style={{ width: `${(record.changedLines / maxLargestCommitChangedLines) * 100}%` }}
+                          />
+                        </div>
+                        <div className="largest-commit-meta">{record.authorName} · {formatCommitDate(record.committedAt)} · {record.sha.slice(0, 8)}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </div>
+          </div>
+        )}
+
         <DataGridToolbar
-          className="commit-results-toolbar"
-          start={<div><strong>{rows.length.toLocaleString()}</strong> matching commits</div>}
-          end={<span className="commit-results-note">Virtualized list for smoother scrolling in large repositories</span>}
+          className="commit-grid-toolbar"
+          start={(
+            <div className="commit-grid-hint">
+              <Rows3 size={16} />
+              <span>Table-first workflow</span>
+            </div>
+          )}
+          end={(
+            <div className="commit-grid-sort-state">
+              Sorted by <strong>{sortLabel}</strong> ({table.sortState.direction})
+            </div>
+          )}
+          summary={(
+            <div>
+              Showing <strong>{rows.length.toLocaleString()}</strong> of <strong>{totalRows.toLocaleString()}</strong> analyzed commits
+            </div>
+          )}
         />
+
         <DataGridFrame
           className="commit-results-frame"
           tableClassName="commit-results-shell"
           bodyClassName="commit-results-body"
+          minWidth={1170}
           header={(
-            <div className="commit-results-header commit-results-grid" role="row">
-              <span>Date</span>
-              <span>Author</span>
-              <span>Summary</span>
-              <span>SHA</span>
-              <span>+Add</span>
-              <span>-Del</span>
-              <span>Δ Lines</span>
-              <span>Files</span>
+            <div className="commit-results-header commit-results-grid" role="row" style={{ gridTemplateColumns: COMMIT_GRID_TEMPLATE_COLUMNS }}>
+              {COMMIT_COLUMNS.map((column) => (
+                <CommitsHeaderCell
+                  key={column.key}
+                  column={column}
+                  sortState={table.sortState}
+                  activeFilterColumn={table.activeFilterColumn}
+                  filter={table.columnFilters[column.key]}
+                  onSort={table.toggleSort}
+                  onSetActiveFilterColumn={table.setActiveFilterColumn}
+                  onFilterChange={table.setFilter}
+                  onFilterClear={table.clearFilter}
+                />
+              ))}
             </div>
           )}
         >
-          <CommitResultsList
-            rows={rows}
-            authorNamesById={data.commitAnalytics.authorDirectory.namesById}
-          />
+          <CommitResultsList rows={rows} />
         </DataGridFrame>
-      </div>
+      </section>
     </div>
   );
 }
