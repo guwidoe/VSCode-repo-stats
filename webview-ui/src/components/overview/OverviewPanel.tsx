@@ -93,60 +93,8 @@ export function OverviewPanel() {
     [stats.blame.ageByDay]
   );
 
-  const statCards = [
-    {
-      key: 'files' as const,
-      icon: '📄',
-      tone: 'blue',
-      label: 'Total Files',
-      value: stats.files.total.toLocaleString(),
-      subtitle: `${stats.files.codeFiles.toLocaleString()} code files`,
-    },
-    {
-      key: 'loc' as const,
-      icon: '🧮',
-      tone: 'orange',
-      label: 'Total LOC',
-      value: stats.loc.total.toLocaleString(),
-      subtitle: `${stats.loc.codeOnly.toLocaleString()} code-only LOC`,
-    },
-    {
-      key: 'commits' as const,
-      icon: '✅',
-      tone: 'green',
-      label: 'Total Commits',
-      value: data.repository.commitCount.toLocaleString(),
-      subtitle: data.limitReached
-        ? `${data.commitAnalytics.summary.totalCommits.toLocaleString()} analyzed in detail (limit ${data.maxCommitsLimit.toLocaleString()})`
-        : 'All repository commits analyzed',
-    },
-    {
-      key: 'contributors' as const,
-      icon: '👥',
-      tone: 'purple',
-      label: 'Contributors',
-      value: data.contributors.length.toLocaleString(),
-      subtitle: `${data.commitAnalytics.contributorSummaries.length.toLocaleString()} with commit activity`,
-    },
-  ];
-
   return (
     <div className="overview-panel">
-      <div className="stats-row">
-        {statCards.map((card) => (
-          <div key={card.key} className="stat-card">
-            <div className={`stat-card-icon stat-card-icon-${card.tone}`} aria-hidden="true">
-              <span className="stat-card-icon-glyph">{card.icon}</span>
-            </div>
-            <div className="stat-card-content">
-              <span className="stat-card-value">{card.value}</span>
-              <span className="stat-card-label">{card.label}</span>
-              <span className="stat-card-subtitle">{card.subtitle}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-
       {/* Charts Row */}
       <div className="charts-row">
         <div className="chart-section">
