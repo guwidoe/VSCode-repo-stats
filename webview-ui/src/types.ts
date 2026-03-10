@@ -43,7 +43,9 @@ export type {
   SettingWriteTarget,
   SubmoduleInfo,
   TooltipSettings,
+  TreemapAgeColorRangeMode,
   TreemapNode,
+  TreemapSettings,
   WebviewMessage,
   WeeklyCommit,
 } from '../../src/shared/contracts';

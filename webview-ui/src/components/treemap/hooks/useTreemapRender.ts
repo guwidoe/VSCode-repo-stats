@@ -17,6 +17,7 @@ import {
   getCodeDensityColor,
   formatNumber,
   formatBytes,
+  type AgeColorDomain,
 } from '../../../utils/colors';
 
 interface RenderOptions {
@@ -25,20 +26,25 @@ interface RenderOptions {
   hoveredNode: TreemapNode | null
   selectedNode: TreemapNode | null
   devicePixelRatio: number
+  ageColorDomain: AgeColorDomain | null
 }
 
 const LABEL_HEIGHT = 18;
 const MIN_LABEL_WIDTH = 60;
 const MIN_LABEL_HEIGHT = 20;
 
-function getNodeColor(node: TreemapNode, colorMode: ColorMode): string {
+function getNodeColor(
+  node: TreemapNode,
+  colorMode: ColorMode,
+  ageColorDomain: AgeColorDomain | null
+): string {
   if (node.type === 'directory') {
     return DIRECTORY_COLOR;
   }
 
   switch (colorMode) {
     case 'age':
-      return getAgeColor(node.lastModified);
+      return getAgeColor(node.lastModified, ageColorDomain);
     case 'complexity':
       return getComplexityColor(node.complexity);
     case 'density':
@@ -91,8 +97,14 @@ export function useTreemapRender() {
         return;
       }
 
-      const { colorMode, sizeMode, hoveredNode, selectedNode, devicePixelRatio } =
-        options;
+      const {
+        colorMode,
+        sizeMode,
+        hoveredNode,
+        selectedNode,
+        devicePixelRatio,
+        ageColorDomain,
+      } = options;
       const dpr = devicePixelRatio;
 
       // Clear canvas
@@ -105,7 +117,7 @@ export function useTreemapRender() {
 
       // Pass 1: Draw all tiles with vignette (center offset toward parent)
       for (const node of sortedNodes) {
-        const color = getNodeColor(node.data, colorMode);
+        const color = getNodeColor(node.data, colorMode, ageColorDomain);
         // Get parent bounds for WizTree-style vignette center offset
         let parentBounds: Bounds | undefined;
         if (node.parent) {
@@ -129,7 +141,7 @@ export function useTreemapRender() {
 
         // Directory label (in label strip)
         if (!node.isLeaf && node.hasLabelStrip && width >= MIN_LABEL_WIDTH) {
-          const color = getNodeColor(node.data, colorMode);
+          const color = getNodeColor(node.data, colorMode, ageColorDomain);
           ctx.fillStyle = getContrastColor(color);
 
           const lines = node.data.lines ?? 0;
@@ -157,7 +169,7 @@ export function useTreemapRender() {
           width >= MIN_LABEL_WIDTH &&
           height >= MIN_LABEL_HEIGHT
         ) {
-          const color = getNodeColor(node.data, colorMode);
+          const color = getNodeColor(node.data, colorMode, ageColorDomain);
           ctx.fillStyle = getContrastColor(color);
 
           const truncated = truncateText(ctx, node.data.name, width - 8);

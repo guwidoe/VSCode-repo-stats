@@ -383,6 +383,14 @@ export interface EvolutionSettings {
   cohortFormat: string;
 }
 
+export type TreemapAgeColorRangeMode = 'auto' | 'custom';
+
+export interface TreemapSettings {
+  ageColorRangeMode: TreemapAgeColorRangeMode;
+  ageColorNewestDate: string;
+  ageColorOldestDate: string;
+}
+
 export interface ExtensionSettings {
   excludePatterns: string[];
   maxCommitsToAnalyze: number;
@@ -396,6 +404,7 @@ export interface ExtensionSettings {
   autoGranularityThreshold: number;
   overviewDisplayMode: 'percent' | 'count';
   tooltipSettings: TooltipSettings;
+  treemap: TreemapSettings;
   evolution: EvolutionSettings;
 }
 

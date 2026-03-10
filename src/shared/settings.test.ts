@@ -34,6 +34,11 @@ function createSettings(): ExtensionSettings {
       showCodeDensity: false,
       showFileCount: true,
     },
+    treemap: {
+      ageColorRangeMode: 'auto',
+      ageColorNewestDate: '',
+      ageColorOldestDate: '',
+    },
     evolution: {
       autoRun: false,
       samplingMode: 'time',
@@ -48,12 +53,18 @@ function createSettings(): ExtensionSettings {
 }
 
 describe('applySettingsPatch', () => {
-  it('merges nested tooltip and evolution settings without dropping existing values', () => {
+  it('merges nested tooltip, treemap, and evolution settings without dropping existing values', () => {
     const current = createSettings();
     const patched = applySettingsPatch(current, {
       tooltipSettings: {
         ...current.tooltipSettings,
         showComplexity: true,
+      },
+      treemap: {
+        ...current.treemap,
+        ageColorRangeMode: 'custom',
+        ageColorNewestDate: '2026-01-01',
+        ageColorOldestDate: '2024-01-01',
       },
       evolution: {
         ...current.evolution,
@@ -63,6 +74,8 @@ describe('applySettingsPatch', () => {
 
     expect(patched.tooltipSettings.showComplexity).toBe(true);
     expect(patched.tooltipSettings.showLinesOfCode).toBe(true);
+    expect(patched.treemap.ageColorRangeMode).toBe('custom');
+    expect(patched.treemap.ageColorNewestDate).toBe('2026-01-01');
     expect(patched.evolution.maxSnapshots).toBe(40);
     expect(patched.evolution.snapshotIntervalDays).toBe(30);
   });
@@ -105,10 +118,15 @@ describe('analysis settings snapshots', () => {
 });
 
 describe('flattenSettingsUpdate', () => {
-  it('flattens nested evolution settings to VS Code config keys', () => {
+  it('flattens nested treemap and evolution settings to VS Code config keys', () => {
     expect(
       flattenSettingsUpdate({
         overviewDisplayMode: 'count',
+        treemap: {
+          ageColorRangeMode: 'custom',
+          ageColorNewestDate: '2026-01-01',
+          ageColorOldestDate: '2024-01-01',
+        },
         evolution: {
           autoRun: true,
           samplingMode: 'commit',
@@ -122,6 +140,9 @@ describe('flattenSettingsUpdate', () => {
       })
     ).toEqual([
       { key: 'overviewDisplayMode', value: 'count' },
+      { key: 'treemap.ageColorRangeMode', value: 'custom' },
+      { key: 'treemap.ageColorNewestDate', value: '2026-01-01' },
+      { key: 'treemap.ageColorOldestDate', value: '2024-01-01' },
       { key: 'evolution.autoRun', value: true },
       { key: 'evolution.samplingMode', value: 'commit' },
       { key: 'evolution.snapshotIntervalDays', value: 14 },

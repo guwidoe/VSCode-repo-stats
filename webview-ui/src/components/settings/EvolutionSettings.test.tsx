@@ -28,6 +28,11 @@ function createSettings(overrides?: Partial<ExtensionSettings['evolution']>): Ex
       showCodeDensity: false,
       showFileCount: true,
     },
+    treemap: {
+      ageColorRangeMode: 'auto',
+      ageColorNewestDate: '',
+      ageColorOldestDate: '',
+    },
     evolution: {
       autoRun: false,
       samplingMode: 'time',

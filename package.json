@@ -257,6 +257,25 @@
           },
           "description": "Configure which metrics to show in the treemap tooltip"
         },
+        "repoStats.treemap.ageColorRangeMode": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "custom"
+          ],
+          "default": "auto",
+          "description": "How treemap age coloring chooses its green-to-red date range: automatically from the visible files or from custom settings"
+        },
+        "repoStats.treemap.ageColorNewestDate": {
+          "type": "string",
+          "default": "",
+          "description": "Custom newest date (YYYY-MM-DD) at or after which treemap age coloring becomes fully green"
+        },
+        "repoStats.treemap.ageColorOldestDate": {
+          "type": "string",
+          "default": "",
+          "description": "Custom oldest date (YYYY-MM-DD) at or before which treemap age coloring becomes fully red"
+        },
         "repoStats.evolution.autoRun": {
           "type": "boolean",
           "default": false,

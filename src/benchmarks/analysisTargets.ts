@@ -52,6 +52,11 @@ export const DEFAULT_BENCHMARK_SETTINGS: ExtensionSettings = {
     showCodeDensity: false,
     showFileCount: true,
   },
+  treemap: {
+    ageColorRangeMode: 'auto',
+    ageColorNewestDate: '',
+    ageColorOldestDate: '',
+  },
   evolution: {
     autoRun: false,
     samplingMode: 'time',
@@ -127,6 +132,10 @@ export function resolveBenchmarkSettings(
     tooltipSettings: {
       ...DEFAULT_BENCHMARK_SETTINGS.tooltipSettings,
       ...(overrides?.tooltipSettings ?? {}),
+    },
+    treemap: {
+      ...DEFAULT_BENCHMARK_SETTINGS.treemap,
+      ...(overrides?.treemap ?? {}),
     },
     evolution: {
       ...DEFAULT_BENCHMARK_SETTINGS.evolution,

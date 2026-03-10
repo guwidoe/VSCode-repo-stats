@@ -218,6 +218,12 @@ export function applySettingsPatch(
           ...nextSettings.tooltipSettings,
         }
       : currentSettings.tooltipSettings,
+    treemap: nextSettings.treemap
+      ? {
+          ...currentSettings.treemap,
+          ...nextSettings.treemap,
+        }
+      : currentSettings.treemap,
     evolution: nextSettings.evolution
       ? {
           ...currentSettings.evolution,
@@ -305,6 +311,11 @@ export function flattenSettingsUpdate(settings: Partial<ExtensionSettings>): Set
   }
   if (settings.tooltipSettings !== undefined) {
     updates.push({ key: 'tooltipSettings', value: settings.tooltipSettings });
+  }
+  if (settings.treemap !== undefined) {
+    updates.push({ key: 'treemap.ageColorRangeMode', value: settings.treemap.ageColorRangeMode });
+    updates.push({ key: 'treemap.ageColorNewestDate', value: settings.treemap.ageColorNewestDate });
+    updates.push({ key: 'treemap.ageColorOldestDate', value: settings.treemap.ageColorOldestDate });
   }
   if (settings.evolution !== undefined) {
     updates.push({ key: 'evolution.autoRun', value: settings.evolution.autoRun });

@@ -2,6 +2,8 @@
  * Color utilities for the Repo Stats webview.
  */
 
+import type { TreemapNode, TreemapSettings } from '../types';
+
 // ============================================================================
 // Language Colors (GitHub Linguist-style)
 // ============================================================================
@@ -68,30 +70,105 @@ export function getLanguageColor(language: string): string {
 // Age-based Colors (Heat Map)
 // ============================================================================
 
-export function getAgeColor(lastModified: string | undefined): string {
-  if (!lastModified) {return '#8b8b8b';}
+export interface AgeColorDomain {
+  newestTimestamp: number;
+  oldestTimestamp: number;
+}
 
-  const now = new Date();
-  const modified = new Date(lastModified);
-  const diffMs = now.getTime() - modified.getTime();
-  const diffDays = diffMs / (1000 * 60 * 60 * 24);
+const AGE_GREEN = '#4caf50';
+const AGE_RED = '#f44336';
+const AGE_UNKNOWN = '#8b8b8b';
+const MIN_VALID_FILE_TIMESTAMP = Date.parse('1971-01-01T00:00:00.000Z');
 
-  if (diffDays < 30) {
-    // Green - recently modified (< 1 month)
-    return '#4caf50';
-  } else if (diffDays < 90) {
-    // Light green - 1-3 months
-    return '#8bc34a';
-  } else if (diffDays < 180) {
-    // Yellow - 3-6 months
-    return '#ffeb3b';
-  } else if (diffDays < 365) {
-    // Orange - 6-12 months
-    return '#ff9800';
-  } else {
-    // Red - older than 1 year
-    return '#f44336';
+export function parseValidAgeTimestamp(lastModified: string | undefined): number | null {
+  if (!lastModified) {
+    return null;
   }
+
+  const timestamp = Date.parse(lastModified);
+  if (!Number.isFinite(timestamp) || timestamp < MIN_VALID_FILE_TIMESTAMP) {
+    return null;
+  }
+
+  return timestamp;
+}
+
+function parseConfiguredAgeDate(value: string): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const timestamp = Date.parse(trimmed.length <= 10 ? `${trimmed}T00:00:00.000Z` : trimmed);
+  if (!Number.isFinite(timestamp)) {
+    return null;
+  }
+
+  return timestamp;
+}
+
+function collectAgeBounds(node: TreemapNode, bounds: { newest: number; oldest: number }): void {
+  if (node.type === 'file') {
+    const timestamp = parseValidAgeTimestamp(node.lastModified);
+    if (timestamp !== null) {
+      bounds.newest = Math.max(bounds.newest, timestamp);
+      bounds.oldest = Math.min(bounds.oldest, timestamp);
+    }
+    return;
+  }
+
+  for (const child of node.children ?? []) {
+    collectAgeBounds(child, bounds);
+  }
+}
+
+export function resolveAgeColorDomain(root: TreemapNode | null, settings: TreemapSettings): AgeColorDomain | null {
+  if (settings.ageColorRangeMode === 'custom') {
+    const first = parseConfiguredAgeDate(settings.ageColorOldestDate);
+    const second = parseConfiguredAgeDate(settings.ageColorNewestDate);
+    if (first === null || second === null) {
+      return null;
+    }
+
+    return {
+      oldestTimestamp: Math.min(first, second),
+      newestTimestamp: Math.max(first, second),
+    };
+  }
+
+  if (!root) {
+    return null;
+  }
+
+  const bounds = {
+    newest: Number.NEGATIVE_INFINITY,
+    oldest: Number.POSITIVE_INFINITY,
+  };
+  collectAgeBounds(root, bounds);
+
+  if (!Number.isFinite(bounds.newest) || !Number.isFinite(bounds.oldest)) {
+    return null;
+  }
+
+  return {
+    newestTimestamp: bounds.newest,
+    oldestTimestamp: bounds.oldest,
+  };
+}
+
+export function getAgeColor(lastModified: string | undefined, domain: AgeColorDomain | null): string {
+  const timestamp = parseValidAgeTimestamp(lastModified);
+  if (timestamp === null || domain === null) {
+    return AGE_UNKNOWN;
+  }
+
+  if (domain.newestTimestamp <= domain.oldestTimestamp) {
+    return AGE_GREEN;
+  }
+
+  const clamped = Math.min(domain.newestTimestamp, Math.max(domain.oldestTimestamp, timestamp));
+  const ratio = (clamped - domain.oldestTimestamp) / (domain.newestTimestamp - domain.oldestTimestamp);
+  return interpolateColor(AGE_RED, AGE_GREEN, ratio);
 }
 
 // ============================================================================
@@ -229,21 +306,24 @@ export function formatBytes(bytes: number): string {
   return bytes + ' B';
 }
 
-export function formatRelativeTime(dateString: string): string {
-  const date = new Date(dateString);
+export function formatRelativeTime(date: string): string {
   const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffSeconds = Math.floor(diffMs / 1000);
-  const diffMinutes = Math.floor(diffSeconds / 60);
-  const diffHours = Math.floor(diffMinutes / 60);
-  const diffDays = Math.floor(diffHours / 24);
-  const diffMonths = Math.floor(diffDays / 30);
+  const then = new Date(date);
+  const diffMs = now.getTime() - then.getTime();
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
   const diffYears = Math.floor(diffDays / 365);
 
-  if (diffYears > 0) {return `${diffYears} year${diffYears > 1 ? 's' : ''} ago`;}
-  if (diffMonths > 0) {return `${diffMonths} month${diffMonths > 1 ? 's' : ''} ago`;}
-  if (diffDays > 0) {return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;}
-  if (diffHours > 0) {return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;}
-  if (diffMinutes > 0) {return `${diffMinutes} minute${diffMinutes > 1 ? 's' : ''} ago`;}
-  return 'just now';
+  if (diffMinutes < 1) {return 'just now';}
+  if (diffMinutes < 60) {
+    return `${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`;
+  }
+  if (diffHours < 24) {
+    return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+  }
+  if (diffDays < 365) {
+    return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+  }
+  return `${diffYears} year${diffYears === 1 ? '' : 's'} ago`;
 }

@@ -88,6 +88,11 @@ export class RepositorySettingsService {
       autoGranularityThreshold: this.getRequiredConfigValue<number>(config, 'autoGranularityThreshold'),
       overviewDisplayMode: this.getRequiredConfigValue<'percent' | 'count'>(config, 'overviewDisplayMode'),
       tooltipSettings: this.getRequiredConfigValue<ExtensionSettings['tooltipSettings']>(config, 'tooltipSettings'),
+      treemap: {
+        ageColorRangeMode: this.getRequiredConfigValue<ExtensionSettings['treemap']['ageColorRangeMode']>(config, 'treemap.ageColorRangeMode'),
+        ageColorNewestDate: this.getRequiredConfigValue<string>(config, 'treemap.ageColorNewestDate'),
+        ageColorOldestDate: this.getRequiredConfigValue<string>(config, 'treemap.ageColorOldestDate'),
+      },
       evolution: {
         autoRun: this.getRequiredConfigValue<boolean>(config, 'evolution.autoRun'),
         samplingMode: this.getRequiredConfigValue<ExtensionSettings['evolution']['samplingMode']>(config, 'evolution.samplingMode'),

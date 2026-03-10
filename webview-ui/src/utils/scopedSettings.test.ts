@@ -32,6 +32,11 @@ function createSettings(): ExtensionSettings {
       showCodeDensity: false,
       showFileCount: true,
     },
+    treemap: {
+      ageColorRangeMode: 'auto',
+      ageColorNewestDate: '',
+      ageColorOldestDate: '',
+    },
     evolution: {
       autoRun: false,
       samplingMode: 'time',

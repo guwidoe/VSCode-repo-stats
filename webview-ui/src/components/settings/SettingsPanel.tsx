@@ -71,7 +71,7 @@ export function SettingsPanel() {
         )}
 
         {activeTab === 'treemap' && (
-          <TreemapSettings settings={settings} updateSettings={updateSettings} />
+          <TreemapSettings settings={settings} data={data} updateSettings={updateSettings} />
         )}
       </div>
     </div>

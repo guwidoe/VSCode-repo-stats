@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import type { TreemapNode } from '../types';
 import {
   getLanguageColor,
   getAgeColor,
@@ -10,6 +11,8 @@ import {
   getInitials,
   formatNumber,
   formatRelativeTime,
+  parseValidAgeTimestamp,
+  resolveAgeColorDomain,
 } from './colors';
 
 describe('getLanguageColor', () => {
@@ -26,21 +29,86 @@ describe('getLanguageColor', () => {
   });
 });
 
-describe('getAgeColor', () => {
-  it('should return gray for undefined date', () => {
-    expect(getAgeColor(undefined)).toBe('#8b8b8b');
+describe('age color range utilities', () => {
+  const root: TreemapNode = {
+    name: 'repo',
+    path: '',
+    type: 'directory',
+    children: [
+      {
+        name: 'recent.ts',
+        path: 'recent.ts',
+        type: 'file',
+        lastModified: '2026-03-01T00:00:00.000Z',
+      },
+      {
+        name: 'old.ts',
+        path: 'old.ts',
+        type: 'file',
+        lastModified: '2025-03-01T00:00:00.000Z',
+      },
+      {
+        name: 'missing.ts',
+        path: 'missing.ts',
+        type: 'file',
+      },
+      {
+        name: 'epoch.ts',
+        path: 'epoch.ts',
+        type: 'file',
+        lastModified: '1970-01-01T00:00:00.000Z',
+      },
+    ],
+  };
+
+  it('treats missing and 1970-era timestamps as invalid for age coloring', () => {
+    expect(parseValidAgeTimestamp(undefined)).toBeNull();
+    expect(parseValidAgeTimestamp('1970-01-01T00:00:00.000Z')).toBeNull();
+    expect(parseValidAgeTimestamp('2026-03-01T00:00:00.000Z')).toBe(Date.parse('2026-03-01T00:00:00.000Z'));
   });
 
-  it('should return green for recently modified files', () => {
-    const recentDate = new Date();
-    recentDate.setDate(recentDate.getDate() - 5); // 5 days ago
-    expect(getAgeColor(recentDate.toISOString())).toBe('#4caf50');
+  it('builds auto age domains from the newest and oldest valid files only', () => {
+    const domain = resolveAgeColorDomain(root, {
+      ageColorRangeMode: 'auto',
+      ageColorNewestDate: '',
+      ageColorOldestDate: '',
+    });
+
+    expect(domain).toEqual({
+      newestTimestamp: Date.parse('2026-03-01T00:00:00.000Z'),
+      oldestTimestamp: Date.parse('2025-03-01T00:00:00.000Z'),
+    });
   });
 
-  it('should return red for old files', () => {
-    const oldDate = new Date();
-    oldDate.setFullYear(oldDate.getFullYear() - 2); // 2 years ago
-    expect(getAgeColor(oldDate.toISOString())).toBe('#f44336');
+  it('uses custom configured date boundaries when requested', () => {
+    const domain = resolveAgeColorDomain(root, {
+      ageColorRangeMode: 'custom',
+      ageColorNewestDate: '2026-02-01',
+      ageColorOldestDate: '2025-02-01',
+    });
+
+    expect(domain).toEqual({
+      newestTimestamp: Date.parse('2026-02-01T00:00:00.000Z'),
+      oldestTimestamp: Date.parse('2025-02-01T00:00:00.000Z'),
+    });
+  });
+
+  it('returns gray when the age domain or timestamp is invalid', () => {
+    expect(getAgeColor(undefined, null)).toBe('#8b8b8b');
+    expect(getAgeColor('1970-01-01T00:00:00.000Z', {
+      newestTimestamp: Date.parse('2026-03-01T00:00:00.000Z'),
+      oldestTimestamp: Date.parse('2025-03-01T00:00:00.000Z'),
+    })).toBe('#8b8b8b');
+  });
+
+  it('maps newest dates to green and oldest dates to red', () => {
+    const domain = {
+      newestTimestamp: Date.parse('2026-03-01T00:00:00.000Z'),
+      oldestTimestamp: Date.parse('2025-03-01T00:00:00.000Z'),
+    };
+
+    expect(getAgeColor('2026-03-01T00:00:00.000Z', domain)).toBe('#4caf50');
+    expect(getAgeColor('2025-03-01T00:00:00.000Z', domain)).toBe('#f44336');
   });
 });
 

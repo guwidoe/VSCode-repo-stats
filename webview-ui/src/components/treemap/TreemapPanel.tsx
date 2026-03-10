@@ -9,11 +9,12 @@
  * - TreemapLegend: Color legend based on mode
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useStore, selectFilteredTreemapNode } from '../../store';
 import { useVsCodeApi } from '../../hooks/useVsCodeApi';
 import type { TreemapNode } from '../../types';
 import { getScopedSettingDisplayValue } from '../../utils/scopedSettings';
+import { resolveAgeColorDomain } from '../../utils/colors';
 import { TreemapCanvas } from './TreemapCanvas';
 import { TreemapFilter } from './TreemapFilter';
 import { TreemapControls } from './TreemapControls';
@@ -45,6 +46,7 @@ export function TreemapPanel() {
   const hoveredNode = useStore(state => state.hoveredNode);
   const selectedNode = useStore(state => state.selectedNode);
   const scopedSettings = useStore(state => state.scopedSettings);
+  const settings = useStore(state => state.settings);
 
   // Store actions
   const navigateToTreemapPath = useStore(state => state.navigateToTreemapPath);
@@ -81,6 +83,10 @@ export function TreemapPanel() {
   const languageCounts = filteredTreemapNode
     ? collectLanguageCounts(filteredTreemapNode)
     : new Map<string, number>();
+  const ageColorDomain = useMemo(
+    () => (filteredTreemapNode && settings ? resolveAgeColorDomain(filteredTreemapNode, settings.treemap) : null),
+    [filteredTreemapNode, settings]
+  );
 
   // Calculate max depth from raw file tree (not filtered)
   const treeMaxDepth = data?.fileTree ? calculateMaxDepth(data.fileTree) : 5;
@@ -89,7 +95,7 @@ export function TreemapPanel() {
   const isCustomFilterEmpty = hasData && !filteredTreemapNode && treemapFilter.preset === 'custom';
   const isFilterEmpty = hasData && !filteredTreemapNode && treemapFilter.preset !== 'custom';
 
-  if (!hasData) {
+  if (!hasData || !settings) {
     return (
       <div className="treemap-panel">
         <div className="treemap-empty">
@@ -156,6 +162,7 @@ export function TreemapPanel() {
           <TreemapCanvas
             root={filteredTreemapNode}
             colorMode={colorMode}
+            ageColorDomain={ageColorDomain}
             sizeMode={sizeDisplayMode}
             maxNestingDepth={maxNestingDepth}
             hoveredNode={hoveredNode}

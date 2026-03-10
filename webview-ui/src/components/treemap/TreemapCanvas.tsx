@@ -1,6 +1,7 @@
 // webview-ui/src/components/treemap/TreemapCanvas.tsx
 import { useRef, useEffect, useState, useCallback } from 'react';
 import type { TreemapNode, ColorMode } from '../../types';
+import type { AgeColorDomain } from '../../utils/colors';
 import type { TreemapConfig, SizeDisplayMode } from './types';
 import { DEFAULT_TREEMAP_CONFIG } from './types';
 import { useTreemapLayout } from './hooks/useTreemapLayout';
@@ -11,6 +12,7 @@ import { TreemapContextMenu } from './TreemapContextMenu';
 interface TreemapCanvasProps {
   root: TreemapNode | null;
   colorMode: ColorMode;
+  ageColorDomain: AgeColorDomain | null;
   sizeMode: SizeDisplayMode;
   maxNestingDepth: number;
   hoveredNode: TreemapNode | null;
@@ -42,6 +44,7 @@ interface ContextMenuState {
 export function TreemapCanvas({
   root,
   colorMode,
+  ageColorDomain,
   sizeMode,
   maxNestingDepth,
   hoveredNode,
@@ -133,8 +136,9 @@ export function TreemapCanvas({
       hoveredNode,
       selectedNode,
       devicePixelRatio: window.devicePixelRatio ?? 1,
+      ageColorDomain,
     });
-  }, [allNodes, colorMode, sizeMode, hoveredNode, selectedNode, render]);
+  }, [allNodes, colorMode, sizeMode, hoveredNode, selectedNode, render, ageColorDomain]);
 
   // Mouse move handler (throttled)
   const lastMoveTime = useRef(0);
