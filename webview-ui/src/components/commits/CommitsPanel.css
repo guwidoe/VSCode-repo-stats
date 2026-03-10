@@ -594,7 +594,7 @@
 }
 
 .commit-results-body {
-  min-height: 0;
+  min-height: 240px;
   overflow-y: auto;
   overflow-x: hidden;
   max-height: min(68vh, 640px);
