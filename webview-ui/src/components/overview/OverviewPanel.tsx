@@ -257,7 +257,7 @@ export function OverviewPanel() {
         )}
       </div>
 
-      {stats.submodules.count > 0 && (
+      {stats.submodules && stats.submodules.count > 0 && (
         <div className="info-row">
           <div className="info-section submodule-section">
             <h3 className="section-title">
@@ -265,7 +265,7 @@ export function OverviewPanel() {
               <span className="section-count">{stats.submodules.count.toLocaleString()}</span>
             </h3>
             <p className="section-description">
-              {stats.submodules.included
+              {settings.includeSubmodules
                 ? 'Submodule files are included in this analysis.'
                 : 'Submodule files are currently excluded from analysis.'}
             </p>
