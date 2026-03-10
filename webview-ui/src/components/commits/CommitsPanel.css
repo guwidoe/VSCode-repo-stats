@@ -482,9 +482,7 @@
 .commit-column-manager-popover {
   position: absolute;
   top: calc(100% + 6px);
-  right: 0;
   z-index: 20;
-  width: 260px;
   border: 1px solid var(--vscode-panel-border);
   border-radius: 8px;
   background: var(--vscode-editor-background);
@@ -493,7 +491,15 @@
 }
 
 .commit-column-filter-popover {
+  right: 0;
   width: 240px;
+}
+
+.commit-column-manager-popover {
+  left: 0;
+  width: min(300px, calc(100vw - 32px));
+  max-height: min(70vh, 420px);
+  overflow: auto;
 }
 
 .commit-popover-title {
