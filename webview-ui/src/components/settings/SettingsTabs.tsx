@@ -20,7 +20,7 @@ const TAB_LABELS: Record<SettingsTab, string> = {
 };
 
 export function SettingsTabs({ activeTab, onTabChange }: Props) {
-  const tabs: SettingsTab[] = ['general', 'overview', 'charts', 'evolution', 'treemap'];
+  const tabs: SettingsTab[] = ['general', 'overview', 'treemap', 'charts', 'evolution'];
 
   return (
     <div className="settings-tabs">

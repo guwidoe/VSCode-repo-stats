@@ -19,12 +19,12 @@ interface ViewConfig {
 
 const MAIN_VIEWS: ViewConfig[] = [
   { id: 'overview', label: 'Overview', icon: '📋', tone: 'blue' },
-  { id: 'files', label: 'Files', icon: '📄', tone: 'neutral' },
+  { id: 'treemap', label: 'Treemap', icon: '🗂️', tone: 'blue' },
   { id: 'contributors', label: 'Contributors', icon: '👥', tone: 'purple' },
-  { id: 'commits', label: 'Commits', icon: '✅', tone: 'green' },
   { id: 'frequency', label: 'Code Frequency', icon: '📊', tone: 'orange' },
   { id: 'evolution', label: 'Evolution', icon: '🧬', tone: 'pink' },
-  { id: 'treemap', label: 'Treemap', icon: '🗂️', tone: 'blue' },
+  { id: 'files', label: 'Files', icon: '📄', tone: 'neutral' },
+  { id: 'commits', label: 'Commits', icon: '✅', tone: 'green' },
 ];
 
 const UTILITY_VIEWS: ViewConfig[] = [
