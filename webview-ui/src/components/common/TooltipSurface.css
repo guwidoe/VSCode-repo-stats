@@ -1,0 +1,50 @@
+.tooltip-surface {
+  position: fixed;
+  z-index: 3000;
+  max-width: min(420px, calc(100vw - 16px));
+  padding: 10px 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--vscode-editorWidget-foreground);
+  background: var(--vscode-editorWidget-background);
+  border: 1px solid var(--vscode-editorWidget-border, var(--vscode-panel-border));
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  word-break: break-word;
+}
+
+.tooltip-surface-with-arrow::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: inherit;
+  border: inherit;
+  border-left: none;
+  border-top: none;
+}
+
+.tooltip-surface-top::after {
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.tooltip-surface-bottom::after {
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) rotate(225deg);
+}
+
+.tooltip-surface-left::after {
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%) rotate(-45deg);
+}
+
+.tooltip-surface-right::after {
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%) rotate(135deg);
+}

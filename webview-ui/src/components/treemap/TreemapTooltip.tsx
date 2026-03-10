@@ -1,9 +1,9 @@
 // webview-ui/src/components/treemap/TreemapTooltip.tsx
-import { useRef, useLayoutEffect, useState } from 'react';
 import type { TreemapNode, ColorMode } from '../../types';
 import type { SizeDisplayMode } from './types';
 import { useStore } from '../../store';
 import { formatNumber, formatRelativeTime } from '../../utils/colors';
+import { TooltipSurface } from '../common/TooltipSurface';
 import './TreemapTooltip.css';
 
 interface TreemapTooltipProps {
@@ -31,8 +31,6 @@ const TOOLTIP_OFFSET = 15;
 const VIEWPORT_PADDING = 8;
 
 export function TreemapTooltip({ visible, x, y, node, sizeMode, colorMode }: TreemapTooltipProps) {
-  const tooltipRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState({ left: 0, top: 0 });
   const settings = useStore((state) => state.settings);
   const tooltipSettings = settings?.tooltipSettings;
 
@@ -40,40 +38,6 @@ export function TreemapTooltip({ visible, x, y, node, sizeMode, colorMode }: Tre
   const needsComplexity = colorMode === 'complexity' || sizeMode === 'complexity';
   const needsDensity = colorMode === 'density';
   const needsAge = colorMode === 'age';
-
-  useLayoutEffect(() => {
-    if (!visible || !tooltipRef.current) {return;}
-
-    const tooltip = tooltipRef.current;
-    const rect = tooltip.getBoundingClientRect();
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-
-    let left = x + TOOLTIP_OFFSET;
-    let top = y + TOOLTIP_OFFSET;
-
-    // Flip horizontally if tooltip would overflow right edge
-    if (left + rect.width > viewportWidth - VIEWPORT_PADDING) {
-      left = x - rect.width - TOOLTIP_OFFSET;
-    }
-
-    // Flip vertically if tooltip would overflow bottom edge
-    if (top + rect.height > viewportHeight - VIEWPORT_PADDING) {
-      top = y - rect.height - TOOLTIP_OFFSET;
-    }
-
-    // Ensure tooltip doesn't go off left edge
-    if (left < VIEWPORT_PADDING) {
-      left = VIEWPORT_PADDING;
-    }
-
-    // Ensure tooltip doesn't go off top edge
-    if (top < VIEWPORT_PADDING) {
-      top = VIEWPORT_PADDING;
-    }
-
-    setPosition({ left, top });
-  }, [visible, x, y, node]);
 
   if (!visible || !node || !tooltipSettings) {return null;}
 
@@ -101,13 +65,14 @@ export function TreemapTooltip({ visible, x, y, node, sizeMode, colorMode }: Tre
   };
 
   return (
-    <div
-      ref={tooltipRef}
+    <TooltipSurface
+      visible={visible}
+      anchorPoint={{ x, y }}
+      followCursor
+      offset={TOOLTIP_OFFSET}
+      viewportPadding={VIEWPORT_PADDING}
       className="treemap-tooltip"
-      style={{
-        left: position.left,
-        top: position.top,
-      }}
+      showArrow={false}
     >
       <div className="tooltip-path">{node.path}</div>
 
@@ -176,6 +141,6 @@ export function TreemapTooltip({ visible, x, y, node, sizeMode, colorMode }: Tre
           Modified: {formatRelativeTime(node.lastModified)}
         </div>
       )}
-    </div>
+    </TooltipSurface>
   );
 }
