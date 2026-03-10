@@ -44,14 +44,14 @@ describe('processEvolutionSeries', () => {
   it('normalizes series to percentages', () => {
     const processed = processEvolutionSeries(source, 3, true, 'author');
 
-    const firstColumnTotal = processed.y.reduce((sum, series) => sum + series[0], 0);
-    const secondColumnTotal = processed.y.reduce((sum, series) => sum + series[1], 0);
+    const firstColumnTotal = processed.y.reduce((sum, series) => sum + (series[0] ?? 0), 0);
+    const secondColumnTotal = processed.y.reduce((sum, series) => sum + (series[1] ?? 0), 0);
 
     expect(Math.round(firstColumnTotal)).toBe(100);
     expect(Math.round(secondColumnTotal)).toBe(100);
   });
 
-  it('fills inactive periods with synthetic carry-forward points when requested', () => {
+  it('fills inactive periods with synthetic gap points when requested', () => {
     const processed = processEvolutionSeries(
       {
         snapshots: [
@@ -100,7 +100,7 @@ describe('processEvolutionSeries', () => {
       '2026-01-06T00:00:00.000Z',
       '2026-01-07T00:00:00.000Z',
     ]);
-    expect(processed.y[0]).toEqual([10, 10, 20, 20, 20, 20, 30]);
+    expect(processed.y[0]).toEqual([10, null, 20, null, null, null, 30]);
     expect(processed.snapshots.filter((snapshot) => snapshot.synthetic)).toHaveLength(4);
   });
 
@@ -164,8 +164,39 @@ describe('evolution time axis formatting', () => {
       '2026-01-08T00:00:00.000Z',
       '2026-01-15T00:00:00.000Z',
     ]);
+    expect(axis.axisType).toBe('date');
     expect(axis.hoverLabels).toEqual(['01 Jan 2026', '08 Jan 2026', '15 Jan 2026']);
     expect(axis.tickFormat).toBe('%d %b\n%Y');
+  });
+
+  it('can switch the x-axis to commit progression without recomputing snapshots', () => {
+    const axis = getEvolutionTimeAxisConfig({
+      ts: [
+        '2026-01-01T00:00:00.000Z',
+        '2026-01-08T00:00:00.000Z',
+      ],
+      snapshots: [
+        {
+          commitSha: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+          commitIndex: 4,
+          totalCommitCount: 20,
+          committedAt: '2026-01-01T00:00:00.000Z',
+          samplingMode: 'commit',
+        },
+        {
+          commitSha: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+          commitIndex: 9,
+          totalCommitCount: 20,
+          committedAt: '2026-01-08T00:00:00.000Z',
+          samplingMode: 'commit',
+        },
+      ],
+    }, 'commit');
+
+    expect(axis.x).toEqual([5, 10]);
+    expect(axis.axisType).toBe('linear');
+    expect(axis.tickPrefix).toBe('#');
+    expect(axis.axisTitle).toBe('Commit progression');
   });
 
   it('includes snapshot metadata in hover labels when available', () => {

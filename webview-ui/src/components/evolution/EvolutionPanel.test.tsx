@@ -214,6 +214,7 @@ describe('EvolutionPanel', () => {
     render(<EvolutionPanel />);
 
     expect(screen.getByText(/Sampling: Auto-distributed/i)).toBeInTheDocument();
-    expect(screen.getByText(/spacing is intentionally non-linear in time/i)).toBeInTheDocument();
+    expect(screen.getByText(/X-axis: Calendar time/i)).toBeInTheDocument();
+    expect(screen.getByText(/spacing is intentionally non-linear/i)).toBeInTheDocument();
   });
 });

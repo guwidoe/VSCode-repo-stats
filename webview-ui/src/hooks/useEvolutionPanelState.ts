@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useStore } from '../store';
 import { useVsCodeApi } from './useVsCodeApi';
-import { processEvolutionSeries } from '../components/evolution/evolutionUtils';
+import { processEvolutionSeries, type EvolutionAxisMode } from '../components/evolution/evolutionUtils';
 import type { EvolutionDimension, EvolutionTimeSeriesData } from '../types';
 
 export function useEvolutionPanelState() {
@@ -14,6 +14,7 @@ export function useEvolutionPanelState() {
   const { requestEvolutionAnalysis, requestEvolutionRefresh } = useVsCodeApi();
 
   const [dimension, setDimension] = useState<EvolutionDimension>('cohort');
+  const [axisMode, setAxisMode] = useState<EvolutionAxisMode>('time');
   const [normalize, setNormalize] = useState(false);
   const [maxSeries, setMaxSeries] = useState(settings?.evolution.maxSeries ?? 20);
 
@@ -59,14 +60,16 @@ export function useEvolutionPanelState() {
 
     return {
       samplingLabel: describeSamplingMode(samplingMode),
+      axisLabel: describeAxisMode(axisMode),
       points: processed.snapshots.length,
       filledPeriods,
       explanation: buildTimelineExplanation(
         samplingMode,
+        axisMode,
         settings.evolution.showInactivePeriods
       ),
     };
-  }, [processed, settings]);
+  }, [axisMode, processed, settings]);
 
   return {
     evolutionData,
@@ -77,6 +80,8 @@ export function useEvolutionPanelState() {
     data,
     dimension,
     setDimension,
+    axisMode,
+    setAxisMode,
     normalize,
     setNormalize,
     maxSeries,
@@ -100,22 +105,36 @@ function describeSamplingMode(mode: 'time' | 'commit' | 'auto'): string {
   }
 }
 
+function describeAxisMode(mode: EvolutionAxisMode): string {
+  switch (mode) {
+    case 'commit':
+      return 'Commit progression';
+    case 'time':
+    default:
+      return 'Calendar time';
+  }
+}
+
 function buildTimelineExplanation(
   mode: 'time' | 'commit' | 'auto',
+  axisMode: EvolutionAxisMode,
   showInactivePeriods: boolean
 ): string {
+  const axisCopy = axisMode === 'commit'
+    ? 'Charts are currently displayed on a commit-progression axis instead of calendar time.'
+    : 'Charts are currently displayed on a calendar-time axis.';
   const gapCopy = showInactivePeriods
-    ? 'Inactive periods are filled with carry-forward ownership so flat stretches remain visible.'
+    ? 'Inactive periods insert unsampled gap markers so the broader timeline stays visible without turning the lines into stair-steps.'
     : 'Only directly sampled snapshots are plotted; inactive periods are skipped.';
 
   switch (mode) {
     case 'commit':
-      return `The x-axis still shows real commit dates, but snapshots were selected by commit interval rather than uniform calendar time. ${gapCopy}`;
+      return `Snapshots were selected by commit interval rather than uniform calendar time. ${axisCopy} ${gapCopy}`;
     case 'auto':
-      return `The x-axis shows real commit dates while snapshots are auto-distributed across repository history, so spacing is intentionally non-linear in time. ${gapCopy}`;
+      return `Snapshots are auto-distributed across repository history, so spacing is intentionally non-linear. ${axisCopy} ${gapCopy}`;
     case 'time':
     default:
-      return `Snapshots are selected by elapsed time. ${gapCopy}`;
+      return `Snapshots are selected by elapsed time. ${axisCopy} ${gapCopy}`;
   }
 }
 

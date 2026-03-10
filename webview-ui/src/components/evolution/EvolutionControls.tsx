@@ -1,8 +1,12 @@
+import { InfoTooltip } from '../common/InfoTooltip';
 import type { EvolutionDimension } from '../../types';
+import type { EvolutionAxisMode } from './evolutionUtils';
 
 interface Props {
   dimension: EvolutionDimension;
   onDimensionChange: (dimension: EvolutionDimension) => void;
+  axisMode: EvolutionAxisMode;
+  onAxisModeChange: (mode: EvolutionAxisMode) => void;
   normalize: boolean;
   onNormalizeChange: (normalize: boolean) => void;
   maxSeries: number;
@@ -15,6 +19,8 @@ interface Props {
 export function EvolutionControls({
   dimension,
   onDimensionChange,
+  axisMode,
+  onAxisModeChange,
   normalize,
   onNormalizeChange,
   maxSeries,
@@ -37,6 +43,24 @@ export function EvolutionControls({
           <option value="ext">Extensions</option>
           <option value="dir">Top-level dirs</option>
           <option value="domain">Email domains</option>
+        </select>
+      </label>
+
+      <label>
+        <span>
+          X-axis view
+          <InfoTooltip
+            content="Sampling mode controls which history snapshots are computed. X-axis view only changes how those already-computed snapshots are displayed: by calendar time or by commit progression."
+            position="bottom"
+          />
+        </span>
+        <select
+          value={axisMode}
+          onChange={(event) => onAxisModeChange(event.target.value as EvolutionAxisMode)}
+          disabled={disabled}
+        >
+          <option value="time">Calendar time</option>
+          <option value="commit">Commit progression</option>
         </select>
       </label>
 

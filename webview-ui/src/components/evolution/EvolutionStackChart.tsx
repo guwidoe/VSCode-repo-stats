@@ -1,10 +1,11 @@
 import Plot from 'react-plotly.js';
-import type { ProcessedSeriesData } from './evolutionUtils';
+import type { ProcessedSeriesData, EvolutionAxisMode } from './evolutionUtils';
 import { getEvolutionTimeAxisConfig } from './evolutionUtils';
 
 interface Props {
   data: ProcessedSeriesData;
   normalize: boolean;
+  axisMode?: EvolutionAxisMode;
 }
 
 const PALETTE = [
@@ -13,8 +14,8 @@ const PALETTE = [
   '#72B7E2', '#FFB55A', '#7EB26D', '#F07C7E', '#9ED9D8',
 ];
 
-export function EvolutionStackChart({ data, normalize }: Props) {
-  const timeAxis = getEvolutionTimeAxisConfig(data);
+export function EvolutionStackChart({ data, normalize, axisMode = 'time' }: Props) {
+  const timeAxis = getEvolutionTimeAxisConfig(data, axisMode);
 
   return (
     <Plot
@@ -26,9 +27,11 @@ export function EvolutionStackChart({ data, normalize }: Props) {
         y: data.y[index],
         customdata: timeAxis.hoverLabels,
         stackgroup: 'one',
+        stackgaps: 'interpolate',
+        connectgaps: true,
         line: { width: 0.8, color: 'rgba(255,255,255,0.25)' },
         fillcolor: PALETTE[index % PALETTE.length],
-        hovertemplate: '%{customdata}<br>%{y:.2f}<extra>' + label + '</extra>',
+        hovertemplate: `<b>${label}</b><br>%{customdata}<br>Value %{y:.2f}<extra></extra>`,
       }))}
       layout={{
         autosize: true,
@@ -41,15 +44,24 @@ export function EvolutionStackChart({ data, normalize }: Props) {
           size: 11,
           color: 'var(--vscode-foreground)',
         },
-        hovermode: 'x unified',
+        hovermode: 'closest',
+        hoverlabel: {
+          bgcolor: 'var(--vscode-editorWidget-background)',
+          bordercolor: 'var(--vscode-editorWidget-border)',
+          font: { color: 'var(--vscode-editorWidget-foreground)', size: 11 },
+          align: 'left',
+          namelength: 48,
+        },
         legend: {
           orientation: 'h',
           x: 0,
           y: -0.25,
         },
         xaxis: {
-          type: 'date',
+          type: timeAxis.axisType,
+          title: { text: timeAxis.axisTitle },
           tickformat: timeAxis.tickFormat,
+          tickprefix: timeAxis.tickPrefix,
           gridcolor: 'var(--vscode-panel-border)',
           tickangle: -40,
         },

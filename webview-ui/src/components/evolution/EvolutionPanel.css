@@ -28,7 +28,7 @@
 
 .evolution-controls {
   display: grid;
-  grid-template-columns: repeat(4, minmax(180px, 1fr));
+  grid-template-columns: repeat(5, minmax(160px, 1fr));
   gap: 12px;
   align-items: end;
   padding: 12px;
@@ -42,6 +42,12 @@
   flex-direction: column;
   gap: 6px;
   font-size: 12px;
+}
+
+.evolution-controls label > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .evolution-controls select,
@@ -192,7 +198,7 @@
   background: var(--vscode-charts-blue);
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1200px) {
   .evolution-controls {
     grid-template-columns: repeat(2, minmax(180px, 1fr));
   }
@@ -203,5 +209,16 @@
 
   .evolution-chart-card-full {
     grid-column: auto;
+  }
+}
+
+@media (max-width: 720px) {
+  .evolution-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .evolution-stale-banner {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

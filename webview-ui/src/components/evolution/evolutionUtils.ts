@@ -8,8 +8,10 @@ export interface ProcessedSeriesData {
   snapshots: EvolutionSnapshotPoint[];
   ts: string[];
   labels: string[];
-  y: number[][];
+  y: Array<Array<number | null>>;
 }
+
+export type EvolutionAxisMode = 'time' | 'commit';
 
 export type EvolutionTimeGranularity =
   | 'daily'
@@ -20,10 +22,13 @@ export type EvolutionTimeGranularity =
   | 'yearly';
 
 export interface EvolutionTimeAxisConfig {
-  x: string[];
+  x: Array<string | number>;
+  axisType: 'date' | 'linear';
+  axisTitle: string;
   granularity: EvolutionTimeGranularity;
   hoverLabels: string[];
   tickFormat: string;
+  tickPrefix?: string;
 }
 
 export function processEvolutionSeries(
@@ -50,12 +55,15 @@ export function processEvolutionSeries(
   const snapshots = expanded.snapshots;
   const y = expanded.y;
 
-  const indexed = labels.map((label, index) => ({
-    label,
-    index,
-    max: Math.max(...(y[index] || [0])),
-    latest: y[index]?.[y[index].length - 1] ?? 0,
-  }));
+  const indexed = labels.map((label, index) => {
+    const series = y[index] || [];
+    return {
+      label,
+      index,
+      max: getSeriesMax(series),
+      latest: getSeriesLatestObserved(series),
+    };
+  });
 
   indexed.sort((a, b) => b.latest - a.latest || b.max - a.max || a.label.localeCompare(b.label));
 
@@ -113,7 +121,10 @@ export function processEvolutionSeries(
   for (let i = 0; i < ts.length; i++) {
     let total = 0;
     for (const series of normalized) {
-      total += series[i] ?? 0;
+      const value = series[i];
+      if (value !== null && value !== undefined) {
+        total += value;
+      }
     }
 
     if (total <= 0) {
@@ -121,7 +132,10 @@ export function processEvolutionSeries(
     }
 
     for (const series of normalized) {
-      series[i] = (100 * (series[i] ?? 0)) / total;
+      const value = series[i];
+      if (value !== null && value !== undefined) {
+        series[i] = (100 * value) / total;
+      }
     }
   }
 
@@ -133,17 +147,40 @@ export function processEvolutionSeries(
   };
 }
 
-export function getEvolutionTimeAxisConfig(data: {
-  ts: string[];
-  snapshots?: EvolutionSnapshotPoint[];
-}): EvolutionTimeAxisConfig {
+export function getEvolutionTimeAxisConfig(
+  data: {
+    ts: string[];
+    snapshots?: EvolutionSnapshotPoint[];
+  },
+  axisMode: EvolutionAxisMode = 'time'
+): EvolutionTimeAxisConfig {
   const granularity = inferEvolutionTimeGranularity(data.ts);
   const snapshots = data.snapshots ?? [];
+  const hoverLabels = data.ts.map((isoDate, index) => formatSnapshotHoverLabel(snapshots[index], isoDate, granularity));
+
+  if (axisMode === 'commit') {
+    return {
+      x: snapshots.map((snapshot, index) => {
+        if (snapshot && snapshot.totalCommitCount > 0) {
+          return snapshot.commitIndex + 1;
+        }
+        return index + 1;
+      }),
+      axisType: 'linear',
+      axisTitle: 'Commit progression',
+      granularity,
+      hoverLabels,
+      tickFormat: ',d',
+      tickPrefix: '#',
+    };
+  }
 
   return {
     x: data.ts,
+    axisType: 'date',
+    axisTitle: 'Time',
     granularity,
-    hoverLabels: data.ts.map((isoDate, index) => formatSnapshotHoverLabel(snapshots[index], isoDate, granularity)),
+    hoverLabels,
     tickFormat: getPlotlyTickFormat(granularity),
   };
 }
@@ -193,6 +230,26 @@ export function inferEvolutionTimeGranularity(ts: string[]): EvolutionTimeGranul
     return 'quarterly';
   }
   return 'yearly';
+}
+
+function getSeriesMax(series: Array<number | null>): number {
+  let max = 0;
+  for (const value of series) {
+    if (value !== null && value !== undefined && value > max) {
+      max = value;
+    }
+  }
+  return max;
+}
+
+function getSeriesLatestObserved(series: Array<number | null>): number {
+  for (let index = series.length - 1; index >= 0; index--) {
+    const value = series[index];
+    if (value !== null && value !== undefined) {
+      return value;
+    }
+  }
+  return 0;
 }
 
 function cohortSortKey(label: string): number {
@@ -249,8 +306,8 @@ export function formatTimeLabel(
 
 function fillInactivePeriods(
   snapshots: EvolutionSnapshotPoint[],
-  y: number[][]
-): { snapshots: EvolutionSnapshotPoint[]; ts: string[]; y: number[][] } {
+  y: Array<Array<number | null>>
+): { snapshots: EvolutionSnapshotPoint[]; ts: string[]; y: Array<Array<number | null>> } {
   if (snapshots.length < 2) {
     return {
       snapshots,
@@ -261,7 +318,7 @@ function fillInactivePeriods(
 
   const granularity = inferEvolutionTimeGranularity(snapshots.map((snapshot) => snapshot.committedAt));
   const expandedSnapshots: EvolutionSnapshotPoint[] = [snapshots[0]];
-  const expandedY = y.map((series) => [series[0] ?? 0]);
+  const expandedY: Array<Array<number | null>> = y.map((series) => [series[0] ?? 0]);
 
   for (let snapshotIndex = 1; snapshotIndex < snapshots.length; snapshotIndex++) {
     const previousSnapshot = snapshots[snapshotIndex - 1];
@@ -277,7 +334,7 @@ function fillInactivePeriods(
         synthetic: true,
       });
       for (let seriesIndex = 0; seriesIndex < expandedY.length; seriesIndex++) {
-        expandedY[seriesIndex].push(y[seriesIndex]?.[snapshotIndex - 1] ?? 0);
+        expandedY[seriesIndex].push(null);
       }
       cursor = addGranularity(committedAt, granularity);
     }

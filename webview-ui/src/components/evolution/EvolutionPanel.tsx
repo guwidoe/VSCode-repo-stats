@@ -16,6 +16,8 @@ export function EvolutionPanel() {
     data,
     dimension,
     setDimension,
+    axisMode,
+    setAxisMode,
     normalize,
     setNormalize,
     maxSeries,
@@ -107,6 +109,8 @@ export function EvolutionPanel() {
       <EvolutionControls
         dimension={dimension}
         onDimensionChange={setDimension}
+        axisMode={axisMode}
+        onAxisModeChange={setAxisMode}
         normalize={normalize}
         onNormalizeChange={setNormalize}
         maxSeries={maxSeries}
@@ -118,6 +122,9 @@ export function EvolutionPanel() {
       <div className="evolution-timeline-note">
         <div className="evolution-timeline-pill">
           Sampling: {timeline.samplingLabel}
+        </div>
+        <div className="evolution-timeline-pill">
+          X-axis: {timeline.axisLabel}
         </div>
         <div className="evolution-timeline-pill">
           Points: {timeline.points.toLocaleString()}
@@ -135,12 +142,12 @@ export function EvolutionPanel() {
       <div className="evolution-chart-grid">
         <section className="evolution-chart-card">
           <h3>Stacked Ownership Over Time</h3>
-          <EvolutionStackChart data={processed} normalize={normalize} />
+          <EvolutionStackChart data={processed} normalize={normalize} axisMode={axisMode} />
         </section>
 
         <section className="evolution-chart-card">
           <h3>Trend Lines</h3>
-          <EvolutionLineChart data={processed} normalize={normalize} />
+          <EvolutionLineChart data={processed} normalize={normalize} axisMode={axisMode} />
         </section>
 
         <section className="evolution-chart-card evolution-chart-card-full">
