@@ -16,7 +16,7 @@ export interface GitExtensionExports {
 export interface RepositoryContext {
   option: RepositoryOption;
   rootUri: vscode.Uri;
-  workspaceFolder: vscode.WorkspaceFolder;
+  workspaceFolder?: vscode.WorkspaceFolder;
 }
 
 export interface RepositorySelection {

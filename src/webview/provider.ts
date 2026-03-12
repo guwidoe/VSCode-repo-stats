@@ -6,10 +6,12 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
+import simpleGit from 'simple-git';
 import {
   ExtensionMessage,
   RepoScopableSettingKey,
   RepoScopableSettingValueMap,
+  RepositoryOption,
   SettingWriteTarget,
   WebviewMessage,
 } from '../types/index.js';
@@ -110,17 +112,14 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
   public async promptRepositorySelection(): Promise<void> {
     const selection = await this.repositoryService.resolveSelection();
     if (selection.repositories.length === 0) {
-      vscode.window.showInformationMessage('No Git repositories were found in the current workspace.');
+      vscode.window.showInformationMessage('No Git repositories were found in the workspace or bookmarked list.');
       return;
     }
 
     const picked = await vscode.window.showQuickPick(
       selection.repositories.map((repository) => ({
         label: repository.option.name,
-        description:
-          repository.option.relativePath === '.'
-            ? repository.option.workspaceFolderName
-            : `${repository.option.workspaceFolderName}/${repository.option.relativePath}`,
+        description: this.getRepositoryPickerDescription(repository.option),
         detail: repository.option.path,
         repository,
       })),
@@ -144,115 +143,203 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     await this.selectRepository(picked.repository.option.path, this.panel.webview);
   }
 
+  public async addRepository(): Promise<void> {
+    const pickedUris = await vscode.window.showOpenDialog({
+      canSelectFiles: false,
+      canSelectFolders: true,
+      canSelectMany: false,
+      openLabel: 'Add Repository',
+      title: 'Select a Git repository to bookmark',
+    });
+
+    const pickedUri = pickedUris?.[0];
+    if (!pickedUri) {
+      return;
+    }
+
+    const git = simpleGit(pickedUri.fsPath);
+    const isGitRepo = await git.checkIsRepo();
+    if (!isGitRepo) {
+      vscode.window.showErrorMessage(`Selected folder is not a Git repository: ${pickedUri.fsPath}`);
+      return;
+    }
+
+    const repositoryRootPath = (await git.revparse(['--show-toplevel'])).trim();
+    if (repositoryRootPath.length === 0) {
+      vscode.window.showErrorMessage(`Could not determine the Git repository root for: ${pickedUri.fsPath}`);
+      return;
+    }
+
+    const bookmarkedRepositories = this.getConfiguredBookmarkedRepositories();
+    if (bookmarkedRepositories.includes(repositoryRootPath)) {
+      vscode.window.showInformationMessage(`Repository already bookmarked: ${repositoryRootPath}`);
+      return;
+    }
+
+    await vscode.workspace
+      .getConfiguration('repoStats')
+      .update('bookmarkedRepositories', [...bookmarkedRepositories, repositoryRootPath], vscode.ConfigurationTarget.Global);
+
+    vscode.window.showInformationMessage(`Added bookmarked repository: ${repositoryRootPath}`);
+
+    if (!this.panel) {
+      return;
+    }
+
+    const currentSelection = await this.repositoryService.getSelectedRepository();
+    const selection = await this.repositoryService.resolveSelection(currentSelection?.option.path);
+    await this.sendCurrentRepositoryContext(this.panel.webview, selection);
+    await this.analysisService.sendStalenessStatus(this.panel.webview, selection.selected ?? undefined);
+
+    if (!currentSelection && selection.selected) {
+      await this.analysisService.runAnalysis(this.panel.webview, selection.selected);
+    }
+  }
+
   private async handleWebviewMessage(
     message: WebviewMessage,
     webview: vscode.Webview
   ): Promise<void> {
     console.log('[RepoStats] Received message from webview:', message.type);
 
-    switch (message.type) {
-      case 'requestAnalysis':
-        await this.runAnalysis(webview);
-        break;
+    try {
+      switch (message.type) {
+        case 'requestAnalysis':
+          await this.runAnalysis(webview);
+          break;
 
-      case 'requestRefresh':
-        await this.refresh();
-        break;
+        case 'requestRefresh':
+          await this.refresh();
+          break;
 
-      case 'requestEvolutionAnalysis':
-        await this.analysisService.runEvolutionAnalysis(
-          webview,
-          await this.repositoryService.getSelectedRepository(),
-          false
-        );
-        break;
+        case 'requestEvolutionAnalysis':
+          await this.analysisService.runEvolutionAnalysis(
+            webview,
+            await this.repositoryService.getSelectedRepository(),
+            false
+          );
+          break;
 
-      case 'requestEvolutionRefresh':
-        await this.analysisService.runEvolutionAnalysis(
-          webview,
-          await this.repositoryService.getSelectedRepository(),
-          true
-        );
-        break;
+        case 'requestEvolutionRefresh':
+          await this.analysisService.runEvolutionAnalysis(
+            webview,
+            await this.repositoryService.getSelectedRepository(),
+            true
+          );
+          break;
 
-      case 'checkStaleness':
-        await this.analysisService.sendStalenessStatus(
-          webview,
-          await this.repositoryService.getSelectedRepository()
-        );
-        break;
+        case 'checkStaleness':
+          await this.analysisService.sendStalenessStatus(
+            webview,
+            await this.repositoryService.getSelectedRepository()
+          );
+          break;
 
-      case 'selectRepository':
-        await this.selectRepository(message.repoPath, webview);
-        break;
+        case 'selectRepository':
+          await this.selectRepository(message.repoPath, webview);
+          break;
 
-      case 'openFile':
-        await this.openRepositoryFile(message.path);
-        break;
+        case 'openFile':
+          await this.openRepositoryFile(message.path);
+          break;
 
-      case 'revealInExplorer':
-        await this.revealRepositoryFile(message.path);
-        break;
+        case 'revealInExplorer':
+          await this.revealRepositoryFile(message.path);
+          break;
 
-      case 'copyPath':
-        await vscode.env.clipboard.writeText(message.path);
-        vscode.window.showInformationMessage('Path copied to clipboard');
-        break;
+        case 'copyPath':
+          await vscode.env.clipboard.writeText(message.path);
+          vscode.window.showInformationMessage('Path copied to clipboard');
+          break;
 
-      case 'getSettings':
-        console.log('[RepoStats] Handling getSettings request');
-        await this.sendCurrentRepositoryContext(webview);
-        break;
+        case 'getSettings':
+          console.log('[RepoStats] Handling getSettings request');
+          await this.sendCurrentRepositoryContext(webview);
+          break;
 
-      case 'updateSettings': {
-        const shouldPromptReanalysis = await this.updateSettings(
-          message.settings,
-          message.target ?? 'global'
-        );
-        await this.sendCurrentRepositoryContext(webview);
-        await this.analysisService.sendStalenessStatus(
-          webview,
-          await this.repositoryService.getSelectedRepository()
-        );
+        case 'updateSettings': {
+          const shouldPromptReanalysis = await this.updateSettings(
+            message.settings,
+            message.target ?? 'global'
+          );
+          await this.sendCurrentRepositoryContext(webview);
+          await this.analysisService.sendStalenessStatus(
+            webview,
+            await this.repositoryService.getSelectedRepository()
+          );
 
-        if (shouldPromptReanalysis) {
-          await this.promptReanalysisForFileScopeSetting(webview);
+          if (shouldPromptReanalysis) {
+            await this.promptReanalysisForFileScopeSetting(webview);
+          }
+          break;
         }
-        break;
-      }
 
-      case 'updateScopedSetting': {
-        const shouldPromptReanalysis = await this.updateScopedSetting(
-          message.key,
-          message.value,
-          message.target
-        );
-        await this.sendCurrentRepositoryContext(webview);
-        await this.analysisService.sendStalenessStatus(
-          webview,
-          await this.repositoryService.getSelectedRepository()
-        );
+        case 'updateScopedSetting': {
+          const shouldPromptReanalysis = await this.updateScopedSetting(
+            message.key,
+            message.value,
+            message.target
+          );
+          await this.sendCurrentRepositoryContext(webview);
+          await this.analysisService.sendStalenessStatus(
+            webview,
+            await this.repositoryService.getSelectedRepository()
+          );
 
-        if (shouldPromptReanalysis) {
-          await this.promptReanalysisForFileScopeSetting(webview);
+          if (shouldPromptReanalysis) {
+            await this.promptReanalysisForFileScopeSetting(webview);
+          }
+          break;
         }
-        break;
-      }
 
-      case 'resetScopedSetting': {
-        const shouldPromptReanalysis = await this.resetScopedSettingOverride(message.key);
-        await this.sendCurrentRepositoryContext(webview);
-        await this.analysisService.sendStalenessStatus(
-          webview,
-          await this.repositoryService.getSelectedRepository()
-        );
+        case 'resetScopedSetting': {
+          const shouldPromptReanalysis = await this.resetScopedSettingOverride(message.key);
+          await this.sendCurrentRepositoryContext(webview);
+          await this.analysisService.sendStalenessStatus(
+            webview,
+            await this.repositoryService.getSelectedRepository()
+          );
 
-        if (shouldPromptReanalysis) {
-          await this.promptReanalysisForFileScopeSetting(webview);
+          if (shouldPromptReanalysis) {
+            await this.promptReanalysisForFileScopeSetting(webview);
+          }
+          break;
         }
-        break;
       }
+    } catch (error) {
+      console.error('[RepoStats] Failed to handle webview message:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      vscode.window.showErrorMessage(`Repo Stats error: ${errorMessage}`);
+      await this.sendCurrentRepositoryContext(webview);
+      await this.analysisService.sendStalenessStatus(
+        webview,
+        await this.repositoryService.getSelectedRepository()
+      );
     }
+  }
+
+  private getConfiguredBookmarkedRepositories(): string[] {
+    const configured = vscode.workspace
+      .getConfiguration('repoStats')
+      .get<unknown>('bookmarkedRepositories');
+
+    if (!Array.isArray(configured)) {
+      return [];
+    }
+
+    return configured.filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
+  }
+
+  private getRepositoryPickerDescription(repository: RepositoryOption): string {
+    if (repository.source === 'workspace') {
+      if (repository.relativePath === '.' || !repository.relativePath) {
+        return repository.workspaceFolderName ?? 'Workspace';
+      }
+
+      return `${repository.workspaceFolderName ?? 'Workspace'}/${repository.relativePath}`;
+    }
+
+    return 'Bookmarked repository';
   }
 
   private async runAnalysis(webview: vscode.Webview): Promise<void> {

@@ -20,7 +20,7 @@ export class RepositorySettingsService {
     target: SettingWriteTarget
   ): Promise<boolean> {
     const config = this.getConfig(repository);
-    const configTarget = this.toConfigurationTarget(target);
+    const configTarget = this.toConfigurationTarget(repository, target);
     const previousSettings = this.getSettings(repository);
 
     for (const update of flattenSettingsUpdate(settings)) {
@@ -38,7 +38,7 @@ export class RepositorySettingsService {
   ): Promise<boolean> {
     const config = this.getConfig(repository);
     const previousSettings = this.getSettings(repository);
-    await config.update(key, value, this.toConfigurationTarget(target));
+    await config.update(key, value, this.toConfigurationTarget(repository, target));
     return settingsAffectCoreAnalysis(previousSettings, this.getSettings(repository));
   }
 
@@ -48,6 +48,10 @@ export class RepositorySettingsService {
   ): Promise<boolean> {
     const config = this.getConfig(repository);
     const previousSettings = this.getSettings(repository);
+    if (!repository.workspaceFolder) {
+      throw new Error('Repo-scoped settings are only available for repositories inside the current workspace.');
+    }
+
     await config.update(key, undefined, vscode.ConfigurationTarget.WorkspaceFolder);
     return settingsAffectCoreAnalysis(previousSettings, this.getSettings(repository));
   }
@@ -107,7 +111,7 @@ export class RepositorySettingsService {
   }
 
   private getConfig(repository: RepositoryContext): vscode.WorkspaceConfiguration {
-    return vscode.workspace.getConfiguration('repoStats', repository.workspaceFolder.uri);
+    return vscode.workspace.getConfiguration('repoStats', repository.workspaceFolder?.uri ?? repository.rootUri);
   }
 
   private getRequiredConfigValue<T>(config: vscode.WorkspaceConfiguration, key: string): T {
@@ -136,9 +140,17 @@ export class RepositorySettingsService {
     return buildScopedSettingValue(inspect) as unknown as RepoScopedSettings[K];
   }
 
-  private toConfigurationTarget(target: SettingWriteTarget): vscode.ConfigurationTarget {
-    return target === 'repo'
-      ? vscode.ConfigurationTarget.WorkspaceFolder
-      : vscode.ConfigurationTarget.Global;
+  private toConfigurationTarget(
+    repository: RepositoryContext,
+    target: SettingWriteTarget
+  ): vscode.ConfigurationTarget {
+    if (target === 'repo') {
+      if (!repository.workspaceFolder) {
+        throw new Error('Repo-scoped settings are only available for repositories inside the current workspace.');
+      }
+      return vscode.ConfigurationTarget.WorkspaceFolder;
+    }
+
+    return vscode.ConfigurationTarget.Global;
   }
 }

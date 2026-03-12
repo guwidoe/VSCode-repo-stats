@@ -11,9 +11,10 @@ describe('repositorySelection helpers', () => {
     expect(getRepositoryRelativePath('/workspace/project/packages/api', '/workspace/project')).toBe('packages/api');
   });
 
-  it('builds repository options with name and workspace metadata', () => {
+  it('builds workspace repository options with source and workspace metadata', () => {
     expect(
       buildRepositoryOption({
+        source: 'workspace',
         repoPath: '/workspace/project/packages/api',
         workspaceFolderPath: '/workspace/project',
         workspaceFolderName: 'project',
@@ -21,8 +22,22 @@ describe('repositorySelection helpers', () => {
     ).toEqual({
       path: '/workspace/project/packages/api',
       name: 'api',
+      source: 'workspace',
       workspaceFolderName: 'project',
       relativePath: 'packages/api',
+    });
+  });
+
+  it('builds bookmarked repository options without workspace metadata', () => {
+    expect(
+      buildRepositoryOption({
+        source: 'bookmarked',
+        repoPath: '/repos/service-a',
+      })
+    ).toEqual({
+      path: '/repos/service-a',
+      name: 'service-a',
+      source: 'bookmarked',
     });
   });
 

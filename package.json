@@ -35,7 +35,8 @@
     "workspaceContains:.git",
     "onCommand:repoStats.showDashboard",
     "onCommand:repoStats.refreshStats",
-    "onCommand:repoStats.selectRepository"
+    "onCommand:repoStats.selectRepository",
+    "onCommand:repoStats.addRepository"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -51,6 +52,10 @@
       {
         "command": "repoStats.selectRepository",
         "title": "Repo Stats: Select Repository"
+      },
+      {
+        "command": "repoStats.addRepository",
+        "title": "Repo Stats: Add Repository"
       }
     ],
     "configuration": {
@@ -209,6 +214,15 @@
           "scope": "resource",
           "default": false,
           "description": "Include Git submodule files in LOC/file-tree analysis (Overview + Files + Treemap). Does not aggregate submodule history in Contributors, Code Frequency, or Evolution."
+        },
+        "repoStats.bookmarkedRepositories": {
+          "type": "array",
+          "scope": "application",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Bookmarked Git repository paths shown in the repository selector even when they are outside the current workspace"
         },
         "repoStats.showEmptyTimePeriods": {
           "type": "boolean",

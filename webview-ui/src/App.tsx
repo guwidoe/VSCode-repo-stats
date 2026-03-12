@@ -23,11 +23,15 @@ import { LimitWarning } from './components/common/LimitWarning';
 import './App.css';
 
 function formatRepositoryOption(option: RepositoryOption): string {
-  if (option.relativePath === '.') {
-    return `${option.name} — ${option.workspaceFolderName}`;
+  if (option.source === 'workspace') {
+    if (option.relativePath === '.' || !option.relativePath) {
+      return `${option.name} — ${option.workspaceFolderName ?? 'Workspace'}`;
+    }
+
+    return `${option.name} — ${option.workspaceFolderName ?? 'Workspace'}/${option.relativePath}`;
   }
 
-  return `${option.name} — ${option.workspaceFolderName}/${option.relativePath}`;
+  return `${option.name} — Bookmarked (${option.path})`;
 }
 
 export function App() {

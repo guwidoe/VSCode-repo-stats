@@ -138,11 +138,14 @@ export interface RepositoryInfo {
   headSha: string;
 }
 
+export type RepositorySource = 'workspace' | 'bookmarked';
+
 export interface RepositoryOption {
   path: string;
   name: string;
-  workspaceFolderName: string;
-  relativePath: string;
+  source: RepositorySource;
+  workspaceFolderName?: string;
+  relativePath?: string;
 }
 
 export interface SccInfo {
