@@ -374,8 +374,8 @@
     "@types/chai": "^5.2.3",
     "@types/mocha": "^10.0.6",
     "@types/node": "^25.x",
-    "@types/vscode": "^1.109.0",
-    "@typescript-eslint/eslint-plugin": "^8.56.1",
+    "@types/vscode": "^1.110.0",
+    "@typescript-eslint/eslint-plugin": "^8.57.0",
     "@typescript-eslint/parser": "^8.56.1",
     "@vitejs/plugin-react": "^5.1.4",
     "@vitest/coverage-v8": "^4.0.18",
@@ -394,6 +394,6 @@
     "vscode-extension-tester": "^8.22.1"
   },
   "dependencies": {
-    "simple-git": "^3.32.3"
+    "simple-git": "^3.33.0"
   }
 }
