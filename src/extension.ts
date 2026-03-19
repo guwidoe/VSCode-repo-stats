@@ -20,7 +20,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const showDashboardCommand = vscode.commands.registerCommand(
     'repoStats.showDashboard',
     async () => {
-      await provider?.showDashboard();
+      await runProviderCommand('show dashboard', () => provider?.showDashboard());
     }
   );
 
@@ -28,21 +28,21 @@ export function activate(context: vscode.ExtensionContext): void {
   const refreshCommand = vscode.commands.registerCommand(
     'repoStats.refreshStats',
     async () => {
-      await provider?.refresh();
+      await runProviderCommand('refresh stats', () => provider?.refresh());
     }
   );
 
   const selectRepositoryCommand = vscode.commands.registerCommand(
     'repoStats.selectRepository',
     async () => {
-      await provider?.promptRepositorySelection();
+      await runProviderCommand('select analysis target', () => provider?.promptRepositorySelection());
     }
   );
 
   const addRepositoryCommand = vscode.commands.registerCommand(
     'repoStats.addRepository',
     async () => {
-      await provider?.addRepository();
+      await runProviderCommand('add repository', () => provider?.addRepository());
     }
   );
 
@@ -70,4 +70,24 @@ export function activate(context: vscode.ExtensionContext): void {
 export function deactivate(): void {
   provider = undefined;
   console.log('Repo Stats extension deactivated');
+}
+
+async function runProviderCommand(
+  action: string,
+  command: () => Promise<void> | undefined
+): Promise<void> {
+  if (!provider) {
+    const message = 'Repo Stats did not finish activating. Check the Extension Host log for details.';
+    console.error(`[RepoStats] Cannot ${action}: provider is unavailable`);
+    vscode.window.showErrorMessage(message);
+    return;
+  }
+
+  try {
+    await command();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error(`[RepoStats] Failed to ${action}:`, error);
+    vscode.window.showErrorMessage(`Repo Stats failed to ${action}: ${message}`);
+  }
 }

@@ -64,7 +64,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       return;
     }
 
-    this.panel = vscode.window.createWebviewPanel(
+    const panel = vscode.window.createWebviewPanel(
       'repoStatsDashboard',
       'Repo Stats',
       vscode.ViewColumn.One,
@@ -77,25 +77,20 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       }
     );
 
-    this.panel.webview.html = this.getWebviewContent(this.panel.webview);
-    this.panel.webview.onDidReceiveMessage(
-      (message: WebviewMessage) => this.handleWebviewMessage(message, this.panel!.webview),
+    this.panel = panel;
+    panel.webview.html = this.getWebviewContent(panel.webview);
+    panel.webview.onDidReceiveMessage(
+      (message: WebviewMessage) => this.handleWebviewMessage(message, panel.webview),
       undefined,
       []
     );
-    this.panel.onDidDispose(() => {
-      this.panel = undefined;
+    panel.onDidDispose(() => {
+      if (this.panel === panel) {
+        this.panel = undefined;
+      }
     });
 
-    setTimeout(() => {
-      if (this.panel) {
-        console.log('[RepoStats] Sending initial target context');
-        void this.sendCurrentTargetContext(this.panel.webview);
-      }
-    }, 100);
-
-    await this.runAnalysis(this.panel.webview);
-    await this.sendCurrentTargetContext(this.panel.webview);
+    void this.initializePanel(panel);
   }
 
   async refresh(): Promise<void> {
@@ -196,6 +191,40 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
 
     if (!currentSelection && selection.selected) {
       await this.analysisService.runAnalysis(this.panel.webview, selection.selected);
+    }
+  }
+
+  private async initializePanel(panel: vscode.WebviewPanel): Promise<void> {
+    try {
+      await delay(100);
+
+      if (this.panel !== panel) {
+        return;
+      }
+
+      console.log('[RepoStats] Initializing dashboard panel');
+      await this.sendCurrentTargetContext(panel.webview);
+      await this.runAnalysis(panel.webview);
+      await this.sendCurrentTargetContext(panel.webview);
+    } catch (error) {
+      console.error('[RepoStats] Failed to initialize dashboard panel:', error);
+
+      if (this.panel !== panel) {
+        return;
+      }
+
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      vscode.window.showErrorMessage(`Repo Stats failed to initialize: ${errorMessage}`);
+      this.sendMessage(panel.webview, {
+        type: 'analysisError',
+        error: errorMessage,
+      });
+
+      try {
+        await this.sendCurrentTargetContext(panel.webview);
+      } catch (contextError) {
+        console.error('[RepoStats] Failed to recover target context after initialization error:', contextError);
+      }
     }
   }
 
@@ -563,4 +592,10 @@ function getNonce(): string {
     text += possible.charAt(Math.floor(Math.random() * possible.length));
   }
   return text;
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
