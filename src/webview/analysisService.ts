@@ -4,10 +4,10 @@ import * as vscode from 'vscode';
 import simpleGit from 'simple-git';
 import type { ExtensionMessage, ExtensionSettings } from '../types/index.js';
 import { TargetAnalysisCoordinator } from '../analyzers/targetCoordinator.js';
-import { createEvolutionAnalyzer } from '../analyzers/evolutionAnalyzer.js';
+import { createTargetEvolutionAnalyzer } from '../analyzers/targetEvolutionAnalyzer.js';
 import { CacheManager } from '../cache/cacheManager.js';
 import { EvolutionCacheManager } from '../cache/evolutionCacheManager.js';
-import { createTargetRevisionHash } from '../cache/targetCacheKeys.js';
+import { createEvolutionRevisionHash, createTargetRevisionHash } from '../cache/targetCacheKeys.js';
 import { createCoreSettingsHash } from '../cache/coreSettingsHash.js';
 import { createEvolutionAnalysisSettingsSnapshot } from '../shared/settings.js';
 import type { AnalysisTargetContext } from './context.js';
@@ -140,33 +140,24 @@ export class RepoAnalysisService {
       return;
     }
 
-    if (target.target.members.length > 1) {
-      this.sendMessage(webview, {
-        type: 'evolutionError',
-        error: 'Evolution aggregation for multi-repository targets is not available yet.',
-      });
-      return;
-    }
-
-    const member = target.target.members[0];
-    if (!member) {
-      this.sendMessage(webview, {
-        type: 'evolutionError',
-        error: 'The selected analysis target has no repositories.',
-      });
-      return;
-    }
-
     try {
       const settings = this.settingsService.getSettings(target.settingsRepository);
       const storage = new WorkspaceStateStorage(this.workspaceState);
       const evolutionCacheManager = new EvolutionCacheManager(storage, target.target.id);
-      const git = simpleGit(member.repoPath);
-      const [branchRaw, headShaRaw] = await Promise.all([
-        git.revparse(['--abbrev-ref', 'HEAD']),
-        git.revparse(['HEAD']),
-      ]);
-      const currentRevisionHash = createEvolutionRevisionHash(branchRaw.trim(), headShaRaw.trim(), member.repoPath);
+      const memberHeads = await Promise.all(target.target.members.map(async (member) => {
+        const git = simpleGit(member.repoPath);
+        const [branchRaw, headShaRaw] = await Promise.all([
+          git.revparse(['--abbrev-ref', 'HEAD']),
+          git.revparse(['HEAD']),
+        ]);
+        return {
+          repositoryId: member.id,
+          repositoryName: member.displayName,
+          branch: branchRaw.trim(),
+          headSha: headShaRaw.trim(),
+        };
+      }));
+      const currentRevisionHash = createEvolutionRevisionHash(memberHeads);
       const settingsHash = createEvolutionSettingsHash(settings);
       const validCached = evolutionCacheManager.getIfValid(currentRevisionHash, settingsHash);
 
@@ -201,7 +192,7 @@ export class RepoAnalysisService {
           ) {
             this.sendMessage(webview, {
               type: 'evolutionStale',
-              reason: 'Repository HEAD or Evolution settings changed since the last run.',
+              reason: 'Target revision or Evolution settings changed since the last run.',
             });
           }
 
@@ -217,7 +208,7 @@ export class RepoAnalysisService {
 
       this.sendMessage(webview, { type: 'evolutionStarted' });
 
-      const analyzer = createEvolutionAnalyzer(member.repoPath, settings);
+      const analyzer = createTargetEvolutionAnalyzer(target.target, settings);
       const result = await analyzer.analyze((phase, progress) => {
         this.sendMessage(webview, {
           type: 'evolutionProgress',
@@ -274,9 +265,14 @@ export class RepoAnalysisService {
       const settings = this.settingsService.getSettings(target.settingsRepository);
       const currentCoreRevisionHash = createTargetRevisionHash(target.target, revisions);
       const currentCoreSettingsHash = createCoreSettingsHash(settings);
-      const currentEvolutionRevisionHash = target.target.members.length === 1
-        ? createEvolutionRevisionHash(revisions[0].branch, revisions[0].headSha, target.target.members[0].repoPath)
-        : currentCoreRevisionHash;
+      const currentEvolutionRevisionHash = createEvolutionRevisionHash(
+        revisions.map((revision, index) => ({
+          repositoryId: revision.repositoryId,
+          repositoryName: target.target.members[index]?.displayName ?? revision.repositoryId,
+          branch: revision.branch,
+          headSha: revision.headSha,
+        }))
+      );
       const currentEvolutionSettingsHash = createEvolutionSettingsHash(settings);
       const lastCoreState = this.lastCoreStateByTarget.get(target.target.id);
       const lastEvolutionState = this.lastEvolutionStateByTarget.get(target.target.id);
@@ -324,10 +320,5 @@ export class RepoAnalysisService {
 
 function createEvolutionSettingsHash(settings: ExtensionSettings): string {
   const payload = JSON.stringify(createEvolutionAnalysisSettingsSnapshot(settings));
-  return crypto.createHash('sha1').update(payload).digest('hex').slice(0, 16);
-}
-
-function createEvolutionRevisionHash(branch: string, headSha: string, repoPath: string): string {
-  const payload = JSON.stringify({ branch, headSha, repoPath });
   return crypto.createHash('sha1').update(payload).digest('hex').slice(0, 16);
 }
