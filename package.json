@@ -374,7 +374,8 @@
     "bench:compare-prev": "./tools/benchmark_baseline.sh compare-prev",
     "bench:remote:check": "./tools/remote_benchmark_async.sh check",
     "validate": "npm run typecheck && npm run lint && npm run test && npm run package",
-    "package": "vsce package --no-dependencies",
+    "package": "node ./tools/package_vsix.js",
+    "package:clean": "node ./tools/package_vsix.js --clean",
     "build": "npm run compile"
   },
   "devDependencies": {
