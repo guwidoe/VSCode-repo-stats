@@ -198,9 +198,18 @@ export class EvolutionAnalyzer {
 
     const result: EvolutionResult = {
       generatedAt: new Date().toISOString(),
-      headSha,
-      branch,
+      targetId: this.repoPath,
+      historyMode: 'singleBranch',
+      revisionHash: this.createRevisionHash(branch, headSha),
       settingsHash,
+      memberHeads: [
+        {
+          repositoryId: this.repoPath,
+          repositoryName: path.basename(this.repoPath),
+          branch,
+          headSha,
+        },
+      ],
       cohorts: this.toSeries(snapshotPoints, snapshotTotals.cohort),
       authors: this.toSeries(snapshotPoints, snapshotTotals.author),
       exts: this.toSeries(snapshotPoints, snapshotTotals.ext),
@@ -585,6 +594,11 @@ export class EvolutionAnalyzer {
 
   private createSettingsHash(): string {
     const payload = JSON.stringify(createEvolutionAnalysisSettingsSnapshot(this.settings));
+    return crypto.createHash('sha1').update(payload).digest('hex').slice(0, 16);
+  }
+
+  private createRevisionHash(branch: string, headSha: string): string {
+    const payload = JSON.stringify({ branch, headSha, repoPath: this.repoPath });
     return crypto.createHash('sha1').update(payload).digest('hex').slice(0, 16);
   }
 }

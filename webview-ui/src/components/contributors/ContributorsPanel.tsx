@@ -77,12 +77,6 @@ export function ContributorsPanel() {
         </div>
       </div>
 
-      {settings?.includeSubmodules && data.submodules && data.submodules.count > 0 && (
-        <div className="submodule-note">
-          Note: Contributors are based on parent-repo history only. Submodule repositories are not aggregated in this tab.
-        </div>
-      )}
-
       <div className="commits-chart-container">
         <h3>Commits Over Time</h3>
         <CommitsChart contributors={deferredContributors} granularity={deferredGranularity} />

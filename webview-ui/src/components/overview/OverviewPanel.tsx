@@ -205,21 +205,21 @@ export function OverviewPanel() {
         )}
       </div>
 
-      {stats.submodules && stats.submodules.count > 0 && (
+      {stats.target.memberCount > 1 && (
         <div className="info-row">
           <div className="info-section submodule-section">
             <h3 className="section-title">
-              Git Submodules
-              <span className="section-count">{stats.submodules.count.toLocaleString()}</span>
+              Analysis Target
+              <span className="section-count">{stats.target.memberCount.toLocaleString()}</span>
             </h3>
             <p className="section-description">
-              {settings.includeSubmodules
-                ? 'Submodule files are included in this analysis.'
-                : 'Submodule files are currently excluded from analysis.'}
+              This analysis aggregates multiple repositories into one target.
             </p>
             <div className="submodule-list">
-              {stats.submodules.paths.map((path) => (
-                <span key={path} className="submodule-path">{path}</span>
+              {stats.target.repositories.map((repository) => (
+                <span key={repository.id} className="submodule-path">
+                  {repository.pathPrefix || repository.name}
+                </span>
               ))}
             </div>
           </div>

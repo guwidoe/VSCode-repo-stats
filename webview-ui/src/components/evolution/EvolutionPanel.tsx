@@ -84,12 +84,20 @@ export function EvolutionPanel() {
     );
   }
 
+  const targetLabel = data?.target?.label ?? data?.repositories?.[0]?.name ?? 'Evolution';
+  const memberHeads = evolutionData.memberHeads ?? [];
+
   return (
     <div className="evolution-panel">
       <div className="panel-header">
         <h2>Evolution</h2>
         <span className="evolution-meta">
-          {data?.repository.name} • {evolutionData.branch} • {evolutionData.headSha.slice(0, 8)}
+          {targetLabel}
+          {memberHeads.length === 1
+            ? ` • ${memberHeads[0]?.branch ?? ''} • ${memberHeads[0]?.headSha.slice(0, 8) ?? ''}`
+            : memberHeads.length > 1
+              ? ` • ${memberHeads.length} repos • merged history`
+              : ''}
         </span>
       </div>
 
@@ -97,12 +105,6 @@ export function EvolutionPanel() {
         <div className="evolution-stale-banner">
           Evolution data is stale (repository or settings changed).
           <button onClick={requestEvolutionRefresh}>Recompute</button>
-        </div>
-      )}
-
-      {settings.includeSubmodules && data?.submodules && data.submodules.count > 0 && (
-        <div className="evolution-note-banner">
-          Evolution analysis uses parent-repo history only. Submodule repositories are not aggregated in this tab.
         </div>
       )}
 

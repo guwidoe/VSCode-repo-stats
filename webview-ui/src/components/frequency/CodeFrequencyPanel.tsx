@@ -100,12 +100,6 @@ export function CodeFrequencyPanel() {
         </div>
       </div>
 
-      {settings?.includeSubmodules && data?.submodules && data.submodules.count > 0 && (
-        <div className="submodule-note">
-          Note: Code Frequency uses parent-repo history only. Submodule repositories are not aggregated in this tab.
-        </div>
-      )}
-
       <div className="chart-container">
         <Plot
           data={[

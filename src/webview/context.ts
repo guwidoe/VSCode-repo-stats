@@ -1,5 +1,9 @@
 import * as vscode from 'vscode';
-import type { RepositoryOption } from '../types/index.js';
+import type {
+  AnalysisTarget,
+  AnalysisTargetOption,
+  RepositoryOption,
+} from '../types/index.js';
 
 export interface GitRepositoryHandle {
   rootUri: vscode.Uri;
@@ -19,7 +23,18 @@ export interface RepositoryContext {
   workspaceFolder?: vscode.WorkspaceFolder;
 }
 
+export interface AnalysisTargetContext {
+  option: AnalysisTargetOption;
+  target: AnalysisTarget;
+  settingsRepository?: RepositoryContext;
+}
+
 export interface RepositorySelection {
   repositories: RepositoryContext[];
   selected: RepositoryContext | null;
+}
+
+export interface AnalysisTargetSelection {
+  targets: AnalysisTargetContext[];
+  selected: AnalysisTargetContext | null;
 }

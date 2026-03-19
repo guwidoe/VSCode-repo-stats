@@ -11,13 +11,25 @@ describe('CacheManager', () => {
   let cacheManager: CacheManager;
 
   const mockResult: AnalysisResult = {
-    repository: {
-      name: 'test-repo',
-      path: '/path/to/repo',
-      branch: 'main',
-      commitCount: 100,
-      headSha: 'abc123',
+    target: {
+      id: 'repo:/path/to/repo',
+      kind: 'repository',
+      label: 'test-repo',
+      memberCount: 1,
     },
+    repositories: [
+      {
+        id: '/path/to/repo',
+        name: 'test-repo',
+        path: '/path/to/repo',
+        branch: 'main',
+        commitCount: 100,
+        headSha: 'abc123',
+        role: 'primary',
+        logicalRoot: 'test-repo',
+        pathPrefix: '',
+      },
+    ],
     contributors: [
       {
         name: 'Test User',
@@ -47,6 +59,7 @@ describe('CacheManager', () => {
       records: [
         {
           sha: 'abc123',
+          repositoryId: '/path/to/repo',
           authorId: 0,
           committedAt: '2024-12-01T00:00:00Z',
           timestamp: 1733011200,
@@ -114,34 +127,34 @@ describe('CacheManager', () => {
 
   beforeEach(() => {
     storage = new InMemoryCacheStorage();
-    cacheManager = new CacheManager(storage, '/path/to/repo');
+    cacheManager = new CacheManager(storage, 'repo:/path/to/repo');
   });
 
   describe('isValid', () => {
     it('should return false for empty cache', () => {
-      expect(cacheManager.isValid('abc123')).toBe(false);
+      expect(cacheManager.isValid('rev-1')).toBe(false);
     });
 
-    it('should return true for valid cache with matching SHA', () => {
-      cacheManager.save(mockResult, {}, 'settings-hash-1');
-      expect(cacheManager.isValid('abc123', 'settings-hash-1')).toBe(true);
+    it('should return true for valid cache with matching revision', () => {
+      cacheManager.save(mockResult, 'rev-1', {}, 'settings-hash-1');
+      expect(cacheManager.isValid('rev-1', 'settings-hash-1')).toBe(true);
     });
 
-    it('should return false for cache with different SHA', () => {
-      cacheManager.save(mockResult, {}, 'settings-hash-1');
-      expect(cacheManager.isValid('xyz789', 'settings-hash-1')).toBe(false);
+    it('should return false for cache with different revision', () => {
+      cacheManager.save(mockResult, 'rev-1', {}, 'settings-hash-1');
+      expect(cacheManager.isValid('rev-2', 'settings-hash-1')).toBe(false);
     });
 
     it('should return false for cache with different settings hash', () => {
-      cacheManager.save(mockResult, {}, 'settings-hash-1');
-      expect(cacheManager.isValid('abc123', 'settings-hash-2')).toBe(false);
+      cacheManager.save(mockResult, 'rev-1', {}, 'settings-hash-1');
+      expect(cacheManager.isValid('rev-1', 'settings-hash-2')).toBe(false);
     });
   });
 
   describe('save and getIfValid', () => {
     it('should save and retrieve analysis result', () => {
-      cacheManager.save(mockResult, {}, 'settings-hash-1');
-      const cached = cacheManager.getIfValid('abc123', 'settings-hash-1');
+      cacheManager.save(mockResult, 'rev-1', {}, 'settings-hash-1');
+      const cached = cacheManager.getIfValid('rev-1', 'settings-hash-1');
 
       expect(cached).not.toBeNull();
       expect(cached?.contributors).toHaveLength(1);
@@ -150,16 +163,16 @@ describe('CacheManager', () => {
       expect(cached?.blameMetrics.totals.totalBlamedLines).toBe(16);
     });
 
-    it('should return null for invalid SHA', () => {
-      cacheManager.save(mockResult, {}, 'settings-hash-1');
-      const cached = cacheManager.getIfValid('wrong-sha', 'settings-hash-1');
+    it('should return null for invalid revision', () => {
+      cacheManager.save(mockResult, 'rev-1', {}, 'settings-hash-1');
+      const cached = cacheManager.getIfValid('wrong-rev', 'settings-hash-1');
 
       expect(cached).toBeNull();
     });
 
     it('should return null for invalid settings hash', () => {
-      cacheManager.save(mockResult, {}, 'settings-hash-1');
-      const cached = cacheManager.getIfValid('abc123', 'settings-hash-2');
+      cacheManager.save(mockResult, 'rev-1', {}, 'settings-hash-1');
+      const cached = cacheManager.getIfValid('rev-1', 'settings-hash-2');
 
       expect(cached).toBeNull();
     });
@@ -167,34 +180,36 @@ describe('CacheManager', () => {
 
   describe('clear', () => {
     it('should clear the cache', () => {
-      cacheManager.save(mockResult);
-      expect(cacheManager.isValid('abc123')).toBe(true);
+      cacheManager.save(mockResult, 'rev-1');
+      expect(cacheManager.isValid('rev-1')).toBe(true);
 
       cacheManager.clear();
-      expect(cacheManager.isValid('abc123')).toBe(false);
+      expect(cacheManager.isValid('rev-1')).toBe(false);
     });
   });
 
-  describe('getBlameFileCache', () => {
+  describe('getBlameFileCaches', () => {
     it('should return cached blame file entries when available', () => {
-      cacheManager.save(mockResult, {
-        'src/a.ts': {
-          blobSha: 'blob-a',
-          totalLines: 10,
-          ageCounts: [[1, 10]],
-          ownership: [{ author: 'Test User', email: 'test@example.com', lines: 10 }],
-          minAgeDays: 1,
-          maxAgeDays: 1,
-          avgAgeDays: 1,
-          topOwnerAuthor: 'Test User',
-          topOwnerEmail: 'test@example.com',
-          topOwnerLines: 10,
-          topOwnerShare: 1,
+      cacheManager.save(mockResult, 'rev-1', {
+        '/path/to/repo': {
+          'src/a.ts': {
+            blobSha: 'blob-a',
+            totalLines: 10,
+            ageCounts: [[1, 10]],
+            ownership: [{ author: 'Test User', email: 'test@example.com', lines: 10 }],
+            minAgeDays: 1,
+            maxAgeDays: 1,
+            avgAgeDays: 1,
+            topOwnerAuthor: 'Test User',
+            topOwnerEmail: 'test@example.com',
+            topOwnerLines: 10,
+            topOwnerShare: 1,
+          },
         },
       });
 
-      const fileCache = cacheManager.getBlameFileCache();
-      expect(fileCache['src/a.ts']?.blobSha).toBe('blob-a');
+      const fileCaches = cacheManager.getBlameFileCaches();
+      expect(fileCaches['/path/to/repo']?.['src/a.ts']?.blobSha).toBe('blob-a');
     });
   });
 
@@ -204,7 +219,7 @@ describe('CacheManager', () => {
     });
 
     it('should return date for cached result', () => {
-      cacheManager.save(mockResult);
+      cacheManager.save(mockResult, 'rev-1');
       const lastAnalyzed = cacheManager.getLastAnalyzed();
 
       expect(lastAnalyzed).toBeInstanceOf(Date);

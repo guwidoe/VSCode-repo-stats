@@ -8,15 +8,16 @@ import * as path from 'path';
 import * as fs from 'fs';
 import simpleGit from 'simple-git';
 import {
+  AnalysisTargetOption,
   ExtensionMessage,
   RepoScopableSettingKey,
   RepoScopableSettingValueMap,
-  RepositoryOption,
   SettingWriteTarget,
   WebviewMessage,
 } from '../types/index.js';
-import type { RepositorySelection } from './context.js';
+import type { AnalysisTargetSelection } from './context.js';
 import { RepoAnalysisService } from './analysisService.js';
+import { AnalysisTargetService } from './analysisTargetService.js';
 import { RepositoryService } from './repositoryService.js';
 import { RepositorySettingsService } from './settingsService.js';
 
@@ -25,6 +26,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
 
   private panel: vscode.WebviewPanel | undefined;
   private readonly repositoryService: RepositoryService;
+  private readonly analysisTargetService: AnalysisTargetService;
   private readonly settingsService: RepositorySettingsService;
   private readonly analysisService: RepoAnalysisService;
 
@@ -34,6 +36,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     globalStoragePath: string
   ) {
     this.repositoryService = new RepositoryService(workspaceState);
+    this.analysisTargetService = new AnalysisTargetService(workspaceState, this.repositoryService);
     this.settingsService = new RepositorySettingsService();
     this.analysisService = new RepoAnalysisService(
       workspaceState,
@@ -86,13 +89,13 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
 
     setTimeout(() => {
       if (this.panel) {
-        console.log('[RepoStats] Sending initial repository context');
-        void this.sendCurrentRepositoryContext(this.panel.webview);
+        console.log('[RepoStats] Sending initial target context');
+        void this.sendCurrentTargetContext(this.panel.webview);
       }
     }, 100);
 
     await this.runAnalysis(this.panel.webview);
-    await this.sendCurrentRepositoryContext(this.panel.webview);
+    await this.sendCurrentTargetContext(this.panel.webview);
   }
 
   async refresh(): Promise<void> {
@@ -101,7 +104,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       return;
     }
 
-    const selection = await this.repositoryService.resolveSelection();
+    const selection = await this.analysisTargetService.resolveSelection();
     if (selection.selected) {
       this.analysisService.clearCache(selection.selected);
     }
@@ -110,22 +113,22 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
   }
 
   public async promptRepositorySelection(): Promise<void> {
-    const selection = await this.repositoryService.resolveSelection();
-    if (selection.repositories.length === 0) {
+    const selection = await this.analysisTargetService.resolveSelection();
+    if (selection.targets.length === 0) {
       vscode.window.showInformationMessage('No Git repositories were found in the workspace or bookmarked list.');
       return;
     }
 
     const picked = await vscode.window.showQuickPick(
-      selection.repositories.map((repository) => ({
-        label: repository.option.name,
-        description: this.getRepositoryPickerDescription(repository.option),
-        detail: repository.option.path,
-        repository,
+      selection.targets.map((target) => ({
+        label: target.option.label,
+        description: this.getTargetPickerDescription(target.option),
+        detail: target.target.members.map((member) => member.repoPath).join(' • '),
+        target,
       })),
       {
-        title: 'Select Repository',
-        placeHolder: 'Choose the repository to analyze in Repo Stats',
+        title: 'Select Analysis Target',
+        placeHolder: 'Choose the repository target to analyze in Repo Stats',
       }
     );
 
@@ -133,14 +136,14 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       return;
     }
 
-    await this.repositoryService.persistSelectedRepoPath(picked.repository.option.path);
+    await this.analysisTargetService.persistSelectedTargetId(picked.target.option.id);
 
     if (!this.panel) {
       await this.showDashboard();
       return;
     }
 
-    await this.selectRepository(picked.repository.option.path, this.panel.webview);
+    await this.selectTarget(picked.target.option.id, this.panel.webview);
   }
 
   public async addRepository(): Promise<void> {
@@ -186,9 +189,9 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       return;
     }
 
-    const currentSelection = await this.repositoryService.getSelectedRepository();
-    const selection = await this.repositoryService.resolveSelection(currentSelection?.option.path);
-    await this.sendCurrentRepositoryContext(this.panel.webview, selection);
+    const currentSelection = await this.analysisTargetService.getSelectedTarget();
+    const selection = await this.analysisTargetService.resolveSelection(currentSelection?.option.id);
+    await this.sendCurrentTargetContext(this.panel.webview, selection);
     await this.analysisService.sendStalenessStatus(this.panel.webview, selection.selected ?? undefined);
 
     if (!currentSelection && selection.selected) {
@@ -215,7 +218,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
         case 'requestEvolutionAnalysis':
           await this.analysisService.runEvolutionAnalysis(
             webview,
-            await this.repositoryService.getSelectedRepository(),
+            await this.analysisTargetService.getSelectedTarget(),
             false
           );
           break;
@@ -223,7 +226,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
         case 'requestEvolutionRefresh':
           await this.analysisService.runEvolutionAnalysis(
             webview,
-            await this.repositoryService.getSelectedRepository(),
+            await this.analysisTargetService.getSelectedTarget(),
             true
           );
           break;
@@ -231,20 +234,20 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
         case 'checkStaleness':
           await this.analysisService.sendStalenessStatus(
             webview,
-            await this.repositoryService.getSelectedRepository()
+            await this.analysisTargetService.getSelectedTarget()
           );
           break;
 
-        case 'selectRepository':
-          await this.selectRepository(message.repoPath, webview);
+        case 'selectTarget':
+          await this.selectTarget(message.targetId, webview);
           break;
 
         case 'openFile':
-          await this.openRepositoryFile(message.path);
+          await this.openRepositoryFile(message.path, message.repositoryId);
           break;
 
         case 'revealInExplorer':
-          await this.revealRepositoryFile(message.path);
+          await this.revealRepositoryFile(message.path, message.repositoryId);
           break;
 
         case 'copyPath':
@@ -254,7 +257,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
 
         case 'getSettings':
           console.log('[RepoStats] Handling getSettings request');
-          await this.sendCurrentRepositoryContext(webview);
+          await this.sendCurrentTargetContext(webview);
           break;
 
         case 'updateSettings': {
@@ -262,10 +265,10 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
             message.settings,
             message.target ?? 'global'
           );
-          await this.sendCurrentRepositoryContext(webview);
+          await this.sendCurrentTargetContext(webview);
           await this.analysisService.sendStalenessStatus(
             webview,
-            await this.repositoryService.getSelectedRepository()
+            await this.analysisTargetService.getSelectedTarget()
           );
 
           if (shouldPromptReanalysis) {
@@ -280,10 +283,10 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
             message.value,
             message.target
           );
-          await this.sendCurrentRepositoryContext(webview);
+          await this.sendCurrentTargetContext(webview);
           await this.analysisService.sendStalenessStatus(
             webview,
-            await this.repositoryService.getSelectedRepository()
+            await this.analysisTargetService.getSelectedTarget()
           );
 
           if (shouldPromptReanalysis) {
@@ -294,10 +297,10 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
 
         case 'resetScopedSetting': {
           const shouldPromptReanalysis = await this.resetScopedSettingOverride(message.key);
-          await this.sendCurrentRepositoryContext(webview);
+          await this.sendCurrentTargetContext(webview);
           await this.analysisService.sendStalenessStatus(
             webview,
-            await this.repositoryService.getSelectedRepository()
+            await this.analysisTargetService.getSelectedTarget()
           );
 
           if (shouldPromptReanalysis) {
@@ -310,10 +313,10 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       console.error('[RepoStats] Failed to handle webview message:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       vscode.window.showErrorMessage(`Repo Stats error: ${errorMessage}`);
-      await this.sendCurrentRepositoryContext(webview);
+      await this.sendCurrentTargetContext(webview);
       await this.analysisService.sendStalenessStatus(
         webview,
-        await this.repositoryService.getSelectedRepository()
+        await this.analysisTargetService.getSelectedTarget()
       );
     }
   }
@@ -330,49 +333,49 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     return configured.filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
   }
 
-  private getRepositoryPickerDescription(repository: RepositoryOption): string {
-    if (repository.source === 'workspace') {
-      if (repository.relativePath === '.' || !repository.relativePath) {
-        return repository.workspaceFolderName ?? 'Workspace';
-      }
-
-      return `${repository.workspaceFolderName ?? 'Workspace'}/${repository.relativePath}`;
+  private getTargetPickerDescription(target: AnalysisTargetOption): string {
+    if (target.kind === 'repository') {
+      return 'Single repository';
+    }
+    if (target.kind === 'repositoryWithSubmodules') {
+      return target.description ?? 'Repository with submodules';
     }
 
-    return 'Bookmarked repository';
+    return target.description ?? 'Workspace aggregate';
   }
 
   private async runAnalysis(webview: vscode.Webview): Promise<void> {
     await this.analysisService.runAnalysis(
       webview,
-      await this.repositoryService.getSelectedRepository()
+      await this.analysisTargetService.getSelectedTarget()
     );
   }
 
-  private async selectRepository(repoPath: string, webview: vscode.Webview): Promise<void> {
-    const selection = await this.repositoryService.resolveSelection(repoPath);
-    await this.sendCurrentRepositoryContext(webview, selection);
+  private async selectTarget(targetId: string, webview: vscode.Webview): Promise<void> {
+    const selection = await this.analysisTargetService.resolveSelection(targetId);
+    await this.sendCurrentTargetContext(webview, selection);
     await this.analysisService.sendStalenessStatus(webview, selection.selected ?? undefined);
     await this.analysisService.runAnalysis(webview, selection.selected ?? undefined);
   }
 
-  private async sendCurrentRepositoryContext(
+  private async sendCurrentTargetContext(
     webview: vscode.Webview,
-    selection?: RepositorySelection
-  ): Promise<RepositorySelection> {
-    const resolved = selection ?? await this.repositoryService.resolveSelection();
+    selection?: AnalysisTargetSelection
+  ): Promise<AnalysisTargetSelection> {
+    const resolved = selection ?? await this.analysisTargetService.resolveSelection();
 
     this.sendMessage(webview, {
-      type: 'repositorySelectionLoaded',
-      repositories: resolved.repositories.map((repository) => repository.option),
-      selectedRepoPath: resolved.selected?.option.path ?? null,
+      type: 'targetSelectionLoaded',
+      targets: resolved.targets.map((target) => target.option),
+      selectedTargetId: resolved.selected?.option.id ?? null,
     });
 
     if (resolved.selected) {
       this.sendMessage(webview, {
         type: 'settingsLoaded',
-        settings: this.settingsService.getSettings(resolved.selected),
-        scopedSettings: this.settingsService.getRepoScopedSettings(resolved.selected),
+        settings: this.settingsService.getSettings(resolved.selected.settingsRepository),
+        scopedSettings: this.settingsService.getRepoScopedSettings(resolved.selected.settingsRepository),
+        repoScopeAvailable: this.settingsService.canUseRepoScope(resolved.selected.settingsRepository),
       });
     }
 
@@ -383,12 +386,12 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     settings: Parameters<RepositorySettingsService['updateSettings']>[1],
     target: SettingWriteTarget
   ): Promise<boolean> {
-    const repository = await this.repositoryService.getSelectedRepository();
-    if (!repository) {
+    const analysisTarget = await this.analysisTargetService.getSelectedTarget();
+    if (!analysisTarget) {
       return false;
     }
 
-    return this.settingsService.updateSettings(repository, settings, target);
+    return this.settingsService.updateSettings(analysisTarget.settingsRepository, settings, target);
   }
 
   private async updateScopedSetting<K extends RepoScopableSettingKey>(
@@ -396,28 +399,28 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     value: RepoScopableSettingValueMap[K],
     target: SettingWriteTarget
   ): Promise<boolean> {
-    const repository = await this.repositoryService.getSelectedRepository();
-    if (!repository) {
+    const analysisTarget = await this.analysisTargetService.getSelectedTarget();
+    if (!analysisTarget) {
       return false;
     }
 
-    return this.settingsService.updateScopedSetting(repository, key, value, target);
+    return this.settingsService.updateScopedSetting(analysisTarget.settingsRepository, key, value, target);
   }
 
   private async resetScopedSettingOverride(
     key: RepoScopableSettingKey
   ): Promise<boolean> {
-    const repository = await this.repositoryService.getSelectedRepository();
-    if (!repository) {
+    const analysisTarget = await this.analysisTargetService.getSelectedTarget();
+    if (!analysisTarget) {
       return false;
     }
 
-    return this.settingsService.resetScopedSettingOverride(repository, key);
+    return this.settingsService.resetScopedSettingOverride(analysisTarget.settingsRepository, key);
   }
 
   private async promptReanalysisForFileScopeSetting(webview: vscode.Webview): Promise<void> {
     const action = await vscode.window.showInformationMessage(
-      'Analysis settings changed. Re-analyze to update repository-based views.',
+      'Analysis settings changed. Re-analyze to update target-based views.',
       'Re-analyze now'
     );
 
@@ -426,24 +429,56 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  private async openRepositoryFile(relativePath: string): Promise<void> {
-    const repository = await this.repositoryService.getSelectedRepository();
-    if (!repository) {
+  private async openRepositoryFile(relativePath: string, repositoryId?: string): Promise<void> {
+    const filePath = await this.resolveTargetFilePath(relativePath, repositoryId);
+    if (!filePath) {
       return;
     }
 
-    const filePath = path.join(repository.rootUri.fsPath, relativePath);
     await vscode.window.showTextDocument(vscode.Uri.file(filePath));
   }
 
-  private async revealRepositoryFile(relativePath: string): Promise<void> {
-    const repository = await this.repositoryService.getSelectedRepository();
-    if (!repository) {
+  private async revealRepositoryFile(relativePath: string, repositoryId?: string): Promise<void> {
+    const filePath = await this.resolveTargetFilePath(relativePath, repositoryId);
+    if (!filePath) {
       return;
     }
 
-    const filePath = path.join(repository.rootUri.fsPath, relativePath);
     await vscode.commands.executeCommand('revealInExplorer', vscode.Uri.file(filePath));
+  }
+
+  private async resolveTargetFilePath(
+    logicalPath: string,
+    repositoryId?: string
+  ): Promise<string | undefined> {
+    const analysisTarget = await this.analysisTargetService.getSelectedTarget();
+    if (!analysisTarget) {
+      return undefined;
+    }
+
+    const matchingMember = repositoryId
+      ? analysisTarget.target.members.find((member) => member.id === repositoryId)
+      : [...analysisTarget.target.members]
+        .sort((a, b) => b.pathPrefix.length - a.pathPrefix.length)
+        .find((member) => {
+          if (!member.pathPrefix) {
+            return true;
+          }
+
+          return logicalPath === member.pathPrefix || logicalPath.startsWith(`${member.pathPrefix}/`);
+        });
+
+    if (!matchingMember) {
+      return undefined;
+    }
+
+    const relativePath = matchingMember.pathPrefix && logicalPath.startsWith(`${matchingMember.pathPrefix}/`)
+      ? logicalPath.slice(matchingMember.pathPrefix.length + 1)
+      : matchingMember.pathPrefix === logicalPath
+        ? ''
+        : logicalPath;
+
+    return path.join(matchingMember.repoPath, relativePath);
   }
 
   private sendMessage(webview: vscode.Webview, message: ExtensionMessage): void {

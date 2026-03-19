@@ -54,10 +54,15 @@ export interface OverviewStats {
     byCategory: BinaryStats[];
   };
   blame: BlameMetrics;
-  submodules: {
-    count: number;
-    paths: string[];
-  } | null;
+  target: {
+    memberCount: number;
+    repositories: Array<{
+      id: string;
+      name: string;
+      pathPrefix: string;
+      role: string;
+    }>;
+  };
 }
 
 // Binary file categories
@@ -240,9 +245,15 @@ export function useOverviewStats(): OverviewStats | null {
         byCategory,
       },
       blame: data.blameMetrics,
-      submodules: data.submodules
-        ? { count: data.submodules.count, paths: data.submodules.paths }
-        : null,
+      target: {
+        memberCount: data.target.memberCount,
+        repositories: data.repositories.map((repository) => ({
+          id: repository.id,
+          name: repository.name,
+          pathPrefix: repository.pathPrefix,
+          role: repository.role,
+        })),
+      },
     };
   }, [data, settings]);
 }

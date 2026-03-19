@@ -1,5 +1,6 @@
 import type {
   AnalysisResult,
+  AnalysisTargetOption,
   ColorMode,
   EvolutionResult,
   EvolutionStatus,
@@ -7,7 +8,6 @@ import type {
   FrequencyGranularity,
   LoadingState,
   RepoScopedSettings,
-  RepositoryOption,
   TimePeriod,
   TreemapFilterPreset,
   TreemapFilterState,
@@ -44,14 +44,16 @@ export interface EvolutionSlice {
 export interface SettingsSlice {
   settings: ExtensionSettings | null;
   scopedSettings: RepoScopedSettings | null;
+  repoScopeAvailable: boolean;
   setSettings: (settings: ExtensionSettings) => void;
   setScopedSettings: (settings: RepoScopedSettings) => void;
+  setRepoScopeAvailable: (available: boolean) => void;
 }
 
 export interface RepositorySlice {
-  availableRepositories: RepositoryOption[];
-  selectedRepoPath: string | null;
-  setRepositorySelection: (repositories: RepositoryOption[], selectedRepoPath: string | null) => void;
+  availableTargets: AnalysisTargetOption[];
+  selectedTargetId: string | null;
+  setRepositorySelection: (targets: AnalysisTargetOption[], selectedTargetId: string | null) => void;
 }
 
 export interface UiSlice {
@@ -126,11 +128,12 @@ export const evolutionInitialState = {
 export const settingsInitialState = {
   settings: null as ExtensionSettings | null,
   scopedSettings: null as RepoScopedSettings | null,
+  repoScopeAvailable: true,
 };
 
 export const repositoryInitialState = {
-  availableRepositories: [] as RepositoryOption[],
-  selectedRepoPath: null as string | null,
+  availableTargets: [] as AnalysisTargetOption[],
+  selectedTargetId: null as string | null,
 };
 
 export const uiInitialState = {

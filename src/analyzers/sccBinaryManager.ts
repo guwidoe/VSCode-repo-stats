@@ -41,7 +41,7 @@ const BINARY_NAMES: Record<string, Record<string, string>> = {
 
 export interface SccInfo {
   version: string;
-  source: 'system' | 'downloaded' | 'none';
+  source: 'system' | 'downloaded' | 'mixed' | 'none';
 }
 
 // ============================================================================

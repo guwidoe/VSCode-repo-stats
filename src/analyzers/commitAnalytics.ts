@@ -84,7 +84,10 @@ export function parseCommitHistoryLog(
   return commits;
 }
 
-export function buildCommitAnalytics(commits: ParsedCommitHistoryEntry[]): CommitAnalytics {
+export function buildCommitAnalytics(
+  commits: ParsedCommitHistoryEntry[],
+  repositoryId = 'default'
+): CommitAnalytics {
   const authorIdByEmail = new Map<string, number>();
   const namesById: string[] = [];
   const emailsById: string[] = [];
@@ -102,6 +105,7 @@ export function buildCommitAnalytics(commits: ParsedCommitHistoryEntry[]): Commi
 
     records.push({
       sha: commit.sha,
+      repositoryId,
       authorId,
       committedAt: commit.date,
       timestamp: commit.timestamp,
@@ -195,6 +199,56 @@ export function buildContributorStatsFromCommitAnalytics(
 
   contributors.sort((a, b) => b.commits - a.commits || a.email.localeCompare(b.email));
   return contributors;
+}
+
+export function mergeCommitAnalytics(analyticsList: CommitAnalytics[]): CommitAnalytics {
+  const authorIdByEmail = new Map<string, number>();
+  const namesById: string[] = [];
+  const emailsById: string[] = [];
+  const records: CommitRecord[] = [];
+
+  for (const analytics of analyticsList) {
+    for (const record of analytics.records) {
+      const email = analytics.authorDirectory.emailsById[record.authorId] ?? UNKNOWN_EMAIL;
+      const name = analytics.authorDirectory.namesById[record.authorId] ?? UNKNOWN_AUTHOR;
+      const normalizedEmail = normalizeEmail(email);
+      let mergedAuthorId = authorIdByEmail.get(normalizedEmail);
+      if (mergedAuthorId === undefined) {
+        mergedAuthorId = namesById.length;
+        authorIdByEmail.set(normalizedEmail, mergedAuthorId);
+        namesById.push(name);
+        emailsById.push(email);
+      }
+
+      records.push({
+        ...record,
+        authorId: mergedAuthorId,
+      });
+    }
+  }
+
+  const summary = buildSummary(records);
+  const contributorSummaries = buildContributorSummaries(records, namesById, emailsById);
+
+  return {
+    authorDirectory: {
+      idByEmail: Object.fromEntries(authorIdByEmail.entries()),
+      namesById,
+      emailsById,
+    },
+    records,
+    summary,
+    contributorSummaries,
+    changedLineBuckets: buildBuckets(records.map((record) => record.changedLines), CHANGED_LINE_BUCKET_UPPER_BOUNDS),
+    fileChangeBuckets: buildBuckets(records.map((record) => record.filesChanged), FILE_CHANGE_BUCKET_UPPER_BOUNDS),
+    indexes: {
+      byTimestampAsc: sortRecordIndexes(records, 'timestamp', 'asc'),
+      byAdditionsDesc: sortRecordIndexes(records, 'additions', 'desc'),
+      byDeletionsDesc: sortRecordIndexes(records, 'deletions', 'desc'),
+      byChangedLinesDesc: sortRecordIndexes(records, 'changedLines', 'desc'),
+      byFilesChangedDesc: sortRecordIndexes(records, 'filesChanged', 'desc'),
+    },
+  };
 }
 
 export function buildCodeFrequencyFromCommitAnalytics(

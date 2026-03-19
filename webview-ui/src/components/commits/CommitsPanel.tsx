@@ -127,7 +127,10 @@ export function CommitsPanel() {
   }
 
   const analyzedCommitCount = summary.totalCommits;
-  const repositoryCommitCount = data.repository.commitCount;
+  const repositoryCommitCount = data.repositories.reduce(
+    (sum, repository) => sum + repository.commitCount,
+    0
+  );
 
   const summaryCards = [
     {

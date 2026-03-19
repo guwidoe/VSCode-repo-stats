@@ -3,24 +3,25 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import simpleGit from 'simple-git';
 import type { ExtensionMessage, ExtensionSettings } from '../types/index.js';
-import { AnalysisCoordinator } from '../analyzers/coordinator.js';
+import { TargetAnalysisCoordinator } from '../analyzers/targetCoordinator.js';
 import { createEvolutionAnalyzer } from '../analyzers/evolutionAnalyzer.js';
 import { CacheManager } from '../cache/cacheManager.js';
 import { EvolutionCacheManager } from '../cache/evolutionCacheManager.js';
+import { createTargetRevisionHash } from '../cache/targetCacheKeys.js';
 import { createCoreSettingsHash } from '../cache/coreSettingsHash.js';
 import { createEvolutionAnalysisSettingsSnapshot } from '../shared/settings.js';
-import type { RepositoryContext } from './context.js';
+import type { AnalysisTargetContext } from './context.js';
 import { RepositorySettingsService } from './settingsService.js';
 import { WorkspaceStateStorage } from './workspaceStateStorage.js';
 
 interface AnalysisStateSnapshot {
-  headSha: string;
+  revisionHash: string;
   settingsHash: string;
 }
 
 export class RepoAnalysisService {
-  private readonly lastCoreStateByRepo = new Map<string, AnalysisStateSnapshot>();
-  private readonly lastEvolutionStateByRepo = new Map<string, AnalysisStateSnapshot>();
+  private readonly lastCoreStateByTarget = new Map<string, AnalysisStateSnapshot>();
+  private readonly lastEvolutionStateByTarget = new Map<string, AnalysisStateSnapshot>();
 
   constructor(
     private readonly workspaceState: vscode.Memento,
@@ -28,16 +29,16 @@ export class RepoAnalysisService {
     private readonly settingsService: RepositorySettingsService
   ) {}
 
-  clearCache(repository: RepositoryContext): void {
+  clearCache(target: AnalysisTargetContext): void {
     const storage = new WorkspaceStateStorage(this.workspaceState);
-    const cacheManager = new CacheManager(storage, repository.rootUri.fsPath);
-    const evolutionCacheManager = new EvolutionCacheManager(storage, repository.rootUri.fsPath);
+    const cacheManager = new CacheManager(storage, target.target.id);
+    const evolutionCacheManager = new EvolutionCacheManager(storage, target.target.id);
     cacheManager.clear();
     evolutionCacheManager.clear();
   }
 
-  async runAnalysis(webview: vscode.Webview, repository?: RepositoryContext): Promise<void> {
-    if (!repository) {
+  async runAnalysis(webview: vscode.Webview, target?: AnalysisTargetContext): Promise<void> {
+    if (!target) {
       this.sendMessage(webview, {
         type: 'analysisError',
         error: 'No Git repositories were found in the current workspace.',
@@ -45,38 +46,32 @@ export class RepoAnalysisService {
       return;
     }
 
-    const repoPath = repository.rootUri.fsPath;
-
     try {
-      const settings = this.settingsService.getSettings(repository);
+      const settings = this.settingsService.getSettings(target.settingsRepository);
       const settingsHash = createCoreSettingsHash(settings);
       const storage = new WorkspaceStateStorage(this.workspaceState);
-      const cacheManager = new CacheManager(storage, repoPath);
-      const previousBlameFileCache = cacheManager.getBlameFileCache();
-      const sccStoragePath = path.join(this.globalStoragePath, 'scc');
-      const coordinator = new AnalysisCoordinator(
-        repoPath,
+      const cacheManager = new CacheManager(storage, target.target.id);
+      const previousBlameFileCaches = cacheManager.getBlameFileCaches();
+      const coordinator = new TargetAnalysisCoordinator({
+        target: target.target,
         settings,
-        sccStoragePath,
-        undefined,
-        undefined,
-        previousBlameFileCache
-      );
-
-      const repoInfo = await coordinator.getRepositoryInfo();
-      const cached = cacheManager.getIfValid(repoInfo.headSha, settingsHash);
+        sccStoragePath: path.join(this.globalStoragePath, 'scc'),
+        previousBlameFileCaches,
+      });
+      const revisions = await coordinator.getTargetRevision();
+      const revisionHash = createTargetRevisionHash(target.target, revisions);
+      const cached = cacheManager.getIfValid(revisionHash, settingsHash);
 
       if (cached) {
-        cached.repository = repoInfo;
-        this.lastCoreStateByRepo.set(repoPath, {
-          headSha: cached.repository.headSha,
+        this.lastCoreStateByTarget.set(target.target.id, {
+          revisionHash,
           settingsHash,
         });
         this.sendMessage(webview, {
           type: 'analysisComplete',
           data: cached,
         });
-        await this.sendStalenessStatus(webview, repository);
+        await this.sendStalenessStatus(webview, target);
         return;
       }
 
@@ -91,8 +86,8 @@ export class RepoAnalysisService {
           });
         },
         onCoreReady: (coreResult) => {
-          this.lastCoreStateByRepo.set(repoPath, {
-            headSha: coreResult.repository.headSha,
+          this.lastCoreStateByTarget.set(target.target.id, {
+            revisionHash,
             settingsHash,
           });
           this.sendMessage(webview, {
@@ -108,31 +103,36 @@ export class RepoAnalysisService {
         },
       });
 
-      cacheManager.save(result, coordinator.getLatestBlameFileCache(), settingsHash);
+      cacheManager.save(
+        result,
+        revisionHash,
+        coordinator.getLatestBlameFileCaches(),
+        settingsHash
+      );
 
-      this.lastCoreStateByRepo.set(repoPath, {
-        headSha: result.repository.headSha,
+      this.lastCoreStateByTarget.set(target.target.id, {
+        revisionHash,
         settingsHash,
       });
       this.sendMessage(webview, {
         type: 'analysisComplete',
         data: result,
       });
-      await this.sendStalenessStatus(webview, repository);
+      await this.sendStalenessStatus(webview, target);
     } catch (error) {
       this.sendMessage(webview, {
         type: 'analysisError',
-        error: this.formatErrorMessage(error, repoPath, 'analysis'),
+        error: this.formatErrorMessage(error, target.target.label, 'analysis'),
       });
     }
   }
 
   async runEvolutionAnalysis(
     webview: vscode.Webview,
-    repository: RepositoryContext | undefined,
+    target: AnalysisTargetContext | undefined,
     forceRefresh: boolean
   ): Promise<void> {
-    if (!repository) {
+    if (!target) {
       this.sendMessage(webview, {
         type: 'evolutionError',
         error: 'No Git repositories were found in the current workspace.',
@@ -140,40 +140,54 @@ export class RepoAnalysisService {
       return;
     }
 
-    const repoPath = repository.rootUri.fsPath;
+    if (target.target.members.length > 1) {
+      this.sendMessage(webview, {
+        type: 'evolutionError',
+        error: 'Evolution aggregation for multi-repository targets is not available yet.',
+      });
+      return;
+    }
+
+    const member = target.target.members[0];
+    if (!member) {
+      this.sendMessage(webview, {
+        type: 'evolutionError',
+        error: 'The selected analysis target has no repositories.',
+      });
+      return;
+    }
 
     try {
-      const settings = this.settingsService.getSettings(repository);
+      const settings = this.settingsService.getSettings(target.settingsRepository);
       const storage = new WorkspaceStateStorage(this.workspaceState);
-      const evolutionCacheManager = new EvolutionCacheManager(storage, repoPath);
-      const coordinator = new AnalysisCoordinator(repoPath, settings, path.join(this.globalStoragePath, 'scc'));
-
-      const repoInfo = await coordinator.getRepositoryInfo();
+      const evolutionCacheManager = new EvolutionCacheManager(storage, target.target.id);
+      const git = simpleGit(member.repoPath);
+      const [branchRaw, headShaRaw] = await Promise.all([
+        git.revparse(['--abbrev-ref', 'HEAD']),
+        git.revparse(['HEAD']),
+      ]);
+      const currentRevisionHash = createEvolutionRevisionHash(branchRaw.trim(), headShaRaw.trim(), member.repoPath);
       const settingsHash = createEvolutionSettingsHash(settings);
-      const validCached = evolutionCacheManager.getIfValid(
-        repoInfo.headSha,
-        repoInfo.branch,
-        settingsHash
-      );
+      const validCached = evolutionCacheManager.getIfValid(currentRevisionHash, settingsHash);
 
       if (validCached && !forceRefresh) {
-        this.lastEvolutionStateByRepo.set(repoPath, {
-          headSha: validCached.headSha,
+        this.lastEvolutionStateByTarget.set(target.target.id, {
+          revisionHash: validCached.revisionHash,
           settingsHash: validCached.settingsHash,
         });
         this.sendMessage(webview, {
           type: 'evolutionComplete',
           data: validCached,
         });
-        await this.sendStalenessStatus(webview, repository);
+        await this.sendStalenessStatus(webview, target);
         return;
       }
 
       if (!forceRefresh) {
         const latestCached = evolutionCacheManager.getLatest();
         if (latestCached) {
-          this.lastEvolutionStateByRepo.set(repoPath, {
-            headSha: latestCached.headSha,
+          this.lastEvolutionStateByTarget.set(target.target.id, {
+            revisionHash: latestCached.revisionHash,
             settingsHash: latestCached.settingsHash,
           });
           this.sendMessage(webview, {
@@ -182,8 +196,7 @@ export class RepoAnalysisService {
           });
 
           if (
-            latestCached.headSha !== repoInfo.headSha ||
-            latestCached.branch !== repoInfo.branch ||
+            latestCached.revisionHash !== currentRevisionHash ||
             latestCached.settingsHash !== settingsHash
           ) {
             this.sendMessage(webview, {
@@ -192,7 +205,7 @@ export class RepoAnalysisService {
             });
           }
 
-          await this.sendStalenessStatus(webview, repository);
+          await this.sendStalenessStatus(webview, target);
 
           if (!settings.evolution.autoRun) {
             return;
@@ -204,7 +217,7 @@ export class RepoAnalysisService {
 
       this.sendMessage(webview, { type: 'evolutionStarted' });
 
-      const analyzer = createEvolutionAnalyzer(repoPath, settings);
+      const analyzer = createEvolutionAnalyzer(member.repoPath, settings);
       const result = await analyzer.analyze((phase, progress) => {
         this.sendMessage(webview, {
           type: 'evolutionProgress',
@@ -213,30 +226,30 @@ export class RepoAnalysisService {
         });
       });
 
-      evolutionCacheManager.save(result, repoPath);
+      evolutionCacheManager.save(result);
 
-      this.lastEvolutionStateByRepo.set(repoPath, {
-        headSha: result.headSha,
+      this.lastEvolutionStateByTarget.set(target.target.id, {
+        revisionHash: result.revisionHash,
         settingsHash: result.settingsHash,
       });
       this.sendMessage(webview, {
         type: 'evolutionComplete',
         data: result,
       });
-      await this.sendStalenessStatus(webview, repository);
+      await this.sendStalenessStatus(webview, target);
     } catch (error) {
       this.sendMessage(webview, {
         type: 'evolutionError',
-        error: this.formatErrorMessage(error, repoPath, 'evolution analysis'),
+        error: this.formatErrorMessage(error, target.target.label, 'evolution analysis'),
       });
     }
   }
 
   async sendStalenessStatus(
     webview: vscode.Webview,
-    repository?: RepositoryContext
+    target?: AnalysisTargetContext
   ): Promise<void> {
-    if (!repository) {
+    if (!target) {
       this.sendMessage(webview, {
         type: 'stalenessStatus',
         coreStale: false,
@@ -245,32 +258,43 @@ export class RepoAnalysisService {
       return;
     }
 
-    const repoPath = repository.rootUri.fsPath;
-
     try {
-      const git = simpleGit(repoPath);
-      const currentHeadSha = (await git.revparse(['HEAD'])).trim();
-      const settings = this.settingsService.getSettings(repository);
+      const revisions = await Promise.all(target.target.members.map(async (member) => {
+        const git = simpleGit(member.repoPath);
+        const [branchRaw, headShaRaw] = await Promise.all([
+          git.revparse(['--abbrev-ref', 'HEAD']),
+          git.revparse(['HEAD']),
+        ]);
+        return {
+          repositoryId: member.id,
+          branch: branchRaw.trim(),
+          headSha: headShaRaw.trim(),
+        };
+      }));
+      const settings = this.settingsService.getSettings(target.settingsRepository);
+      const currentCoreRevisionHash = createTargetRevisionHash(target.target, revisions);
       const currentCoreSettingsHash = createCoreSettingsHash(settings);
+      const currentEvolutionRevisionHash = target.target.members.length === 1
+        ? createEvolutionRevisionHash(revisions[0].branch, revisions[0].headSha, target.target.members[0].repoPath)
+        : currentCoreRevisionHash;
       const currentEvolutionSettingsHash = createEvolutionSettingsHash(settings);
-      const lastCoreState = this.lastCoreStateByRepo.get(repoPath);
-      const lastEvolutionState = this.lastEvolutionStateByRepo.get(repoPath);
+      const lastCoreState = this.lastCoreStateByTarget.get(target.target.id);
+      const lastEvolutionState = this.lastEvolutionStateByTarget.get(target.target.id);
 
-      const coreStaleByHead = lastCoreState !== undefined && lastCoreState.headSha !== currentHeadSha;
+      const coreStaleByRevision =
+        lastCoreState !== undefined && lastCoreState.revisionHash !== currentCoreRevisionHash;
       const coreStaleBySettings =
-        lastCoreState !== undefined &&
-        lastCoreState.settingsHash !== currentCoreSettingsHash;
+        lastCoreState !== undefined && lastCoreState.settingsHash !== currentCoreSettingsHash;
 
-      const evolutionStaleByHead =
-        lastEvolutionState !== undefined && lastEvolutionState.headSha !== currentHeadSha;
+      const evolutionStaleByRevision =
+        lastEvolutionState !== undefined && lastEvolutionState.revisionHash !== currentEvolutionRevisionHash;
       const evolutionStaleBySettings =
-        lastEvolutionState !== undefined &&
-        lastEvolutionState.settingsHash !== currentEvolutionSettingsHash;
+        lastEvolutionState !== undefined && lastEvolutionState.settingsHash !== currentEvolutionSettingsHash;
 
       this.sendMessage(webview, {
         type: 'stalenessStatus',
-        coreStale: coreStaleByHead || coreStaleBySettings,
-        evolutionStale: evolutionStaleByHead || evolutionStaleBySettings,
+        coreStale: coreStaleByRevision || coreStaleBySettings,
+        evolutionStale: evolutionStaleByRevision || evolutionStaleBySettings,
       });
     } catch (error) {
       console.error('[RepoStats] Failed to compute staleness status:', error);
@@ -281,11 +305,15 @@ export class RepoAnalysisService {
     webview.postMessage(message);
   }
 
-  private formatErrorMessage(error: unknown, repoPath: string, scope: 'analysis' | 'evolution analysis'): string {
+  private formatErrorMessage(
+    error: unknown,
+    label: string,
+    scope: 'analysis' | 'evolution analysis'
+  ): string {
     let errorMessage = `An unexpected error occurred during ${scope}.`;
 
     if (error instanceof Error && error.name === 'NotAGitRepoError') {
-      errorMessage = `"${repoPath}" is not a Git repository.`;
+      errorMessage = `"${label}" is not a Git repository.`;
     } else if (error instanceof Error) {
       errorMessage = error.message;
     }
@@ -296,5 +324,10 @@ export class RepoAnalysisService {
 
 function createEvolutionSettingsHash(settings: ExtensionSettings): string {
   const payload = JSON.stringify(createEvolutionAnalysisSettingsSnapshot(settings));
+  return crypto.createHash('sha1').update(payload).digest('hex').slice(0, 16);
+}
+
+function createEvolutionRevisionHash(branch: string, headSha: string, repoPath: string): string {
+  const payload = JSON.stringify({ branch, headSha, repoPath });
   return crypto.createHash('sha1').update(payload).digest('hex').slice(0, 16);
 }

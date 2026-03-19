@@ -64,6 +64,7 @@ export function useVsCodeApi() {
     setLoading,
     setSettings,
     setScopedSettings,
+    setRepoScopeAvailable,
     setRepositorySelection,
     resetAnalysisState,
     setEvolutionData,
@@ -100,12 +101,12 @@ export function useVsCodeApi() {
           setError(message.error);
           break;
 
-        case 'repositorySelectionLoaded': {
-          const currentSelectedRepoPath = useStore.getState().selectedRepoPath;
-          if (currentSelectedRepoPath !== message.selectedRepoPath) {
+        case 'targetSelectionLoaded': {
+          const currentSelectedTargetId = useStore.getState().selectedTargetId;
+          if (currentSelectedTargetId !== message.selectedTargetId) {
             resetAnalysisState();
           }
-          setRepositorySelection(message.repositories, message.selectedRepoPath);
+          setRepositorySelection(message.targets, message.selectedTargetId);
           break;
         }
 
@@ -153,6 +154,7 @@ export function useVsCodeApi() {
         case 'settingsLoaded':
           setSettings(message.settings);
           setScopedSettings(message.scopedSettings);
+          setRepoScopeAvailable(message.repoScopeAvailable);
           break;
       }
     };
@@ -179,6 +181,7 @@ export function useVsCodeApi() {
     setLoading,
     setSettings,
     setScopedSettings,
+    setRepoScopeAvailable,
     setRepositorySelection,
     resetAnalysisState,
     setEvolutionData,
@@ -217,8 +220,8 @@ export function useVsCodeApi() {
     getVsCodeApi().postMessage({ type: 'copyPath', path });
   }, []);
 
-  const selectRepository = useCallback((repoPath: string) => {
-    getVsCodeApi().postMessage({ type: 'selectRepository', repoPath });
+  const selectTarget = useCallback((targetId: string) => {
+    getVsCodeApi().postMessage({ type: 'selectTarget', targetId });
   }, []);
 
   const updateSettings = useCallback((settings: Partial<ExtensionSettings>) => {
@@ -320,7 +323,7 @@ export function useVsCodeApi() {
     openFile,
     revealInExplorer,
     copyPath,
-    selectRepository,
+    selectTarget,
     updateSettings,
     updateScopedSetting,
     resetScopedSetting,

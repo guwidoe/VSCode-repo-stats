@@ -32,7 +32,7 @@ export function AboutPanel() {
               <span className="feature-icon">📋</span>
               <div>
                 <strong>Overview</strong>
-                <p>Get a quick summary of your repository: file types, languages, binaries, and submodules.</p>
+                <p>Get a quick summary of your analysis target: file types, languages, binaries, and repository composition.</p>
               </div>
             </li>
             <li>
@@ -93,8 +93,8 @@ export function AboutPanel() {
               <span className="info-value">Runs on demand, can be slower on large repos</span>
             </div>
             <p className="info-note">
-              If the repository changes or related settings are updated, the tab marks its cached data as stale and lets
-              you recompute it. When submodules are enabled, Evolution still reflects parent-repository history only.
+              If the selected analysis target changes or related settings are updated, the tab marks its cached data as
+              stale and lets you recompute it. Multi-repository targets use a merged history model.
             </p>
           </div>
         </section>
@@ -111,8 +111,13 @@ export function AboutPanel() {
               <div className="info-row">
                 <span className="info-label">Source</span>
                 <span className="info-value">
-                  {data.sccInfo.source === 'system' ? 'System installed' :
-                   data.sccInfo.source === 'downloaded' ? 'Auto-downloaded' : 'Not available'}
+                  {data.sccInfo.source === 'system'
+                    ? 'System installed'
+                    : data.sccInfo.source === 'downloaded'
+                      ? 'Auto-downloaded'
+                      : data.sccInfo.source === 'mixed'
+                        ? 'Mixed sources'
+                        : 'Not available'}
                 </span>
               </div>
               <p className="info-note">

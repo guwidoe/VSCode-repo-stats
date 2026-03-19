@@ -6,10 +6,11 @@ export const createSettingsSlice: StateCreator<
   RepoStatsState,
   [],
   [],
-  Pick<RepoStatsState, 'settings' | 'scopedSettings' | 'setSettings' | 'setScopedSettings'>
+  Pick<RepoStatsState, 'settings' | 'scopedSettings' | 'repoScopeAvailable' | 'setSettings' | 'setScopedSettings' | 'setRepoScopeAvailable'>
 > = (set, get) => ({
   settings: null,
   scopedSettings: null,
+  repoScopeAvailable: true,
 
   setSettings: (settings) => {
     const defaultGranularity = computeDefaultGranularity(get().data, settings);
@@ -22,5 +23,9 @@ export const createSettingsSlice: StateCreator<
 
   setScopedSettings: (scopedSettings) => {
     set({ scopedSettings });
+  },
+
+  setRepoScopeAvailable: (repoScopeAvailable) => {
+    set({ repoScopeAvailable });
   },
 });

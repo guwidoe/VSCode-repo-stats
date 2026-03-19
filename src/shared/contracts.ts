@@ -75,11 +75,20 @@ export interface EvolutionDiagnostics {
   expectedBlameMisses: number;
 }
 
+export interface EvolutionTargetHead {
+  repositoryId: string;
+  repositoryName: string;
+  branch: string;
+  headSha: string;
+}
+
 export interface EvolutionResult {
   generatedAt: string; // ISO date string
-  headSha: string;
-  branch: string;
+  targetId: string;
+  historyMode: 'singleBranch' | 'mergedMembers';
+  revisionHash: string;
   settingsHash: string;
+  memberHeads: EvolutionTargetHead[];
   cohorts: EvolutionTimeSeriesData;
   authors: EvolutionTimeSeriesData;
   exts: EvolutionTimeSeriesData;
@@ -103,6 +112,8 @@ export interface TreemapNode {
   language?: string;
   lastModified?: string; // ISO date string from git history
   binary?: boolean; // True for non-code files (images, fonts, etc.)
+  repositoryId?: string;
+  repositoryRelativePath?: string;
   children?: TreemapNode[];
 
   // Extended scc metrics
@@ -148,14 +159,65 @@ export interface RepositoryOption {
   relativePath?: string;
 }
 
-export interface SccInfo {
-  version: string;
-  source: 'system' | 'downloaded' | 'none';
+export type AnalysisTargetKind = 'repository' | 'repositoryWithSubmodules' | 'workspace';
+export type AnalysisTargetMemberRole = 'primary' | 'submodule' | 'workspaceRepo';
+
+export interface AnalysisTargetMember {
+  id: string;
+  role: AnalysisTargetMemberRole;
+  repoPath: string;
+  displayName: string;
+  logicalRoot: string;
+  pathPrefix: string;
+  workspaceFolderName?: string;
+  excludePatterns?: string[];
 }
 
-export interface SubmoduleInfo {
-  paths: string[];
-  count: number;
+export interface AnalysisTarget {
+  id: string;
+  kind: AnalysisTargetKind;
+  label: string;
+  description?: string;
+  members: AnalysisTargetMember[];
+  settingsScope: 'repo' | 'workspace';
+  settingsPath?: string;
+}
+
+export interface AnalysisTargetOption {
+  id: string;
+  kind: AnalysisTargetKind;
+  label: string;
+  description?: string;
+  memberCount: number;
+  settingsScope: 'repo' | 'workspace';
+}
+
+export interface AnalysisTargetInfo {
+  id: string;
+  kind: AnalysisTargetKind;
+  label: string;
+  memberCount: number;
+}
+
+export interface AnalyzedRepositoryInfo extends RepositoryInfo {
+  id: string;
+  role: AnalysisTargetMemberRole;
+  logicalRoot: string;
+  pathPrefix: string;
+}
+
+export interface SccInfo {
+  version: string;
+  source: 'system' | 'downloaded' | 'mixed' | 'none';
+}
+
+export interface AnalysisDiagnostics {
+  repositoriesLimited: Array<{
+    repositoryId: string;
+    repositoryName: string;
+    analyzedCommitCount: number;
+    commitCount: number;
+  }>;
 }
 
 export interface BlameOwnershipEntry {
@@ -192,7 +254,8 @@ export interface BlameFileCacheEntry {
 }
 
 export interface AnalysisResult {
-  repository: RepositoryInfo;
+  target: AnalysisTargetInfo;
+  repositories: AnalyzedRepositoryInfo[];
   contributors: ContributorStats[];
   codeFrequency: CodeFrequency[];
   commitAnalytics: CommitAnalytics;
@@ -206,8 +269,7 @@ export interface AnalysisResult {
   sccInfo: SccInfo;
   // HEAD-only blame metrics for current line ownership/age
   blameMetrics: BlameMetrics;
-  // Detected submodule info
-  submodules?: SubmoduleInfo;
+  diagnostics?: AnalysisDiagnostics;
 }
 
 // ============================================================================
@@ -222,6 +284,7 @@ export interface CommitAuthorDirectory {
 
 export interface CommitRecord {
   sha: string;
+  repositoryId: string;
   authorId: number;
   committedAt: string;
   timestamp: number;
@@ -306,16 +369,12 @@ export interface FileLOCEntry {
 
 export interface CacheStructure {
   version: string;
-  repoPath: string;
-  lastCommitSha: string;
+  targetId: string;
+  revisionHash: string;
   settingsHash?: string;
   lastAnalyzed: number; // timestamp
-  contributors: ContributorStats[];
-  codeFrequency: CodeFrequency[];
-  commitAnalytics: CommitAnalytics;
-  fileTree: TreemapNode;
-  blameMetrics: BlameMetrics;
-  blameFileCache: Record<string, BlameFileCacheEntry>;
+  data: AnalysisResult;
+  blameFileCaches: Record<string, Record<string, BlameFileCacheEntry>>;
   fileLOC: Record<string, FileLOCEntry>;
 }
 
@@ -328,7 +387,7 @@ export type ExtensionMessage =
   | { type: 'analysisProgress'; phase: string; progress: number }
   | { type: 'analysisComplete'; data: AnalysisResult }
   | { type: 'analysisError'; error: string }
-  | { type: 'repositorySelectionLoaded'; repositories: RepositoryOption[]; selectedRepoPath: string | null }
+  | { type: 'targetSelectionLoaded'; targets: AnalysisTargetOption[]; selectedTargetId: string | null }
   | { type: 'incrementalUpdate'; data: Partial<AnalysisResult> }
   | { type: 'evolutionStarted' }
   | { type: 'evolutionProgress'; phase: string; progress: number }
@@ -336,7 +395,12 @@ export type ExtensionMessage =
   | { type: 'evolutionError'; error: string }
   | { type: 'evolutionStale'; reason: string }
   | { type: 'stalenessStatus'; coreStale: boolean; evolutionStale: boolean }
-  | { type: 'settingsLoaded'; settings: ExtensionSettings; scopedSettings: RepoScopedSettings };
+  | {
+      type: 'settingsLoaded';
+      settings: ExtensionSettings;
+      scopedSettings: RepoScopedSettings;
+      repoScopeAvailable: boolean;
+    };
 
 export type WebviewMessage =
   | { type: 'requestAnalysis' }
@@ -344,9 +408,9 @@ export type WebviewMessage =
   | { type: 'requestEvolutionAnalysis' }
   | { type: 'requestEvolutionRefresh' }
   | { type: 'checkStaleness' }
-  | { type: 'selectRepository'; repoPath: string }
-  | { type: 'openFile'; path: string }
-  | { type: 'revealInExplorer'; path: string }
+  | { type: 'selectTarget'; targetId: string }
+  | { type: 'openFile'; path: string; repositoryId?: string }
+  | { type: 'revealInExplorer'; path: string; repositoryId?: string }
   | { type: 'copyPath'; path: string }
   | { type: 'getSettings' }
   | { type: 'updateSettings'; settings: Partial<ExtensionSettings>; target?: SettingWriteTarget }

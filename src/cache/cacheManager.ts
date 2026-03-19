@@ -11,124 +11,74 @@ import {
   TreemapNode,
 } from '../types/index.js';
 
-// ============================================================================
-// Cache Version - Bump this when cache structure changes
-// ============================================================================
-
-const CACHE_VERSION = '1.4.0'; // Bumped to include commit analytics in cached core results
-
-// ============================================================================
-// Storage Interface (for dependency injection)
-// ============================================================================
+const CACHE_VERSION = '2.0.0';
 
 export interface CacheStorage {
   get<T>(key: string): T | undefined;
   set<T>(key: string, value: T): void;
 }
 
-// ============================================================================
-// Cache Manager
-// ============================================================================
-
 export class CacheManager {
-  private storage: CacheStorage;
-  private keyPrefix: string;
+  private readonly keyPrefix: string;
 
-  constructor(storage: CacheStorage, repoPath: string) {
-    this.storage = storage;
-    // Create a hash of the repo path for the cache key
-    this.keyPrefix = `repoStats_${this.hashPath(repoPath)}`;
+  constructor(
+    private readonly storage: CacheStorage,
+    cacheId: string
+  ) {
+    this.keyPrefix = `repoStats_${this.hashId(cacheId)}`;
   }
 
-  /**
-   * Check if the cache is valid for the given commit SHA.
-   */
-  isValid(currentSha: string, settingsHash?: string): boolean {
+  isValid(currentRevisionHash: string, settingsHash?: string): boolean {
     const cache = this.getCache();
     if (!cache) {return false;}
     if (cache.version !== CACHE_VERSION) {return false;}
-    if (cache.lastCommitSha !== currentSha) {return false;}
+    if (cache.revisionHash !== currentRevisionHash) {return false;}
     if (settingsHash !== undefined && cache.settingsHash !== settingsHash) {return false;}
     return true;
   }
 
-  /**
-   * Get the full cached analysis result if valid.
-   */
-  getIfValid(currentSha: string, settingsHash?: string): AnalysisResult | null {
-    if (!this.isValid(currentSha, settingsHash)) {return null;}
+  getIfValid(currentRevisionHash: string, settingsHash?: string): AnalysisResult | null {
+    if (!this.isValid(currentRevisionHash, settingsHash)) {
+      return null;
+    }
 
-    const cache = this.getCache();
-    if (!cache) {return null;}
-
-    return {
-      repository: {
-        name: this.getRepositoryName(cache.repoPath),
-        path: cache.repoPath,
-        branch: '', // Not cached, will be refreshed
-        commitCount: 0, // Not cached, will be refreshed
-        headSha: cache.lastCommitSha,
-      },
-      contributors: cache.contributors,
-      codeFrequency: cache.codeFrequency,
-      commitAnalytics: cache.commitAnalytics,
-      fileTree: cache.fileTree,
-      analyzedAt: new Date(cache.lastAnalyzed).toISOString(),
-      analyzedCommitCount: 0, // Will be refreshed from current analysis
-      maxCommitsLimit: 0, // Will be refreshed from current analysis
-      limitReached: false, // Will be refreshed from current analysis
-      sccInfo: { version: '', source: 'none' }, // Not cached, determined at runtime
-      blameMetrics: cache.blameMetrics,
-    };
+    return this.getCache()?.data ?? null;
   }
 
-  /**
-   * Returns the latest persisted per-file blame cache (may be from stale HEAD).
-   */
-  getBlameFileCache(): Record<string, BlameFileCacheEntry> {
+  getBlameFileCaches(): Record<string, Record<string, BlameFileCacheEntry>> {
     const cache = this.getCache();
-    return cache?.blameFileCache || {};
+    return cache?.blameFileCaches ?? {};
   }
 
-  /**
-   * Save analysis result to cache.
-   */
   save(
     result: AnalysisResult,
-    blameFileCache: Record<string, BlameFileCacheEntry> = {},
+    revisionHash: string,
+    blameFileCaches: Record<string, Record<string, BlameFileCacheEntry>> = {},
     settingsHash?: string
   ): void {
     const cache: CacheStructure = {
       version: CACHE_VERSION,
-      repoPath: result.repository.path,
-      lastCommitSha: result.repository.headSha,
+      targetId: result.target.id,
+      revisionHash,
       settingsHash,
       lastAnalyzed: Date.now(),
-      contributors: result.contributors,
-      codeFrequency: result.codeFrequency,
-      commitAnalytics: result.commitAnalytics,
-      fileTree: result.fileTree,
-      blameMetrics: result.blameMetrics,
-      blameFileCache,
+      data: result,
+      blameFileCaches,
       fileLOC: this.buildFileLOCMap(result.fileTree),
     };
 
     this.storage.set(this.keyPrefix, cache);
   }
 
-  /**
-   * Clear the cache.
-   */
   clear(): void {
     this.storage.set(this.keyPrefix, undefined);
   }
 
-  /**
-   * Get the cache timestamp.
-   */
   getLastAnalyzed(): Date | null {
     const cache = this.getCache();
-    if (!cache) {return null;}
+    if (!cache) {
+      return null;
+    }
     return new Date(cache.lastAnalyzed);
   }
 
@@ -137,23 +87,17 @@ export class CacheManager {
     return cached ?? null;
   }
 
-  private hashPath(path: string): string {
-    return crypto.createHash('md5').update(path).digest('hex').slice(0, 8);
+  private hashId(value: string): string {
+    return crypto.createHash('md5').update(value).digest('hex').slice(0, 8);
   }
 
-  private getRepositoryName(repoPath: string): string {
-    const name = repoPath.split('/').pop()?.trim() ?? '';
-    if (!name) {
-      throw new Error(`Cannot derive repository name from cache repo path: "${repoPath}"`);
-    }
-
-    return name;
-  }
-
-  private buildFileLOCMap(node: TreemapNode, map: Record<string, { sha: string; lines: number; language: string }> = {}): Record<string, { sha: string; lines: number; language: string }> {
+  private buildFileLOCMap(
+    node: TreemapNode,
+    map: Record<string, { sha: string; lines: number; language: string }> = {}
+  ): Record<string, { sha: string; lines: number; language: string }> {
     if (node.type === 'file') {
       map[node.path] = {
-        sha: '', // TODO: Could store blob SHA for incremental updates
+        sha: '',
         lines: node.lines ?? 0,
         language: node.language ?? 'Unknown',
       };
@@ -167,12 +111,8 @@ export class CacheManager {
   }
 }
 
-// ============================================================================
-// In-Memory Storage (for testing)
-// ============================================================================
-
 export class InMemoryCacheStorage implements CacheStorage {
-  private store = new Map<string, unknown>();
+  private readonly store = new Map<string, unknown>();
 
   get<T>(key: string): T | undefined {
     return this.store.get(key) as T | undefined;
@@ -187,10 +127,6 @@ export class InMemoryCacheStorage implements CacheStorage {
   }
 }
 
-// ============================================================================
-// Factory Function
-// ============================================================================
-
-export function createCacheManager(storage: CacheStorage, repoPath: string): CacheManager {
-  return new CacheManager(storage, repoPath);
+export function createCacheManager(storage: CacheStorage, cacheId: string): CacheManager {
+  return new CacheManager(storage, cacheId);
 }

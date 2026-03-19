@@ -83,11 +83,6 @@ export class AnalysisCoordinator {
     const sccInfo = await this.locClient.getSccInfo();
     onProgress?.('scc ready', 12);
 
-    // Phase 2.5: Detect submodules (for metadata and optional exclusion)
-    onProgress?.('Detecting submodules', 13);
-    const submodulePaths = await this.gitClient.getSubmodulePaths();
-    onProgress?.('Submodules detected', 14);
-
     // Phase 3: Commit analytics backbone (shared by contributors/frequency/commit views)
     onProgress?.('Analyzing commit history', 15);
     const commitAnalytics = await this.gitClient.getCommitAnalytics(
@@ -114,9 +109,8 @@ export class AnalysisCoordinator {
 
     // Phase 5: File tree with LOC
     onProgress?.('Counting lines of code', 65);
-    const allExcludePatterns = this.getLocExcludePatterns(submodulePaths);
     const fileTree = await this.locClient.countLines(
-      allExcludePatterns,
+      this.settings.excludePatterns,
       this.settings.locExcludedExtensions
     );
     onProgress?.('Lines of code counted', 80);
@@ -163,13 +157,23 @@ export class AnalysisCoordinator {
     // Limit is reached if repo has more commits than we analyzed
     const limitReached = repository.commitCount > maxCommitsLimit;
 
-    const submodules = submodulePaths.length > 0
-      ? { paths: submodulePaths, count: submodulePaths.length }
-      : undefined;
-
     // Emit a core result immediately so UI can render while blame keeps updating.
     const coreResult: AnalysisResult = {
-      repository,
+      target: {
+        id: repository.path,
+        kind: 'repository',
+        label: repository.name,
+        memberCount: 1,
+      },
+      repositories: [
+        {
+          ...repository,
+          id: repository.path,
+          role: 'primary',
+          logicalRoot: repository.name,
+          pathPrefix: '',
+        },
+      ],
       contributors,
       codeFrequency,
       commitAnalytics,
@@ -180,7 +184,6 @@ export class AnalysisCoordinator {
       limitReached,
       sccInfo,
       blameMetrics: createEmptyBlameMetrics(),
-      submodules,
     };
     onCoreReady?.(coreResult);
 
@@ -296,20 +299,6 @@ export class AnalysisCoordinator {
     }
 
     return totalBytes;
-  }
-
-  /**
-   * Build LOC exclude patterns from user excludes + optional submodule excludes.
-   */
-  private getLocExcludePatterns(submodulePaths: string[]): string[] {
-    if (this.settings.includeSubmodules) {
-      return [...this.settings.excludePatterns];
-    }
-
-    return [
-      ...this.settings.excludePatterns,
-      ...submodulePaths,
-    ];
   }
 
   /**
@@ -519,9 +508,8 @@ export class AnalysisCoordinator {
   }
 
   async getFileTree(): Promise<TreemapNode> {
-    const submodulePaths = await this.gitClient.getSubmodulePaths();
     return this.locClient.countLines(
-      this.getLocExcludePatterns(submodulePaths),
+      this.settings.excludePatterns,
       this.settings.locExcludedExtensions
     );
   }

@@ -251,11 +251,9 @@ export function FilesPanel() {
 
   return (
     <div className="files-panel" ref={panelRef}>
-      {data?.submodules && data.submodules.count > 0 && (
+      {data && data.repositories.length > 1 && (
         <div className="submodule-note">
-          {settings?.includeSubmodules
-            ? 'Submodule files are included in this tab. Re-analyze after toggling the setting to refresh this list.'
-            : 'Submodule files are currently excluded from this tab. Enable "Include Git Submodules in File Analysis" and re-analyze to include them.'}
+          This file list aggregates {data.repositories.length} repositories into one target.
         </div>
       )}
 

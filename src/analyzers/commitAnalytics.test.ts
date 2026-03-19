@@ -32,6 +32,7 @@ describe('commit analytics', () => {
     expect(analytics.records).toEqual([
       {
         sha: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        repositoryId: 'default',
         authorId: 0,
         committedAt: '2024-01-01T12:00:00Z',
         timestamp: 1704110400,
@@ -43,6 +44,7 @@ describe('commit analytics', () => {
       },
       {
         sha: 'cccccccccccccccccccccccccccccccccccccccc',
+        repositoryId: 'default',
         authorId: 1,
         committedAt: '2024-01-15T12:00:00Z',
         timestamp: 1705320000,
@@ -54,6 +56,7 @@ describe('commit analytics', () => {
       },
       {
         sha: 'dddddddddddddddddddddddddddddddddddddddd',
+        repositoryId: 'default',
         authorId: 1,
         committedAt: '2024-01-22T12:00:00Z',
         timestamp: 1705924800,

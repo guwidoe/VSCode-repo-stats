@@ -3,7 +3,7 @@
  */
 
 import { useEffect, useMemo } from 'react';
-import type { RepositoryOption } from './types';
+import type { AnalysisTargetOption } from './types';
 import { useStore } from './store';
 import { useVsCodeApi } from './hooks/useVsCodeApi';
 import { Navigation } from './components/Navigation';
@@ -22,16 +22,16 @@ import { EmptyState } from './components/common/EmptyState';
 import { LimitWarning } from './components/common/LimitWarning';
 import './App.css';
 
-function formatRepositoryOption(option: RepositoryOption): string {
-  if (option.source === 'workspace') {
-    if (option.relativePath === '.' || !option.relativePath) {
-      return `${option.name} — ${option.workspaceFolderName ?? 'Workspace'}`;
-    }
+function formatTargetOption(option: AnalysisTargetOption): string {
+  const kindLabel = option.kind === 'repository'
+    ? 'Repo'
+    : option.kind === 'repositoryWithSubmodules'
+      ? 'Repo + submodules'
+      : 'Workspace';
 
-    return `${option.name} — ${option.workspaceFolderName ?? 'Workspace'}/${option.relativePath}`;
-  }
-
-  return `${option.name} — Bookmarked (${option.path})`;
+  return option.description
+    ? `${option.label} — ${kindLabel} • ${option.description}`
+    : `${option.label} — ${kindLabel}`;
 }
 
 export function App() {
@@ -43,14 +43,14 @@ export function App() {
     settings,
     coreStale,
     evolutionStale,
-    availableRepositories,
-    selectedRepoPath,
+    availableTargets,
+    selectedTargetId,
   } = useStore();
-  const { requestRefresh, selectRepository } = useVsCodeApi();
+  const { requestRefresh, selectTarget } = useVsCodeApi();
 
-  const selectedRepository = useMemo(
-    () => availableRepositories.find((repository) => repository.path === selectedRepoPath) ?? null,
-    [availableRepositories, selectedRepoPath]
+  const selectedTarget = useMemo(
+    () => availableTargets.find((target) => target.id === selectedTargetId) ?? null,
+    [availableTargets, selectedTargetId]
   );
 
   // Request initial analysis on mount
@@ -66,22 +66,23 @@ export function App() {
           <h1>Repository Statistics</h1>
           {data ? (
             <span className="repo-info">
-              {data.repository.name} ({data.repository.branch})
+              {data.target.label}
+              {data.repositories.length === 1 ? ` (${data.repositories[0]?.branch ?? ''})` : ` • ${data.repositories.length} repos`}
             </span>
-          ) : selectedRepository ? (
-            <span className="repo-info">{formatRepositoryOption(selectedRepository)}</span>
+          ) : selectedTarget ? (
+            <span className="repo-info">{formatTargetOption(selectedTarget)}</span>
           ) : null}
-          {availableRepositories.length > 1 && selectedRepoPath && (
+          {availableTargets.length > 1 && selectedTargetId && (
             <label className="repo-selector">
-              <span className="repo-selector-label">Repository</span>
+              <span className="repo-selector-label">Target</span>
               <select
                 className="repo-selector-input"
-                value={selectedRepoPath}
-                onChange={(event) => selectRepository(event.target.value)}
+                value={selectedTargetId}
+                onChange={(event) => selectTarget(event.target.value)}
               >
-                {availableRepositories.map((repository) => (
-                  <option key={repository.path} value={repository.path}>
-                    {formatRepositoryOption(repository)}
+                {availableTargets.map((target) => (
+                  <option key={target.id} value={target.id}>
+                    {formatTargetOption(target)}
                   </option>
                 ))}
               </select>
@@ -108,7 +109,7 @@ export function App() {
 
       {data?.limitReached && (
         <LimitWarning
-          totalCount={data.repository.commitCount}
+          totalCount={data.repositories.reduce((sum, repository) => sum + repository.commitCount, 0)}
           limit={data.maxCommitsLimit}
         />
       )}

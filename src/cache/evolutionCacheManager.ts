@@ -6,25 +6,26 @@ import * as crypto from 'crypto';
 import { EvolutionResult } from '../types/index.js';
 import type { CacheStorage } from './cacheManager.js';
 
-const EVOLUTION_CACHE_VERSION = '1.0.0';
+const EVOLUTION_CACHE_VERSION = '2.0.0';
 
 interface EvolutionCacheStructure {
   version: string;
-  repoPath: string;
+  targetId: string;
   lastAnalyzed: number;
   data: EvolutionResult;
 }
 
 export class EvolutionCacheManager {
-  private readonly storage: CacheStorage;
   private readonly keyPrefix: string;
 
-  constructor(storage: CacheStorage, repoPath: string) {
-    this.storage = storage;
-    this.keyPrefix = `repoStatsEvolution_${this.hashPath(repoPath)}`;
+  constructor(
+    private readonly storage: CacheStorage,
+    targetId: string
+  ) {
+    this.keyPrefix = `repoStatsEvolution_${this.hashId(targetId)}`;
   }
 
-  getIfValid(currentHeadSha: string, branch: string, settingsHash: string): EvolutionResult | null {
+  getIfValid(revisionHash: string, settingsHash: string): EvolutionResult | null {
     const cache = this.getCache();
     if (!cache) {
       return null;
@@ -34,11 +35,7 @@ export class EvolutionCacheManager {
       return null;
     }
 
-    if (cache.data.headSha !== currentHeadSha) {
-      return null;
-    }
-
-    if (cache.data.branch !== branch) {
+    if (cache.data.revisionHash !== revisionHash) {
       return null;
     }
 
@@ -51,21 +48,17 @@ export class EvolutionCacheManager {
 
   getLatest(): EvolutionResult | null {
     const cache = this.getCache();
-    if (!cache) {
-      return null;
-    }
-
-    if (cache.version !== EVOLUTION_CACHE_VERSION) {
+    if (!cache || cache.version !== EVOLUTION_CACHE_VERSION) {
       return null;
     }
 
     return cache.data;
   }
 
-  save(result: EvolutionResult, repoPath: string): void {
+  save(result: EvolutionResult): void {
     const cache: EvolutionCacheStructure = {
       version: EVOLUTION_CACHE_VERSION,
-      repoPath,
+      targetId: result.targetId,
       lastAnalyzed: Date.now(),
       data: result,
     };
@@ -82,11 +75,11 @@ export class EvolutionCacheManager {
     return cached ?? null;
   }
 
-  private hashPath(path: string): string {
-    return crypto.createHash('md5').update(path).digest('hex').slice(0, 8);
+  private hashId(value: string): string {
+    return crypto.createHash('md5').update(value).digest('hex').slice(0, 8);
   }
 }
 
-export function createEvolutionCacheManager(storage: CacheStorage, repoPath: string): EvolutionCacheManager {
-  return new EvolutionCacheManager(storage, repoPath);
+export function createEvolutionCacheManager(storage: CacheStorage, targetId: string): EvolutionCacheManager {
+  return new EvolutionCacheManager(storage, targetId);
 }

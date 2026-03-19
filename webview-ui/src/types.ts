@@ -5,6 +5,7 @@
 
 export type {
   AnalysisResult,
+  AnalysisTargetOption,
   BlameFileCacheEntry,
   BlameMetrics,
   BlameOwnershipEntry,
@@ -41,7 +42,6 @@ export type {
   ScopedSettingSource,
   ScopedSettingValue,
   SettingWriteTarget,
-  SubmoduleInfo,
   TooltipSettings,
   TreemapAgeColorRangeMode,
   TreemapNode,

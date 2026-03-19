@@ -115,7 +115,8 @@ export class GitAnalyzer implements GitClient {
     ]);
 
     const analytics = buildCommitAnalytics(
-      parseCommitHistoryLog(rawLog, excludePatterns)
+      parseCommitHistoryLog(rawLog, excludePatterns),
+      this.repoPath
     );
     this.commitAnalyticsCache.set(cacheKey, analytics);
     return analytics;

@@ -15,7 +15,7 @@ import type { RepositoryContext } from './context.js';
 
 export class RepositorySettingsService {
   async updateSettings(
-    repository: RepositoryContext,
+    repository: RepositoryContext | undefined,
     settings: Partial<ExtensionSettings>,
     target: SettingWriteTarget
   ): Promise<boolean> {
@@ -31,7 +31,7 @@ export class RepositorySettingsService {
   }
 
   async updateScopedSetting<K extends RepoScopableSettingKey>(
-    repository: RepositoryContext,
+    repository: RepositoryContext | undefined,
     key: K,
     value: RepoScopableSettingValueMap[K],
     target: SettingWriteTarget
@@ -43,12 +43,12 @@ export class RepositorySettingsService {
   }
 
   async resetScopedSettingOverride(
-    repository: RepositoryContext,
+    repository: RepositoryContext | undefined,
     key: RepoScopableSettingKey
   ): Promise<boolean> {
     const config = this.getConfig(repository);
     const previousSettings = this.getSettings(repository);
-    if (!repository.workspaceFolder) {
+    if (!repository?.workspaceFolder) {
       throw new Error('Repo-scoped settings are only available for repositories inside the current workspace.');
     }
 
@@ -56,7 +56,7 @@ export class RepositorySettingsService {
     return settingsAffectCoreAnalysis(previousSettings, this.getSettings(repository));
   }
 
-  getRepoScopedSettings(repository: RepositoryContext): RepoScopedSettings {
+  getRepoScopedSettings(repository?: RepositoryContext): RepoScopedSettings {
     const config = this.getConfig(repository);
 
     return {
@@ -76,7 +76,7 @@ export class RepositorySettingsService {
     };
   }
 
-  getSettings(repository: RepositoryContext): ExtensionSettings {
+  getSettings(repository?: RepositoryContext): ExtensionSettings {
     const config = this.getConfig(repository);
 
     return {
@@ -110,8 +110,12 @@ export class RepositorySettingsService {
     };
   }
 
-  private getConfig(repository: RepositoryContext): vscode.WorkspaceConfiguration {
-    return vscode.workspace.getConfiguration('repoStats', repository.workspaceFolder?.uri ?? repository.rootUri);
+  canUseRepoScope(repository?: RepositoryContext): boolean {
+    return repository?.workspaceFolder !== undefined;
+  }
+
+  private getConfig(repository?: RepositoryContext): vscode.WorkspaceConfiguration {
+    return vscode.workspace.getConfiguration('repoStats', repository?.workspaceFolder?.uri ?? repository?.rootUri);
   }
 
   private getRequiredConfigValue<T>(config: vscode.WorkspaceConfiguration, key: string): T {
@@ -141,11 +145,11 @@ export class RepositorySettingsService {
   }
 
   private toConfigurationTarget(
-    repository: RepositoryContext,
+    repository: RepositoryContext | undefined,
     target: SettingWriteTarget
   ): vscode.ConfigurationTarget {
     if (target === 'repo') {
-      if (!repository.workspaceFolder) {
+      if (!repository?.workspaceFolder) {
         throw new Error('Repo-scoped settings are only available for repositories inside the current workspace.');
       }
       return vscode.ConfigurationTarget.WorkspaceFolder;
