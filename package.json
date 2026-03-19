@@ -51,7 +51,7 @@
       },
       {
         "command": "repoStats.selectRepository",
-        "title": "Repo Stats: Select Repository"
+        "title": "Repo Stats: Select Analysis Target"
       },
       {
         "command": "repoStats.addRepository",
@@ -208,12 +208,6 @@
           "scope": "resource",
           "default": [],
           "description": "File extensions to exclude from LOC counting (e.g. .svg). Accepts forms like .svg, svg, or **/*.svg."
-        },
-        "repoStats.includeSubmodules": {
-          "type": "boolean",
-          "scope": "resource",
-          "default": false,
-          "description": "Include Git submodule files in LOC/file-tree analysis (Overview + Files + Treemap). Does not aggregate submodule history in Contributors, Code Frequency, or Evolution."
         },
         "repoStats.bookmarkedRepositories": {
           "type": "array",

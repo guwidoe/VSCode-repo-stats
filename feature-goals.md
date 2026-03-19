@@ -121,6 +121,18 @@ Examples:
 - sampling mode
 - ranking metric
 - aggregation strategy
+- analysis target selection (single repo, repo group, workspace aggregate)
+
+### Multi-repository analysis targets
+Features that span submodules or multiple repositories should prefer a shared analysis-target model over one-off toggles.
+
+Examples:
+- selected repository
+- selected repository + submodules
+- workspace repositories
+- future custom repository groups
+
+This direction is captured in `MULTI_REPO_ANALYSIS_PLAN.md`.
 
 ### Preserve intuitive defaults
 Even if advanced settings exist, the default experience should remain simple and sensible for first-time users.

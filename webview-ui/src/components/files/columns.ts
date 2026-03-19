@@ -2,6 +2,7 @@ import type { FileColumnConfig, FileSortKey } from './types';
 
 export const FILE_COLUMNS: FileColumnConfig[] = [
   { key: 'path', label: 'Path', width: 320, filterKind: 'text' },
+  { key: 'repository', label: 'Repository', width: 180, filterKind: 'text' },
   { key: 'name', label: 'Name', width: 170, filterKind: 'text' },
   { key: 'ext', label: 'Ext', width: 90, filterKind: 'text' },
   { key: 'language', label: 'Language', width: 130, filterKind: 'text' },

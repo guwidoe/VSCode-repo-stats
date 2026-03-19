@@ -12,13 +12,13 @@ import type {
 } from '../../types';
 import { PatternListSetting } from './PatternListSetting';
 import { NumberSetting } from './NumberSetting';
-import { SelectSetting } from './SelectSetting';
 import { ScopedSettingHeader } from './ScopedSettingHeader';
 import { getScopedSettingDisplayValue } from '../../utils/scopedSettings';
 
 interface Props {
   scopedSettings: RepoScopedSettings;
   data: AnalysisResult | null;
+  repoScopeAvailable: boolean;
   updateScopedSetting: <K extends RepoScopableSettingKey>(
     key: K,
     value: RepoScopableSettingValueMap[K],
@@ -34,7 +34,6 @@ function getInitialTargets(scopedSettings: RepoScopedSettings): Record<RepoScopa
     generatedPatterns: scopedSettings.generatedPatterns.source === 'repo' ? 'repo' : 'global',
     binaryExtensions: scopedSettings.binaryExtensions.source === 'repo' ? 'repo' : 'global',
     locExcludedExtensions: scopedSettings.locExcludedExtensions.source === 'repo' ? 'repo' : 'global',
-    includeSubmodules: scopedSettings.includeSubmodules.source === 'repo' ? 'repo' : 'global',
     maxCommitsToAnalyze: scopedSettings.maxCommitsToAnalyze.source === 'repo' ? 'repo' : 'global',
     'evolution.samplingMode': scopedSettings['evolution.samplingMode'].source === 'repo' ? 'repo' : 'global',
     'evolution.snapshotIntervalDays': scopedSettings['evolution.snapshotIntervalDays'].source === 'repo' ? 'repo' : 'global',
@@ -49,6 +48,7 @@ function getInitialTargets(scopedSettings: RepoScopedSettings): Record<RepoScopa
 export function GeneralSettings({
   scopedSettings,
   data,
+  repoScopeAvailable,
   updateScopedSetting,
   resetScopedSetting,
   requestRefresh,
@@ -63,7 +63,10 @@ export function GeneralSettings({
   );
 
   const setTarget = (key: RepoScopableSettingKey, target: SettingWriteTarget) => {
-    setTargets((current) => ({ ...current, [key]: target }));
+    setTargets((current) => ({
+      ...current,
+      [key]: target === 'repo' && !repoScopeAvailable ? 'global' : target,
+    }));
   };
 
   const renderScopedHeader = (key: RepoScopableSettingKey) => (
@@ -71,6 +74,7 @@ export function GeneralSettings({
       target={resolvedTargets[key]}
       source={scopedSettings[key].source}
       hasRepoOverride={scopedSettings[key].repoValue !== undefined}
+      repoScopeAvailable={repoScopeAvailable}
       onTargetChange={(target) => setTarget(key, target)}
       onResetRepoOverride={() => resetScopedSetting(key)}
     />
@@ -110,24 +114,6 @@ export function GeneralSettings({
           onChange={(patterns) => updateScopedSetting('excludePatterns', patterns, resolvedTargets.excludePatterns)}
           placeholder="e.g., vendor, backend/fixtures, /src, /README.md"
           headerContent={renderScopedHeader('excludePatterns')}
-        />
-
-        <SelectSetting
-          title="Include Git Submodules in File Analysis"
-          description="When enabled, submodule files are included in LOC and file-tree analysis (Overview + Files + Treemap). Contributors, Code Frequency, and Evolution remain parent-repo only."
-          value={getScopedSettingDisplayValue(scopedSettings, 'includeSubmodules', resolvedTargets.includeSubmodules) ? 'enabled' : 'disabled'}
-          options={[
-            { value: 'disabled', label: 'Disabled' },
-            { value: 'enabled', label: 'Enabled' },
-          ]}
-          onChange={(value) =>
-            updateScopedSetting(
-              'includeSubmodules',
-              value === 'enabled',
-              resolvedTargets.includeSubmodules
-            )
-          }
-          headerContent={renderScopedHeader('includeSubmodules')}
         />
 
         <PatternListSetting
@@ -178,7 +164,7 @@ export function GeneralSettings({
           Re-analyze Repository
         </button>
         <p className="settings-hint">
-          Click to re-analyze after changing exclude patterns, submodule inclusion, generated patterns, binary extensions, or LOC extension filters.
+          Click to re-analyze after changing exclude patterns, generated patterns, binary extensions, or LOC extension filters.
         </p>
       </div>
     </>

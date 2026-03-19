@@ -23,10 +23,6 @@ function createScopedSettings(): RepoScopedSettings {
       defaultValue: [],
       source: 'default',
     },
-    includeSubmodules: {
-      defaultValue: false,
-      source: 'default',
-    },
     maxCommitsToAnalyze: {
       defaultValue: 10000,
       globalValue: 1000,

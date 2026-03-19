@@ -14,6 +14,7 @@ const collator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: tr
 
 const DEFAULT_DIRECTION_BY_KEY: Record<FileSortKey, SortDirection> = {
   path: 'asc',
+  repository: 'asc',
   name: 'asc',
   ext: 'asc',
   language: 'asc',
@@ -89,6 +90,8 @@ function compareByKey(a: FileRow, b: FileRow, key: FileSortKey): number {
   switch (key) {
     case 'path':
       return compareStrings(a.pathLower, b.pathLower);
+    case 'repository':
+      return compareStrings(a.repositoryLower, b.repositoryLower);
     case 'name':
       return compareStrings(a.nameLower, b.nameLower);
     case 'ext':
@@ -136,6 +139,8 @@ function getStringValue(row: FileRow, key: FileSortKey): string {
   switch (key) {
     case 'path':
       return row.pathLower;
+    case 'repository':
+      return row.repositoryLower;
     case 'name':
       return row.nameLower;
     case 'ext':

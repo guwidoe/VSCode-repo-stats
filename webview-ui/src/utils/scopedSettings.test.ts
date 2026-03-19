@@ -15,7 +15,6 @@ function createSettings(): ExtensionSettings {
     generatedPatterns: ['**/generated/**'],
     binaryExtensions: ['.png'],
     locExcludedExtensions: [],
-    includeSubmodules: false,
     showEmptyTimePeriods: true,
     defaultGranularityMode: 'auto',
     autoGranularityThreshold: 20,
@@ -69,11 +68,6 @@ function createScopedSettings(): RepoScopedSettings {
     locExcludedExtensions: {
       defaultValue: [],
       source: 'default',
-    },
-    includeSubmodules: {
-      defaultValue: false,
-      globalValue: true,
-      source: 'global',
     },
     maxCommitsToAnalyze: {
       defaultValue: 10000,

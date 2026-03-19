@@ -5,6 +5,7 @@ interface ScopedSettingHeaderProps {
   target: SettingWriteTarget;
   source: ScopedSettingSource;
   hasRepoOverride: boolean;
+  repoScopeAvailable?: boolean;
   compact?: boolean;
   onTargetChange: (target: SettingWriteTarget) => void;
   onResetRepoOverride: () => void;
@@ -14,6 +15,7 @@ export function ScopedSettingHeader({
   target,
   source,
   hasRepoOverride,
+  repoScopeAvailable = true,
   compact = false,
   onTargetChange,
   onResetRepoOverride,
@@ -32,12 +34,14 @@ export function ScopedSettingHeader({
           type="button"
           className={`scoped-setting-target ${target === 'repo' ? 'active' : ''}`}
           onClick={() => onTargetChange('repo')}
+          disabled={!repoScopeAvailable}
+          title={repoScopeAvailable ? undefined : 'Repo-scoped settings are unavailable for workspace aggregate targets.'}
         >
           Repo
         </button>
       </div>
 
-      {target === 'repo' && (
+      {target === 'repo' && repoScopeAvailable && (
         <span className="scoped-setting-path-hint">
           Saved to <code>.vscode/settings.json</code>
         </span>

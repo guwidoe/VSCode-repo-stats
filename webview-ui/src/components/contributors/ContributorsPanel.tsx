@@ -21,7 +21,6 @@ const LOAD_MORE_COUNT = 50;
 
 export function ContributorsPanel() {
   const data = useStore((state) => state.data);
-  const settings = useStore((state) => state.settings);
 
   // Get current values from store
   const contributors = useStore(selectFilteredContributors);

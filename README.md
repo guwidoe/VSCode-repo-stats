@@ -105,7 +105,7 @@ Results are cached based on the current Git HEAD, so subsequent opens are instan
 
 ### Settings Panel
 
-Configure analysis scope, chart granularity, overview display mode, treemap tooltip fields, generated file patterns, binary extensions, submodule inclusion, and Evolution sampling controls.
+Configure analysis scope, chart granularity, overview display mode, treemap tooltip fields, generated file patterns, binary extensions, and Evolution sampling controls. Multi-repository analysis now comes from the target picker (single repo, repo + submodules, or workspace aggregate) instead of a dedicated submodule toggle.
 
 ## Installation
 
@@ -151,7 +151,6 @@ This extension uses [scc](https://github.com/boyter/scc) for accurate lines-of-c
 | `repoStats.generatedPatterns` | See below | Glob patterns used to identify generated files |
 | `repoStats.binaryExtensions` | See below | File extensions treated as binary |
 | `repoStats.locExcludedExtensions` | `[]` | File extensions excluded from LOC counting |
-| `repoStats.includeSubmodules` | `false` | Include submodule files in Overview, Files, and Treemap |
 | `repoStats.tooltipSettings` | See `package.json` | Configure which metrics appear in treemap tooltips |
 | `repoStats.evolution.autoRun` | `false` | Auto-run evolution analysis when data is stale or missing |
 | `repoStats.evolution.snapshotIntervalDays` | `30` | Days between sampled evolution snapshots |
@@ -163,9 +162,9 @@ Tip: If assets like `.svg` files inflate LOC totals for your project, add `.svg`
 
 `repoStats.excludePatterns` accepts simple directory names (`vendor`), repo-relative paths (`backend/fixtures`), exact repo-root paths prefixed with `/` (`/src`, `/README.md`), and glob-style patterns (`**/backend/fixtures/**`).
 
-The following settings can be saved per-repository via the Settings UI and VS Code workspace-folder settings (`.vscode/settings.json`): `excludePatterns`, `generatedPatterns`, `binaryExtensions`, `locExcludedExtensions`, `includeSubmodules`, `maxCommitsToAnalyze`, `evolution.snapshotIntervalDays`, `evolution.maxSnapshots`, `evolution.maxSeries`, and `evolution.cohortFormat`.
+The following settings can be saved per-repository via the Settings UI and VS Code workspace-folder settings (`.vscode/settings.json`) when repo scope is available: `excludePatterns`, `generatedPatterns`, `binaryExtensions`, `locExcludedExtensions`, `maxCommitsToAnalyze`, `evolution.snapshotIntervalDays`, `evolution.maxSnapshots`, `evolution.maxSeries`, and `evolution.cohortFormat`.
 
-`repoStats.includeSubmodules` only affects file-based analysis (Overview + Files + Treemap). Contributors, Code Frequency, and Evolution continue to use parent-repo history only.
+Submodule aggregation is now controlled by the selected analysis target rather than a dedicated setting. Pick a repository target, a repository + submodules target, or the workspace aggregate target from the target selector.
 
 <details>
 <summary>Default Generated Patterns</summary>
@@ -193,7 +192,7 @@ The following settings can be saved per-repository via the Settings UI and VS Co
 
 Repo Stats is designed to handle large repositories efficiently:
 
-- **Caching**: Results cached by Git HEAD SHA - instant reload if no new commits
+- **Caching**: Results cached by target revision hash - instant reload if no member repo changed
 - **Progress reporting**: Visual feedback during analysis
 - **Commit limits**: Configurable maximum commits to analyze
 - **On-demand evolution cache**: Heavy blame-based evolution analysis only runs when requested and is cached separately
@@ -201,12 +200,12 @@ Repo Stats is designed to handle large repositories efficiently:
 
 For very large repositories, consider reducing `maxCommitsToAnalyze` or adding exclude patterns for large vendored directories.
 
-Evolution analysis is cached separately from the main dashboard data. If your repository HEAD changes, Evolution data is marked stale in the Evolution tab until you recompute it.
+Evolution analysis is cached separately from the main dashboard data. If any repository inside the selected target changes, Evolution data is marked stale in the Evolution tab until you recompute it.
 
 ## Known Issues
 
-- **Large monorepos**: First analysis may take longer; subsequent loads are cached
-- **Submodules**: Excluded by default; enable `repoStats.includeSubmodules` to include them in Overview + Files + Treemap (history-based tabs are parent-repo only)
+- **Large monorepos / workspace aggregates**: First analysis may take longer; subsequent loads are cached
+- **Multi-repository targets**: Workspace and submodule aggregates can take longer than single-repo analysis, especially in Evolution
 - **Binary files**: Shown in treemap with 0 LOC; use "Size (Bytes)" mode to see their actual size
 
 ## Contributing

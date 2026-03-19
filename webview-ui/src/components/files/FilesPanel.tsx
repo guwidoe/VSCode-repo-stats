@@ -27,7 +27,6 @@ import './FilesPanel.css';
 
 export function FilesPanel() {
   const catalog = useFileCatalog();
-  const settings = useStore((state) => state.settings);
   const data = useStore((state) => state.data);
   const { openFile, revealInExplorer } = useVsCodeApi();
 

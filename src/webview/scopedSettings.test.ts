@@ -51,11 +51,6 @@ describe('getScopedSettingDisplayValue', () => {
       defaultValue: [],
       source: 'default',
     },
-    includeSubmodules: {
-      defaultValue: false,
-      globalValue: true,
-      source: 'global',
-    },
     maxCommitsToAnalyze: {
       defaultValue: 10000,
       globalValue: 2000,
@@ -95,7 +90,6 @@ describe('getScopedSettingDisplayValue', () => {
 
   it('uses repo fallback chain for repo target', () => {
     expect(getScopedSettingDisplayValue(scopedSettings, 'excludePatterns', 'repo')).toEqual(['fixtures']);
-    expect(getScopedSettingDisplayValue(scopedSettings, 'includeSubmodules', 'repo')).toBe(true);
     expect(getScopedSettingDisplayValue(scopedSettings, 'generatedPatterns', 'repo')).toEqual([
       '**/generated/**',
     ]);

@@ -11,7 +11,6 @@ function createSettings(overrides?: Partial<ExtensionSettings['evolution']>): Ex
     generatedPatterns: [],
     binaryExtensions: ['.png'],
     locExcludedExtensions: [],
-    includeSubmodules: false,
     showEmptyTimePeriods: true,
     defaultGranularityMode: 'auto',
     autoGranularityThreshold: 20,
@@ -53,7 +52,6 @@ function createScopedSettings(overrides?: Partial<RepoScopedSettings>): RepoScop
     generatedPatterns: { defaultValue: [], source: 'default' },
     binaryExtensions: { defaultValue: ['.png'], source: 'default' },
     locExcludedExtensions: { defaultValue: [], source: 'default' },
-    includeSubmodules: { defaultValue: false, source: 'default' },
     maxCommitsToAnalyze: { defaultValue: 10000, source: 'default' },
     'evolution.samplingMode': {
       defaultValue: 'time',

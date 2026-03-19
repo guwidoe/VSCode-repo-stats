@@ -17,7 +17,6 @@ function createSettings(): ExtensionSettings {
     generatedPatterns: ['**/generated/**'],
     binaryExtensions: ['.png'],
     locExcludedExtensions: [],
-    includeSubmodules: false,
     showEmptyTimePeriods: true,
     defaultGranularityMode: 'auto',
     autoGranularityThreshold: 20,

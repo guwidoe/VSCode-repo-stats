@@ -465,7 +465,6 @@ export interface ExtensionSettings {
   generatedPatterns: string[];
   binaryExtensions: string[];
   locExcludedExtensions: string[];
-  includeSubmodules: boolean;
   showEmptyTimePeriods: boolean;
   defaultGranularityMode: 'auto' | 'weekly' | 'monthly';
   autoGranularityThreshold: number;
@@ -480,7 +479,6 @@ export interface RepoScopableSettingValueMap {
   generatedPatterns: string[];
   binaryExtensions: string[];
   locExcludedExtensions: string[];
-  includeSubmodules: boolean;
   maxCommitsToAnalyze: number;
   'evolution.samplingMode': EvolutionSamplingMode;
   'evolution.snapshotIntervalDays': number;
@@ -496,7 +494,6 @@ export const REPO_SCOPABLE_SETTING_KEYS = [
   'generatedPatterns',
   'binaryExtensions',
   'locExcludedExtensions',
-  'includeSubmodules',
   'maxCommitsToAnalyze',
   'evolution.samplingMode',
   'evolution.snapshotIntervalDays',

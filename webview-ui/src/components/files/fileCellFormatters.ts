@@ -6,6 +6,8 @@ export function getCellContent(row: FileRow, key: FileSortKey): ReactNode {
   switch (key) {
     case 'path':
       return row.path;
+    case 'repository':
+      return row.repository;
     case 'name':
       return row.name;
     case 'ext':
@@ -53,6 +55,8 @@ export function getCellTitle(row: FileRow, key: FileSortKey): string | undefined
   switch (key) {
     case 'path':
       return row.path;
+    case 'repository':
+      return row.repository;
     case 'name':
       return row.name;
     case 'language':

@@ -239,7 +239,6 @@ export function createCoreAnalysisSettingsSnapshot(settings: ExtensionSettings):
     maxCommitsToAnalyze: settings.maxCommitsToAnalyze,
     binaryExtensions: sorted(settings.binaryExtensions),
     locExcludedExtensions: sorted(settings.locExcludedExtensions),
-    includeSubmodules: settings.includeSubmodules,
   };
 }
 
@@ -293,9 +292,6 @@ export function flattenSettingsUpdate(settings: Partial<ExtensionSettings>): Set
   }
   if (settings.locExcludedExtensions !== undefined) {
     updates.push({ key: 'locExcludedExtensions', value: settings.locExcludedExtensions });
-  }
-  if (settings.includeSubmodules !== undefined) {
-    updates.push({ key: 'includeSubmodules', value: settings.includeSubmodules });
   }
   if (settings.showEmptyTimePeriods !== undefined) {
     updates.push({ key: 'showEmptyTimePeriods', value: settings.showEmptyTimePeriods });

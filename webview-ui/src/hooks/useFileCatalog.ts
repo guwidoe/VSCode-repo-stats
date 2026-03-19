@@ -23,6 +23,7 @@ function flattenTree(
   rows: FileRow[],
   generatedPatterns: string[],
   binaryExtensions: Set<string>,
+  repositoryLabelsById: Map<string, string>,
   languages: Set<string>,
   extensions: Set<string>
 ): void {
@@ -34,8 +35,13 @@ function flattenTree(
     const language = node.language ?? 'Unknown';
     const generated = isGeneratedFile(node.path, generatedPatterns);
 
+    const repositoryId = node.repositoryId ?? '';
+    const repository = repositoryLabelsById.get(repositoryId) ?? repositoryId;
+
     const row: FileRow = {
       path: node.path,
+      repositoryId,
+      repository,
       name: node.name,
       ext,
       language,
@@ -58,6 +64,7 @@ function flattenTree(
       lastModified: node.lastModified,
       lastModifiedEpoch: toEpoch(node.lastModified),
       pathLower: node.path.toLowerCase(),
+      repositoryLower: repository.toLowerCase(),
       nameLower: node.name.toLowerCase(),
       topOwnerAuthorLower: (node.topOwnerAuthor ?? '').toLowerCase(),
     };
@@ -69,14 +76,15 @@ function flattenTree(
   }
 
   for (const child of node.children ?? []) {
-    flattenTree(child, rows, generatedPatterns, binaryExtensions, languages, extensions);
+    flattenTree(child, rows, generatedPatterns, binaryExtensions, repositoryLabelsById, languages, extensions);
   }
 }
 
 export function buildFileCatalog(
   fileTree: TreemapNode,
   generatedPatterns: string[],
-  binaryExtensions: Set<string>
+  binaryExtensions: Set<string>,
+  repositoryLabelsById: Map<string, string> = new Map()
 ): FileCatalog {
   const rows: FileRow[] = [];
   const languageSet = new Set<string>();
@@ -87,6 +95,7 @@ export function buildFileCatalog(
     rows,
     generatedPatterns,
     binaryExtensions,
+    repositoryLabelsById,
     languageSet,
     extensionSet
   );
@@ -111,7 +120,10 @@ export function useFileCatalog(): FileCatalog | null {
 
     const generatedPatterns = settings.generatedPatterns;
     const binaryExtensions = buildBinaryExtensionSet(settings.binaryExtensions);
+    const repositoryLabelsById = new Map(
+      data.repositories.map((repository) => [repository.id, repository.pathPrefix || repository.name])
+    );
 
-    return buildFileCatalog(data.fileTree, generatedPatterns, binaryExtensions);
-  }, [data?.fileTree, settings]);
+    return buildFileCatalog(data.fileTree, generatedPatterns, binaryExtensions, repositoryLabelsById);
+  }, [data, settings]);
 }

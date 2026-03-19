@@ -38,7 +38,6 @@ export function CodeFrequencyPanel() {
   const frequency = useStore(selectFilteredCodeFrequency);
   const { frequencyGranularity, setFrequencyGranularity } = useStore();
   const settings = useStore((state) => state.settings)!;
-  const data = useStore((state) => state.data);
 
   const showEmptyTimePeriods = settings.showEmptyTimePeriods;
 

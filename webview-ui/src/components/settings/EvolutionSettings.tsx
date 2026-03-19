@@ -18,6 +18,7 @@ import { getScopedSettingDisplayValue } from '../../utils/scopedSettings';
 interface Props {
   settings: ExtensionSettings;
   scopedSettings: RepoScopedSettings;
+  repoScopeAvailable: boolean;
   updateSettings: (settings: Partial<ExtensionSettings>) => void;
   updateScopedSetting: <K extends RepoScopableSettingKey>(
     key: K,
@@ -73,6 +74,7 @@ function getInitialTargets(
 export function EvolutionSettings({
   settings,
   scopedSettings,
+  repoScopeAvailable,
   updateSettings,
   updateScopedSetting,
   resetScopedSetting,
@@ -130,7 +132,10 @@ export function EvolutionSettings({
       : derivedTimeGranularity;
 
   const setTarget = (key: EvolutionScopedKey, target: SettingWriteTarget) => {
-    setTargets((current) => ({ ...current, [key]: target }));
+    setTargets((current) => ({
+      ...current,
+      [key]: target === 'repo' && !repoScopeAvailable ? 'global' : target,
+    }));
   };
 
   const renderScopedHeader = (key: EvolutionScopedKey) => (
@@ -138,6 +143,7 @@ export function EvolutionSettings({
       target={resolvedTargets[key]}
       source={scopedSettings[key].source}
       hasRepoOverride={scopedSettings[key].repoValue !== undefined}
+      repoScopeAvailable={repoScopeAvailable}
       compact
       onTargetChange={(target) => setTarget(key, target)}
       onResetRepoOverride={() => resetScopedSetting(key)}

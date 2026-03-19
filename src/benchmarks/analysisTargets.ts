@@ -35,7 +35,6 @@ export const DEFAULT_BENCHMARK_SETTINGS: ExtensionSettings = {
   ],
   binaryExtensions: ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.woff', '.woff2'],
   locExcludedExtensions: [],
-  includeSubmodules: false,
   showEmptyTimePeriods: true,
   defaultGranularityMode: 'auto',
   autoGranularityThreshold: 20,

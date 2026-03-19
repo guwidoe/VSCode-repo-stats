@@ -1,5 +1,7 @@
 export interface FileRow {
   path: string;
+  repositoryId: string;
+  repository: string;
   name: string;
   ext: string;
   language: string;
@@ -24,6 +26,7 @@ export interface FileRow {
 
   // Normalized fields for faster filtering/sorting
   pathLower: string;
+  repositoryLower: string;
   nameLower: string;
   topOwnerAuthorLower: string;
 }
@@ -36,6 +39,7 @@ export interface FileCatalog {
 
 export type FileSortKey =
   | 'path'
+  | 'repository'
   | 'name'
   | 'ext'
   | 'language'

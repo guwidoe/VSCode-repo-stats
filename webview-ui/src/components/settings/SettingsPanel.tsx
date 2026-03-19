@@ -16,6 +16,7 @@ import './SettingsPanel.css';
 export function SettingsPanel() {
   const settings = useStore((state) => state.settings);
   const scopedSettings = useStore((state) => state.scopedSettings);
+  const repoScopeAvailable = useStore((state) => state.repoScopeAvailable);
   const data = useStore((state) => state.data);
   const { updateSettings, updateScopedSetting, resetScopedSetting, requestRefresh } = useVsCodeApi();
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
@@ -33,9 +34,9 @@ export function SettingsPanel() {
       <div className="settings-header">
         <h2>Extension Settings</h2>
         <p className="settings-description">
-          Configure how Repo Stats analyzes your repository. Changes are saved
+          Configure how Repo Stats analyzes your selected target. Changes are saved
           automatically. Analysis settings with a scope switch can be stored
-          globally or in <code>.vscode/settings.json</code> for this repo.
+          globally or in <code>.vscode/settings.json</code> when repo scope is available.
         </p>
       </div>
 
@@ -46,6 +47,7 @@ export function SettingsPanel() {
           <GeneralSettings
             scopedSettings={scopedSettings}
             data={data}
+            repoScopeAvailable={repoScopeAvailable}
             updateScopedSetting={updateScopedSetting}
             resetScopedSetting={resetScopedSetting}
             requestRefresh={requestRefresh}
@@ -64,6 +66,7 @@ export function SettingsPanel() {
           <EvolutionSettings
             settings={settings}
             scopedSettings={scopedSettings}
+            repoScopeAvailable={repoScopeAvailable}
             updateSettings={updateSettings}
             updateScopedSetting={updateScopedSetting}
             resetScopedSetting={resetScopedSetting}

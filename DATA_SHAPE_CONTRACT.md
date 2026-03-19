@@ -2,6 +2,17 @@
 
 This document records where partial data is expected and where it is considered an error.
 
+## AnalysisResult target contract
+
+`AnalysisResult` is target-aware.
+
+- `target` describes the selected analysis target (single repo, repo + submodules, workspace aggregate)
+- `repositories` enumerates the concrete member repositories inside that target
+- file paths in `fileTree` are logical target paths and may be prefixed for multi-repository targets
+- file nodes may carry `repositoryId` / `repositoryRelativePath` so the UI can map logical rows back to physical repositories
+
+Consumers should not assume a single `repository` field exists.
+
 ## TreemapNode contract
 
 `TreemapNode` is intentionally a partial/gradually enriched structure:
