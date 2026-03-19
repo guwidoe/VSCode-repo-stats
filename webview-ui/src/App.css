@@ -54,9 +54,7 @@ body {
 }
 
 .repo-selector {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  position: relative;
   min-width: 0;
 }
 
@@ -66,15 +64,101 @@ body {
   white-space: nowrap;
 }
 
-.repo-selector-input {
+.repo-selector-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   min-width: 240px;
-  max-width: min(420px, 45vw);
-  padding: 4px 8px;
+  max-width: min(460px, 50vw);
+  padding: 6px 10px;
   border: 1px solid var(--vscode-dropdown-border, var(--vscode-panel-border));
   border-radius: 4px;
   background: var(--vscode-dropdown-background, var(--vscode-input-background));
   color: var(--vscode-dropdown-foreground, var(--vscode-input-foreground));
+  cursor: pointer;
+  list-style: none;
+}
+
+.repo-selector-trigger::-webkit-details-marker {
+  display: none;
+}
+
+.repo-selector-trigger-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.repo-selector-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 10;
+  width: min(420px, 70vw);
+  max-height: 360px;
+  overflow: auto;
+  padding: 10px;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 8px;
+  background: var(--vscode-editorWidget-background, var(--vscode-sideBar-background));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.repo-selector-actions-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.repo-selector-action {
+  padding: 4px 8px;
+  border: 1px solid var(--vscode-button-border, var(--vscode-panel-border));
+  border-radius: 4px;
+  background: var(--vscode-button-secondaryBackground, var(--vscode-input-background));
+  color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
   font: inherit;
+  cursor: pointer;
+}
+
+.repo-selector-action:hover {
+  background: var(--vscode-button-secondaryHoverBackground, var(--vscode-list-hoverBackground));
+}
+
+.repo-selector-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.repo-selector-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 4px;
+  border-radius: 4px;
+}
+
+.repo-selector-item:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.repo-selector-item-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.repo-selector-item-name {
+  font-size: 13px;
+  color: var(--vscode-foreground);
+}
+
+.repo-selector-item-meta {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  word-break: break-word;
 }
 
 .header-actions {

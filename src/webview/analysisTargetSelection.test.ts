@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildRepositoryWithSubmodulesTarget,
+  buildSelectionTarget,
   buildSingleRepositoryTarget,
-  buildWorkspaceTarget,
-  selectPreferredTargetId,
+  buildTargetForSelectedRepositories,
+  getTopLevelRepositoryIds,
+  selectPreferredRepositoryIds,
 } from './analysisTargetSelection';
 
 describe('analysisTargetSelection helpers', () => {
@@ -33,9 +34,9 @@ describe('analysisTargetSelection helpers', () => {
     });
   });
 
-  it('builds a repository-with-submodules target with parent exclusions', () => {
-    const target = buildRepositoryWithSubmodulesTarget({
-      repository: {
+  it('builds a multi-repository selection target with parent exclusions', () => {
+    const target = buildSelectionTarget([
+      {
         option: {
           path: '/workspace/project',
           name: 'project',
@@ -45,50 +46,51 @@ describe('analysisTargetSelection helpers', () => {
         },
         rootPath: '/workspace/project',
       },
-      submodulePaths: ['vendor/lib-a', 'vendor/lib-b'],
-    });
-
-    expect(target.kind).toBe('repositoryWithSubmodules');
-    expect(target.members[0]?.excludePatterns).toEqual(['vendor/lib-a', 'vendor/lib-b']);
-    expect(target.members.slice(1).map((member) => member.pathPrefix)).toEqual([
-      'vendor/lib-a',
-      'vendor/lib-b',
-    ]);
-  });
-
-  it('builds a workspace target with unique path prefixes', () => {
-    const target = buildWorkspaceTarget([
       {
         option: {
-          path: '/workspace/app-a',
-          name: 'service',
+          path: '/workspace/project/vendor/lib-a',
+          name: 'lib-a',
           source: 'workspace',
-          workspaceFolderName: 'app-a',
-          relativePath: '.',
+          workspaceFolderName: 'project',
+          relativePath: 'vendor/lib-a',
         },
-        rootPath: '/workspace/app-a',
-      },
-      {
-        option: {
-          path: '/workspace/app-b',
-          name: 'service',
-          source: 'workspace',
-          workspaceFolderName: 'app-b',
-          relativePath: '.',
-        },
-        rootPath: '/workspace/app-b',
+        rootPath: '/workspace/project/vendor/lib-a',
       },
     ]);
 
     expect(target.kind).toBe('workspace');
-    expect(target.members.map((member) => member.pathPrefix)).toEqual(['app-a', 'app-b']);
+    expect(target.members[0]?.excludePatterns).toEqual(['vendor/lib-a']);
+    expect(target.members.map((member) => member.pathPrefix)).toEqual([
+      'project',
+      'project/vendor/lib-a',
+    ]);
   });
 
-  it('selects the preferred target id when available', () => {
-    const targets = [{ id: 'repo:/a' }, { id: 'workspace:/a|/b' }];
+  it('returns null when no repositories are selected', () => {
+    expect(buildTargetForSelectedRepositories([])).toBeNull();
+  });
 
-    expect(selectPreferredTargetId(targets, 'workspace:/a|/b')).toBe('workspace:/a|/b');
-    expect(selectPreferredTargetId(targets, 'missing')).toBe('repo:/a');
-    expect(selectPreferredTargetId([], 'repo:/a')).toBeNull();
+  it('defaults selection to all repositories when no valid preference exists', () => {
+    const repositories = [{ path: '/workspace/a' }, { path: '/workspace/b' }];
+
+    expect(selectPreferredRepositoryIds(repositories, ['/workspace/missing'])).toEqual([
+      '/workspace/a',
+      '/workspace/b',
+    ]);
+    expect(selectPreferredRepositoryIds(repositories, ['/workspace/b'])).toEqual(['/workspace/b']);
+    expect(selectPreferredRepositoryIds([], ['/workspace/a'])).toEqual([]);
+  });
+
+  it('returns only top-level repositories for the preset helper', () => {
+    const repositories = [
+      { path: '/workspace/project' },
+      { path: '/workspace/project/vendor/lib-a' },
+      { path: '/workspace/other' },
+    ];
+
+    expect(getTopLevelRepositoryIds(repositories)).toEqual([
+      '/workspace/project',
+      '/workspace/other',
+    ]);
   });
 });

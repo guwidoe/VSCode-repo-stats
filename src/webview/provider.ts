@@ -8,7 +8,6 @@ import * as path from 'path';
 import * as fs from 'fs';
 import simpleGit from 'simple-git';
 import {
-  AnalysisTargetOption,
   ExtensionMessage,
   RepoScopableSettingKey,
   RepoScopableSettingValueMap,
@@ -100,30 +99,35 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     }
 
     const selection = await this.analysisTargetService.resolveSelection();
-    if (selection.selected) {
-      this.analysisService.clearCache(selection.selected);
+    if (selection.selectedTarget) {
+      this.analysisService.clearCache(selection.selectedTarget);
     }
 
-    await this.analysisService.runAnalysis(this.panel.webview, selection.selected ?? undefined);
+    await this.analysisService.runAnalysis(this.panel.webview, selection.selectedTarget ?? undefined);
   }
 
   public async promptRepositorySelection(): Promise<void> {
     const selection = await this.analysisTargetService.resolveSelection();
-    if (selection.targets.length === 0) {
+    if (selection.repositories.length === 0) {
       vscode.window.showInformationMessage('No Git repositories were found in the workspace or bookmarked list.');
       return;
     }
 
+    const selectedIds = new Set(selection.selectedRepositoryIds);
     const picked = await vscode.window.showQuickPick(
-      selection.targets.map((target) => ({
-        label: target.option.label,
-        description: this.getTargetPickerDescription(target.option),
-        detail: target.target.members.map((member) => member.repoPath).join(' • '),
-        target,
+      selection.repositories.map((repository) => ({
+        label: repository.option.name,
+        description: repository.option.workspaceFolderName
+          ? `${repository.option.workspaceFolderName} • ${repository.option.relativePath ?? '.'}`
+          : 'Bookmarked repository',
+        detail: repository.rootUri.fsPath,
+        picked: selectedIds.has(repository.option.path),
+        repositoryId: repository.option.path,
       })),
       {
-        title: 'Select Analysis Target',
-        placeHolder: 'Choose the repository target to analyze in Repo Stats',
+        canPickMany: true,
+        title: 'Select Repositories',
+        placeHolder: 'Choose the repositories to include in Repo Stats analysis',
       }
     );
 
@@ -131,14 +135,15 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       return;
     }
 
-    await this.analysisTargetService.persistSelectedTargetId(picked.target.option.id);
+    const repositoryIds = picked.map((item) => item.repositoryId);
+    await this.analysisTargetService.persistSelectedRepositoryIds(repositoryIds);
 
     if (!this.panel) {
       await this.showDashboard();
       return;
     }
 
-    await this.selectTarget(picked.target.option.id, this.panel.webview);
+    await this.updateRepositorySelection(repositoryIds, this.panel.webview);
   }
 
   public async addRepository(): Promise<void> {
@@ -184,13 +189,13 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       return;
     }
 
-    const currentSelection = await this.analysisTargetService.getSelectedTarget();
-    const selection = await this.analysisTargetService.resolveSelection(currentSelection?.option.id);
+    const currentSelection = await this.analysisTargetService.resolveSelection();
+    const selection = await this.analysisTargetService.resolveSelection(currentSelection.selectedRepositoryIds);
     await this.sendCurrentTargetContext(this.panel.webview, selection);
-    await this.analysisService.sendStalenessStatus(this.panel.webview, selection.selected ?? undefined);
+    await this.analysisService.sendStalenessStatus(this.panel.webview, selection.selectedTarget ?? undefined);
 
-    if (!currentSelection && selection.selected) {
-      await this.analysisService.runAnalysis(this.panel.webview, selection.selected);
+    if (!currentSelection.selectedTarget && selection.selectedTarget) {
+      await this.analysisService.runAnalysis(this.panel.webview, selection.selectedTarget);
     }
   }
 
@@ -267,8 +272,8 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
           );
           break;
 
-        case 'selectTarget':
-          await this.selectTarget(message.targetId, webview);
+        case 'updateRepositorySelection':
+          await this.updateRepositorySelection(message.repositoryIds, webview);
           break;
 
         case 'openFile':
@@ -362,17 +367,6 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     return configured.filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
   }
 
-  private getTargetPickerDescription(target: AnalysisTargetOption): string {
-    if (target.kind === 'repository') {
-      return 'Single repository';
-    }
-    if (target.kind === 'repositoryWithSubmodules') {
-      return target.description ?? 'Repository with submodules';
-    }
-
-    return target.description ?? 'Workspace aggregate';
-  }
-
   private async runAnalysis(webview: vscode.Webview): Promise<void> {
     await this.analysisService.runAnalysis(
       webview,
@@ -380,11 +374,14 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     );
   }
 
-  private async selectTarget(targetId: string, webview: vscode.Webview): Promise<void> {
-    const selection = await this.analysisTargetService.resolveSelection(targetId);
+  private async updateRepositorySelection(
+    repositoryIds: string[],
+    webview: vscode.Webview
+  ): Promise<void> {
+    const selection = await this.analysisTargetService.resolveSelection(repositoryIds);
     await this.sendCurrentTargetContext(webview, selection);
-    await this.analysisService.sendStalenessStatus(webview, selection.selected ?? undefined);
-    await this.analysisService.runAnalysis(webview, selection.selected ?? undefined);
+    await this.analysisService.sendStalenessStatus(webview, selection.selectedTarget ?? undefined);
+    await this.analysisService.runAnalysis(webview, selection.selectedTarget ?? undefined);
   }
 
   private async sendCurrentTargetContext(
@@ -394,19 +391,18 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     const resolved = selection ?? await this.analysisTargetService.resolveSelection();
 
     this.sendMessage(webview, {
-      type: 'targetSelectionLoaded',
-      targets: resolved.targets.map((target) => target.option),
-      selectedTargetId: resolved.selected?.option.id ?? null,
+      type: 'repositorySelectionLoaded',
+      repositories: resolved.repositories.map((repository) => repository.option),
+      selectedRepositoryIds: resolved.selectedRepositoryIds,
+      selectedTarget: resolved.selectedTargetOption,
     });
 
-    if (resolved.selected) {
-      this.sendMessage(webview, {
-        type: 'settingsLoaded',
-        settings: this.settingsService.getSettings(resolved.selected.settingsRepository),
-        scopedSettings: this.settingsService.getRepoScopedSettings(resolved.selected.settingsRepository),
-        repoScopeAvailable: this.settingsService.canUseRepoScope(resolved.selected.settingsRepository),
-      });
-    }
+    this.sendMessage(webview, {
+      type: 'settingsLoaded',
+      settings: this.settingsService.getSettings(resolved.selectedTarget?.settingsRepository),
+      scopedSettings: this.settingsService.getRepoScopedSettings(resolved.selectedTarget?.settingsRepository),
+      repoScopeAvailable: this.settingsService.canUseRepoScope(resolved.selectedTarget?.settingsRepository),
+    });
 
     return resolved;
   }

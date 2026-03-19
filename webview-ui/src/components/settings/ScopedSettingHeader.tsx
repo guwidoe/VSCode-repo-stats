@@ -35,7 +35,7 @@ export function ScopedSettingHeader({
           className={`scoped-setting-target ${target === 'repo' ? 'active' : ''}`}
           onClick={() => onTargetChange('repo')}
           disabled={!repoScopeAvailable}
-          title={repoScopeAvailable ? undefined : 'Repo-scoped settings are unavailable for workspace aggregate targets.'}
+          title={repoScopeAvailable ? undefined : 'Repo-scoped settings are only available when exactly one workspace repository is selected.'}
         >
           Repo
         </button>

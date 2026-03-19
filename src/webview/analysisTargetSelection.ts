@@ -6,6 +6,11 @@ import type {
   RepositoryOption,
 } from '../types/index.js';
 
+interface RepositoryTargetInput {
+  option: RepositoryOption;
+  rootPath: string;
+}
+
 function normalizePath(filePath: string): string {
   return filePath.replace(/\\/g, '/');
 }
@@ -14,12 +19,8 @@ function buildRepositoryTargetId(repoPath: string): string {
   return `repo:${normalizePath(repoPath)}`;
 }
 
-function buildRepositoryWithSubmodulesTargetId(repoPath: string): string {
-  return `repo+submodules:${normalizePath(repoPath)}`;
-}
-
-function buildWorkspaceTargetId(repoPaths: string[]): string {
-  return `workspace:${repoPaths.map(normalizePath).sort((a, b) => a.localeCompare(b)).join('|')}`;
+function buildSelectionTargetId(repoPaths: string[]): string {
+  return `selection:${repoPaths.map(normalizePath).sort((a, b) => a.localeCompare(b)).join('|')}`;
 }
 
 function buildWorkspaceMemberPrefix(option: RepositoryOption): string {
@@ -49,10 +50,27 @@ function ensureUniquePrefixes(prefixes: string[]): string[] {
   });
 }
 
-export function buildSingleRepositoryTarget(repository: {
-  option: RepositoryOption;
-  rootPath: string;
-}): AnalysisTarget {
+function isNestedRepositoryPath(parentRepoPath: string, childRepoPath: string): boolean {
+  const normalizedParent = normalizePath(parentRepoPath).replace(/\/+$/, '');
+  const normalizedChild = normalizePath(childRepoPath).replace(/\/+$/, '');
+
+  return normalizedChild.startsWith(`${normalizedParent}/`);
+}
+
+function buildExcludePatternsForNestedRepositories(
+  repository: RepositoryTargetInput,
+  selectedRepositories: RepositoryTargetInput[]
+): string[] | undefined {
+  const nestedPaths = selectedRepositories
+    .filter((candidate) => candidate.rootPath !== repository.rootPath)
+    .filter((candidate) => isNestedRepositoryPath(repository.rootPath, candidate.rootPath))
+    .map((candidate) => normalizePath(path.relative(repository.rootPath, candidate.rootPath)))
+    .sort((a, b) => a.localeCompare(b));
+
+  return nestedPaths.length > 0 ? nestedPaths : undefined;
+}
+
+export function buildSingleRepositoryTarget(repository: RepositoryTargetInput): AnalysisTarget {
   return {
     id: buildRepositoryTargetId(repository.option.path),
     kind: 'repository',
@@ -78,72 +96,42 @@ export function buildSingleRepositoryTarget(repository: {
   };
 }
 
-export function buildRepositoryWithSubmodulesTarget(input: {
-  repository: {
-    option: RepositoryOption;
-    rootPath: string;
-  };
-  submodulePaths: string[];
-}): AnalysisTarget {
-  const { repository, submodulePaths } = input;
-  const sortedSubmodulePaths = [...submodulePaths].sort((a, b) => a.localeCompare(b));
-  const members: AnalysisTargetMember[] = [
-    {
-      id: repository.option.path,
-      role: 'primary',
-      repoPath: repository.rootPath,
-      displayName: repository.option.name,
-      logicalRoot: repository.option.name,
-      pathPrefix: '',
-      workspaceFolderName: repository.option.workspaceFolderName,
-      excludePatterns: sortedSubmodulePaths,
-    },
-    ...sortedSubmodulePaths.map((submodulePath) => ({
-      id: normalizePath(path.join(repository.rootPath, submodulePath)),
-      role: 'submodule' as const,
-      repoPath: path.join(repository.rootPath, submodulePath),
-      displayName: path.basename(submodulePath),
-      logicalRoot: submodulePath,
-      pathPrefix: normalizePath(submodulePath),
-      workspaceFolderName: repository.option.workspaceFolderName,
-    })),
-  ];
+export function buildSelectionTarget(repositories: RepositoryTargetInput[]): AnalysisTarget {
+  if (repositories.length === 1) {
+    return buildSingleRepositoryTarget(repositories[0]);
+  }
 
-  return {
-    id: buildRepositoryWithSubmodulesTargetId(repository.option.path),
-    kind: 'repositoryWithSubmodules',
-    label: `${repository.option.name} + submodules`,
-    description: `${sortedSubmodulePaths.length} submodule${sortedSubmodulePaths.length === 1 ? '' : 's'}`,
-    settingsScope: 'repo',
-    settingsPath: repository.rootPath,
-    members,
-  };
-}
-
-export function buildWorkspaceTarget(repositories: Array<{
-  option: RepositoryOption;
-  rootPath: string;
-}>): AnalysisTarget {
   const prefixes = ensureUniquePrefixes(
     repositories.map((repository) => buildWorkspaceMemberPrefix(repository.option))
   );
 
+  const members: AnalysisTargetMember[] = repositories.map((repository, index) => ({
+    id: repository.option.path,
+    role: 'workspaceRepo',
+    repoPath: repository.rootPath,
+    displayName: repository.option.name,
+    logicalRoot: prefixes[index],
+    pathPrefix: prefixes[index],
+    workspaceFolderName: repository.option.workspaceFolderName,
+    excludePatterns: buildExcludePatternsForNestedRepositories(repository, repositories),
+  }));
+
   return {
-    id: buildWorkspaceTargetId(repositories.map((repository) => repository.rootPath)),
+    id: buildSelectionTargetId(repositories.map((repository) => repository.rootPath)),
     kind: 'workspace',
-    label: 'Workspace repositories',
-    description: `${repositories.length} repositories`,
+    label: 'Selected repositories',
+    description: `${repositories.length} repositories selected`,
     settingsScope: 'workspace',
-    members: repositories.map((repository, index) => ({
-      id: repository.option.path,
-      role: 'workspaceRepo',
-      repoPath: repository.rootPath,
-      displayName: repository.option.name,
-      logicalRoot: prefixes[index],
-      pathPrefix: prefixes[index],
-      workspaceFolderName: repository.option.workspaceFolderName,
-    })),
+    members,
   };
+}
+
+export function buildTargetForSelectedRepositories(repositories: RepositoryTargetInput[]): AnalysisTarget | null {
+  if (repositories.length === 0) {
+    return null;
+  }
+
+  return buildSelectionTarget(repositories);
 }
 
 export function toAnalysisTargetOption(target: AnalysisTarget): AnalysisTargetOption {
@@ -157,17 +145,30 @@ export function toAnalysisTargetOption(target: AnalysisTarget): AnalysisTargetOp
   };
 }
 
-export function selectPreferredTargetId(
-  targets: Pick<AnalysisTarget, 'id'>[],
-  preferredTargetId?: string
-): string | null {
-  if (targets.length === 0) {
-    return null;
+export function selectPreferredRepositoryIds(
+  repositories: Pick<RepositoryOption, 'path'>[],
+  preferredRepositoryIds?: string[]
+): string[] {
+  if (repositories.length === 0) {
+    return [];
   }
 
-  if (preferredTargetId && targets.some((target) => target.id === preferredTargetId)) {
-    return preferredTargetId;
+  const preferredIds = new Set(preferredRepositoryIds ?? []);
+  const preferred = repositories
+    .map((repository) => repository.path)
+    .filter((repositoryId) => preferredIds.has(repositoryId));
+
+  if (preferred.length > 0) {
+    return preferred;
   }
 
-  return targets[0]?.id ?? null;
+  return repositories.map((repository) => repository.path);
+}
+
+export function getTopLevelRepositoryIds(repositories: Array<Pick<RepositoryOption, 'path'>>): string[] {
+  return repositories
+    .filter((repository) => !repositories.some((candidate) => (
+      candidate.path !== repository.path && isNestedRepositoryPath(candidate.path, repository.path)
+    )))
+    .map((repository) => repository.path);
 }

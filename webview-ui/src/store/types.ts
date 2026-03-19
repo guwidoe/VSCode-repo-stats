@@ -2,6 +2,7 @@ import type {
   AnalysisResult,
   AnalysisTargetOption,
   ColorMode,
+  RepositoryOption,
   EvolutionResult,
   EvolutionStatus,
   ExtensionSettings,
@@ -51,9 +52,14 @@ export interface SettingsSlice {
 }
 
 export interface RepositorySlice {
-  availableTargets: AnalysisTargetOption[];
-  selectedTargetId: string | null;
-  setRepositorySelection: (targets: AnalysisTargetOption[], selectedTargetId: string | null) => void;
+  availableRepositories: RepositoryOption[];
+  selectedRepositoryIds: string[];
+  selectedTarget: AnalysisTargetOption | null;
+  setRepositorySelection: (
+    repositories: RepositoryOption[],
+    selectedRepositoryIds: string[],
+    selectedTarget: AnalysisTargetOption | null
+  ) => void;
 }
 
 export interface UiSlice {
@@ -132,8 +138,9 @@ export const settingsInitialState = {
 };
 
 export const repositoryInitialState = {
-  availableTargets: [] as AnalysisTargetOption[],
-  selectedTargetId: null as string | null,
+  availableRepositories: [] as RepositoryOption[],
+  selectedRepositoryIds: [] as string[],
+  selectedTarget: null as AnalysisTargetOption | null,
 };
 
 export const uiInitialState = {

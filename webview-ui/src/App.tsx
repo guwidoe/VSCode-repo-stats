@@ -3,7 +3,7 @@
  */
 
 import { useEffect, useMemo } from 'react';
-import type { AnalysisTargetOption } from './types';
+import type { AnalysisTargetOption, RepositoryOption } from './types';
 import { useStore } from './store';
 import { useVsCodeApi } from './hooks/useVsCodeApi';
 import { Navigation } from './components/Navigation';
@@ -22,16 +22,57 @@ import { EmptyState } from './components/common/EmptyState';
 import { LimitWarning } from './components/common/LimitWarning';
 import './App.css';
 
-function formatTargetOption(option: AnalysisTargetOption): string {
-  const kindLabel = option.kind === 'repository'
-    ? 'Repo'
-    : option.kind === 'repositoryWithSubmodules'
-      ? 'Repo + submodules'
-      : 'Workspace';
+function formatRepositoryOption(option: RepositoryOption): string {
+  if (option.workspaceFolderName) {
+    if (option.relativePath && option.relativePath !== '.') {
+      return `${option.workspaceFolderName}/${option.relativePath}`;
+    }
 
-  return option.description
-    ? `${option.label} — ${kindLabel} • ${option.description}`
-    : `${option.label} — ${kindLabel}`;
+    return option.workspaceFolderName;
+  }
+
+  return option.name;
+}
+
+function formatTargetSummary(option: AnalysisTargetOption | null): string {
+  if (!option) {
+    return 'No repositories selected';
+  }
+
+  return option.description ? `${option.label} • ${option.description}` : option.label;
+}
+
+function isNestedRepository(parentPath: string, childPath: string): boolean {
+  const normalizedParent = parentPath.replace(/\\/g, '/').replace(/\/+$/, '');
+  const normalizedChild = childPath.replace(/\\/g, '/').replace(/\/+$/, '');
+  return normalizedChild.startsWith(`${normalizedParent}/`);
+}
+
+function getTopLevelRepositoryIds(repositories: RepositoryOption[]): string[] {
+  return repositories
+    .filter((repository) => !repositories.some((candidate) => (
+      candidate.path !== repository.path && isNestedRepository(candidate.path, repository.path)
+    )))
+    .map((repository) => repository.path);
+}
+
+function formatRepositorySelectionSummary(
+  repositories: RepositoryOption[],
+  selectedRepositories: RepositoryOption[]
+): string {
+  if (selectedRepositories.length === 0) {
+    return 'No repositories selected';
+  }
+
+  if (selectedRepositories.length === 1) {
+    return formatRepositoryOption(selectedRepositories[0]);
+  }
+
+  if (selectedRepositories.length === repositories.length) {
+    return `All repositories (${repositories.length})`;
+  }
+
+  return `${selectedRepositories.length} of ${repositories.length} repositories`;
 }
 
 export function App() {
@@ -43,15 +84,40 @@ export function App() {
     settings,
     coreStale,
     evolutionStale,
-    availableTargets,
-    selectedTargetId,
+    availableRepositories,
+    selectedRepositoryIds,
+    selectedTarget,
   } = useStore();
-  const { requestRefresh, selectTarget } = useVsCodeApi();
+  const { requestRefresh, updateRepositorySelection } = useVsCodeApi();
 
-  const selectedTarget = useMemo(
-    () => availableTargets.find((target) => target.id === selectedTargetId) ?? null,
-    [availableTargets, selectedTargetId]
+  const selectedRepositories = useMemo(() => {
+    const selectedIds = new Set(selectedRepositoryIds);
+    return availableRepositories.filter((repository) => selectedIds.has(repository.path));
+  }, [availableRepositories, selectedRepositoryIds]);
+
+  const allRepositoryIds = useMemo(
+    () => availableRepositories.map((repository) => repository.path),
+    [availableRepositories]
   );
+  const topLevelRepositoryIds = useMemo(
+    () => getTopLevelRepositoryIds(availableRepositories),
+    [availableRepositories]
+  );
+
+  const toggleRepository = (repositoryId: string) => {
+    const selectedIds = new Set(selectedRepositoryIds);
+    if (selectedIds.has(repositoryId)) {
+      selectedIds.delete(repositoryId);
+    } else {
+      selectedIds.add(repositoryId);
+    }
+
+    updateRepositorySelection(
+      availableRepositories
+        .map((repository) => repository.path)
+        .filter((repositoryPath) => selectedIds.has(repositoryPath))
+    );
+  };
 
   // Request initial analysis on mount
   useEffect(() => {
@@ -69,24 +135,61 @@ export function App() {
               {data.target.label}
               {data.repositories.length === 1 ? ` (${data.repositories[0]?.branch ?? ''})` : ` • ${data.repositories.length} repos`}
             </span>
-          ) : selectedTarget ? (
-            <span className="repo-info">{formatTargetOption(selectedTarget)}</span>
-          ) : null}
-          {availableTargets.length > 1 && selectedTargetId && (
-            <label className="repo-selector">
-              <span className="repo-selector-label">Target</span>
-              <select
-                className="repo-selector-input"
-                value={selectedTargetId}
-                onChange={(event) => selectTarget(event.target.value)}
-              >
-                {availableTargets.map((target) => (
-                  <option key={target.id} value={target.id}>
-                    {formatTargetOption(target)}
-                  </option>
-                ))}
-              </select>
-            </label>
+          ) : (
+            <span className="repo-info">{formatTargetSummary(selectedTarget)}</span>
+          )}
+          {availableRepositories.length > 0 && (
+            <details className="repo-selector">
+              <summary className="repo-selector-trigger">
+                <span className="repo-selector-label">Repositories</span>
+                <span className="repo-selector-trigger-text">
+                  {formatRepositorySelectionSummary(availableRepositories, selectedRepositories)}
+                </span>
+              </summary>
+              <div className="repo-selector-popover">
+                <div className="repo-selector-actions-row">
+                  <button
+                    className="repo-selector-action"
+                    type="button"
+                    onClick={() => updateRepositorySelection(allRepositoryIds)}
+                  >
+                    All
+                  </button>
+                  <button
+                    className="repo-selector-action"
+                    type="button"
+                    onClick={() => updateRepositorySelection(topLevelRepositoryIds)}
+                  >
+                    Top-level
+                  </button>
+                  <button
+                    className="repo-selector-action"
+                    type="button"
+                    onClick={() => updateRepositorySelection([])}
+                  >
+                    None
+                  </button>
+                </div>
+                <div className="repo-selector-list">
+                  {availableRepositories.map((repository) => {
+                    const checked = selectedRepositoryIds.includes(repository.path);
+                    return (
+                      <label key={repository.path} className="repo-selector-item">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleRepository(repository.path)}
+                        />
+                        <span className="repo-selector-item-text">
+                          <span className="repo-selector-item-name">{repository.name}</span>
+                          <span className="repo-selector-item-meta">{formatRepositoryOption(repository)}</span>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            </details>
           )}
         </div>
         <div className="header-actions">

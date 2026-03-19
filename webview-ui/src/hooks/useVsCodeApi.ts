@@ -101,12 +101,15 @@ export function useVsCodeApi() {
           setError(message.error);
           break;
 
-        case 'targetSelectionLoaded': {
-          const currentSelectedTargetId = useStore.getState().selectedTargetId;
-          if (currentSelectedTargetId !== message.selectedTargetId) {
+        case 'repositorySelectionLoaded': {
+          const currentSelectedRepositoryIds = useStore.getState().selectedRepositoryIds;
+          const selectionChanged = currentSelectedRepositoryIds.length !== message.selectedRepositoryIds.length
+            || currentSelectedRepositoryIds.some((repositoryId, index) => repositoryId !== message.selectedRepositoryIds[index]);
+
+          if (selectionChanged) {
             resetAnalysisState();
           }
-          setRepositorySelection(message.targets, message.selectedTargetId);
+          setRepositorySelection(message.repositories, message.selectedRepositoryIds, message.selectedTarget);
           break;
         }
 
@@ -220,8 +223,8 @@ export function useVsCodeApi() {
     getVsCodeApi().postMessage({ type: 'copyPath', path });
   }, []);
 
-  const selectTarget = useCallback((targetId: string) => {
-    getVsCodeApi().postMessage({ type: 'selectTarget', targetId });
+  const updateRepositorySelection = useCallback((repositoryIds: string[]) => {
+    getVsCodeApi().postMessage({ type: 'updateRepositorySelection', repositoryIds });
   }, []);
 
   const updateSettings = useCallback((settings: Partial<ExtensionSettings>) => {
@@ -323,7 +326,7 @@ export function useVsCodeApi() {
     openFile,
     revealInExplorer,
     copyPath,
-    selectTarget,
+    updateRepositorySelection,
     updateSettings,
     updateScopedSetting,
     resetScopedSetting,

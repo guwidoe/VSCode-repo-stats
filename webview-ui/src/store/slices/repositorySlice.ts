@@ -5,12 +5,16 @@ export const createRepositorySlice: StateCreator<
   RepoStatsState,
   [],
   [],
-  Pick<RepoStatsState, 'availableTargets' | 'selectedTargetId' | 'setRepositorySelection'>
+  Pick<
+    RepoStatsState,
+    'availableRepositories' | 'selectedRepositoryIds' | 'selectedTarget' | 'setRepositorySelection'
+  >
 > = (set) => ({
-  availableTargets: [],
-  selectedTargetId: null,
+  availableRepositories: [],
+  selectedRepositoryIds: [],
+  selectedTarget: null,
 
-  setRepositorySelection: (availableTargets, selectedTargetId) => {
-    set({ availableTargets, selectedTargetId });
+  setRepositorySelection: (availableRepositories, selectedRepositoryIds, selectedTarget) => {
+    set({ availableRepositories, selectedRepositoryIds, selectedTarget });
   },
 });

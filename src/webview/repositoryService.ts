@@ -3,43 +3,14 @@ import * as vscode from 'vscode';
 import simpleGit from 'simple-git';
 import {
   buildRepositoryOption,
-  selectPreferredRepositoryPath,
 } from './repositorySelection.js';
 import type {
   GitExtensionExports,
   RepositoryContext,
-  RepositorySelection,
 } from './context.js';
 
 export class RepositoryService {
-  private static readonly selectedRepoPathStateKey = 'repoStats.selectedRepoPath';
-
-  constructor(private readonly workspaceState: vscode.Memento) {}
-
-  async getSelectedRepository(): Promise<RepositoryContext | undefined> {
-    const selection = await this.resolveSelection();
-    return selection.selected ?? undefined;
-  }
-
-  async resolveSelection(preferredRepoPath?: string): Promise<RepositorySelection> {
-    const repositories = await this.listAvailableRepositories();
-    const persistedRepoPath = preferredRepoPath ?? this.workspaceState.get<string>(RepositoryService.selectedRepoPathStateKey);
-    const selectedRepoPath = selectPreferredRepositoryPath(
-      repositories.map((repository) => repository.option),
-      persistedRepoPath
-    );
-
-    await this.persistSelectedRepoPath(selectedRepoPath);
-
-    return {
-      repositories,
-      selected: repositories.find((repository) => repository.option.path === selectedRepoPath) ?? null,
-    };
-  }
-
-  async persistSelectedRepoPath(repoPath: string | null): Promise<void> {
-    await this.workspaceState.update(RepositoryService.selectedRepoPathStateKey, repoPath ?? undefined);
-  }
+  constructor(_workspaceState: vscode.Memento) {}
 
   async listAvailableRepositories(): Promise<RepositoryContext[]> {
     const workspaceRepositories = await this.listWorkspaceRepositories();
@@ -52,10 +23,10 @@ export class RepositoryService {
         return sourceOrder;
       }
 
-      return (a.option.workspaceFolderName ?? '').localeCompare(b.option.workspaceFolderName ?? '') ||
-        (a.option.relativePath ?? '').localeCompare(b.option.relativePath ?? '') ||
-        a.option.name.localeCompare(b.option.name) ||
-        a.option.path.localeCompare(b.option.path);
+      return (a.option.workspaceFolderName ?? '').localeCompare(b.option.workspaceFolderName ?? '')
+        || (a.option.relativePath ?? '').localeCompare(b.option.relativePath ?? '')
+        || a.option.name.localeCompare(b.option.name)
+        || a.option.path.localeCompare(b.option.path);
     });
   }
 
@@ -71,15 +42,13 @@ export class RepositoryService {
 
     const repositoryRoots = await this.getRepositoryRootUris(workspaceFolders);
 
-    const repositories: RepositoryContext[] = [];
-
-    for (const rootUri of repositoryRoots) {
+    return repositoryRoots.flatMap((rootUri) => {
       const workspaceFolder = vscode.workspace.getWorkspaceFolder(rootUri);
       if (!workspaceFolder) {
-        continue;
+        return [];
       }
 
-      repositories.push({
+      return [{
         option: buildRepositoryOption({
           source: 'workspace',
           repoPath: rootUri.fsPath,
@@ -88,10 +57,8 @@ export class RepositoryService {
         }),
         rootUri,
         workspaceFolder,
-      });
-    }
-
-    return repositories;
+      } satisfies RepositoryContext];
+    });
   }
 
   private async listBookmarkedRepositories(
@@ -165,22 +132,24 @@ export class RepositoryService {
     const seen = new Set<string>();
     const repositories: vscode.Uri[] = [];
 
-    const gitExtension = vscode.extensions.getExtension<GitExtensionExports>('vscode.git');
-    if (gitExtension) {
-      const gitApi = (gitExtension.isActive ? gitExtension.exports : await gitExtension.activate()) as GitExtensionExports;
-      try {
-        for (const repository of gitApi.getAPI(1).repositories) {
-          const workspaceFolder = vscode.workspace.getWorkspaceFolder(repository.rootUri);
-          if (!workspaceFolder || seen.has(repository.rootUri.fsPath)) {
-            continue;
-          }
-          seen.add(repository.rootUri.fsPath);
-          repositories.push(repository.rootUri);
-        }
-      } catch (error) {
-        console.warn('[RepoStats] Failed to read repositories from Git extension:', error);
+    const addRepositoryUri = (rootUri: vscode.Uri) => {
+      const workspaceFolder = vscode.workspace.getWorkspaceFolder(rootUri);
+      if (!workspaceFolder || seen.has(rootUri.fsPath)) {
+        return;
       }
-    }
+
+      seen.add(rootUri.fsPath);
+      repositories.push(rootUri);
+    };
+
+    const gitExtensionRoots = await this.getGitExtensionRepositoryUris();
+    gitExtensionRoots.forEach(addRepositoryUri);
+
+    const scannedRoots = await this.findNestedRepositoryRootUris(workspaceFolders);
+    scannedRoots.forEach(addRepositoryUri);
+
+    const submoduleRoots = await this.findSubmoduleRootUris(repositories);
+    submoduleRoots.forEach(addRepositoryUri);
 
     if (repositories.length > 0) {
       return repositories;
@@ -188,14 +157,90 @@ export class RepositoryService {
 
     for (const workspaceFolder of workspaceFolders) {
       const rootUri = await this.resolveRepositoryRootUri(workspaceFolder.uri.fsPath);
-      if (!rootUri || seen.has(rootUri.fsPath)) {
-        continue;
+      if (rootUri) {
+        addRepositoryUri(rootUri);
       }
-
-      seen.add(rootUri.fsPath);
-      repositories.push(rootUri);
     }
 
     return repositories;
+  }
+
+  private async getGitExtensionRepositoryUris(): Promise<vscode.Uri[]> {
+    const gitExtension = vscode.extensions.getExtension<GitExtensionExports>('vscode.git');
+    if (!gitExtension) {
+      return [];
+    }
+
+    let gitApi: GitExtensionExports | undefined;
+    try {
+      gitApi = (gitExtension.isActive ? gitExtension.exports : await gitExtension.activate()) as GitExtensionExports;
+    } catch (error) {
+      console.warn('[RepoStats] Failed to activate the Git extension while discovering repositories:', error);
+    }
+
+    if (!gitApi) {
+      return [];
+    }
+
+    try {
+      return gitApi.getAPI(1).repositories.map((repository) => repository.rootUri);
+    } catch (error) {
+      console.warn('[RepoStats] Failed to read repositories from Git extension:', error);
+    }
+
+    return [];
+  }
+
+  private async findNestedRepositoryRootUris(
+    workspaceFolders: readonly vscode.WorkspaceFolder[]
+  ): Promise<vscode.Uri[]> {
+    const discovered = new Map<string, vscode.Uri>();
+
+    for (const workspaceFolder of workspaceFolders) {
+      const configUris = await vscode.workspace.findFiles(
+        new vscode.RelativePattern(workspaceFolder, '**/.git/config'),
+        new vscode.RelativePattern(workspaceFolder, '**/{node_modules,dist,build,.next,.nuxt,.yarn,.pnpm-store}/**')
+      );
+
+      for (const configUri of configUris) {
+        const repoRoot = path.dirname(path.dirname(configUri.fsPath));
+        discovered.set(repoRoot, vscode.Uri.file(repoRoot));
+      }
+    }
+
+    return [...discovered.values()];
+  }
+
+  private async findSubmoduleRootUris(repositoryRoots: readonly vscode.Uri[]): Promise<vscode.Uri[]> {
+    const discovered = new Map<string, vscode.Uri>();
+
+    for (const repositoryRoot of repositoryRoots) {
+      const git = simpleGit(repositoryRoot.fsPath);
+      const output = await git.raw(['submodule', 'status', '--recursive']).catch(() => '');
+
+      for (const line of output.split('\n')) {
+        const trimmed = line.trim();
+        if (!trimmed) {
+          continue;
+        }
+
+        const match = trimmed.match(/^[+-]?\s*[a-f0-9]+\s+(\S+)/);
+        if (!match) {
+          continue;
+        }
+
+        const submoduleRoot = path.join(repositoryRoot.fsPath, match[1]);
+        if (!vscode.workspace.getWorkspaceFolder(vscode.Uri.file(submoduleRoot))) {
+          continue;
+        }
+
+        const resolvedRoot = await this.resolveRepositoryRootUri(submoduleRoot);
+        if (resolvedRoot) {
+          discovered.set(resolvedRoot.fsPath, resolvedRoot);
+        }
+      }
+    }
+
+    return [...discovered.values()];
   }
 }

@@ -35,7 +35,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const selectRepositoryCommand = vscode.commands.registerCommand(
     'repoStats.selectRepository',
     async () => {
-      await runProviderCommand('select analysis target', () => provider?.promptRepositorySelection());
+      await runProviderCommand('select repositories', () => provider?.promptRepositorySelection());
     }
   );
 

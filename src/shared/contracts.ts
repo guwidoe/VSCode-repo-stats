@@ -387,7 +387,12 @@ export type ExtensionMessage =
   | { type: 'analysisProgress'; phase: string; progress: number }
   | { type: 'analysisComplete'; data: AnalysisResult }
   | { type: 'analysisError'; error: string }
-  | { type: 'targetSelectionLoaded'; targets: AnalysisTargetOption[]; selectedTargetId: string | null }
+  | {
+      type: 'repositorySelectionLoaded';
+      repositories: RepositoryOption[];
+      selectedRepositoryIds: string[];
+      selectedTarget: AnalysisTargetOption | null;
+    }
   | { type: 'incrementalUpdate'; data: Partial<AnalysisResult> }
   | { type: 'evolutionStarted' }
   | { type: 'evolutionProgress'; phase: string; progress: number }
@@ -408,7 +413,7 @@ export type WebviewMessage =
   | { type: 'requestEvolutionAnalysis' }
   | { type: 'requestEvolutionRefresh' }
   | { type: 'checkStaleness' }
-  | { type: 'selectTarget'; targetId: string }
+  | { type: 'updateRepositorySelection'; repositoryIds: string[] }
   | { type: 'openFile'; path: string; repositoryId?: string }
   | { type: 'revealInExplorer'; path: string; repositoryId?: string }
   | { type: 'copyPath'; path: string }
