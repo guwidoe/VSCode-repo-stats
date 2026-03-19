@@ -141,18 +141,29 @@ describe('EvolutionPanel', () => {
     expect(screen.getByRole('button', { name: 'Run Evolution Analysis' })).toBeInTheDocument();
   });
 
-  it('renders loading state', () => {
+  it('renders loading state with stage, repository, snapshot, and eta details', () => {
     mockStoreState.current!.evolutionStatus = 'loading';
     mockStoreState.current!.evolutionLoading = {
       isLoading: true,
-      phase: 'Analyzing snapshot 2/10',
+      phase: 'Analyzing snapshots for repo-a',
       progress: 20,
+      stage: 'analyzing',
+      currentRepositoryLabel: 'repo-a',
+      currentRepositoryIndex: 2,
+      totalRepositories: 5,
+      currentSnapshotIndex: 11,
+      totalSnapshots: 42,
+      etaSeconds: 95,
     };
 
     render(<EvolutionPanel />);
 
     expect(screen.getByText('Analyzing repository evolution')).toBeInTheDocument();
-    expect(screen.getByText('Analyzing snapshot 2/10')).toBeInTheDocument();
+    expect(screen.getByText('Analyzing snapshots for repo-a')).toBeInTheDocument();
+    expect(screen.getByText('Analyzing snapshots')).toBeInTheDocument();
+    expect(screen.getByText('2 / 5 — repo-a')).toBeInTheDocument();
+    expect(screen.getByText('11 / 42')).toBeInTheDocument();
+    expect(screen.getByText('~1m 35s remaining')).toBeInTheDocument();
   });
 
   it('renders stale banner when evolution data is stale', () => {

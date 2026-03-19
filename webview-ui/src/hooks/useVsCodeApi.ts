@@ -114,7 +114,18 @@ export function useVsCodeApi() {
         }
 
         case 'evolutionStarted':
-          setEvolutionLoading({ isLoading: true, phase: 'Starting evolution analysis...', progress: 0 });
+          setEvolutionLoading({
+            isLoading: true,
+            phase: 'Starting evolution analysis...',
+            progress: 0,
+            stage: 'preparing',
+            currentRepositoryLabel: undefined,
+            currentRepositoryIndex: undefined,
+            totalRepositories: undefined,
+            currentSnapshotIndex: undefined,
+            totalSnapshots: undefined,
+            etaSeconds: undefined,
+          });
           setEvolutionStatus('loading');
           setEvolutionError(null);
           break;
@@ -124,6 +135,13 @@ export function useVsCodeApi() {
             isLoading: true,
             phase: message.phase,
             progress: message.progress,
+            stage: message.stage,
+            currentRepositoryLabel: message.currentRepositoryLabel,
+            currentRepositoryIndex: message.currentRepositoryIndex,
+            totalRepositories: message.totalRepositories,
+            currentSnapshotIndex: message.currentSnapshotIndex,
+            totalSnapshots: message.totalSnapshots,
+            etaSeconds: message.etaSeconds,
           });
           setEvolutionStatus('loading');
           break;

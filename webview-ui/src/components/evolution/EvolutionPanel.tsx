@@ -1,10 +1,40 @@
 import { useEvolutionPanelState } from '../../hooks/useEvolutionPanelState';
+import type { EvolutionProgressStage } from '../../types';
 import { EvolutionControls } from './EvolutionControls';
 import { EvolutionStackChart } from './EvolutionStackChart';
 import { EvolutionLineChart } from './EvolutionLineChart';
 import { EvolutionDistributionChart } from './EvolutionDistributionChart';
 import { EvolutionStateView } from './EvolutionStateView';
 import './EvolutionPanel.css';
+
+function formatStageLabel(stage?: EvolutionProgressStage): string | undefined {
+  switch (stage) {
+    case 'preparing':
+      return 'Preparing history';
+    case 'sampling':
+      return 'Selecting snapshots';
+    case 'analyzing':
+      return 'Analyzing snapshots';
+    case 'finalizing':
+      return 'Finalizing charts';
+    default:
+      return undefined;
+  }
+}
+
+function formatEtaLabel(etaSeconds?: number): string | undefined {
+  if (!etaSeconds || etaSeconds <= 0) {
+    return undefined;
+  }
+
+  if (etaSeconds < 60) {
+    return `~${etaSeconds}s remaining`;
+  }
+
+  const minutes = Math.floor(etaSeconds / 60);
+  const seconds = etaSeconds % 60;
+  return `~${minutes}m ${seconds.toString().padStart(2, '0')}s remaining`;
+}
 
 export function EvolutionPanel() {
   const {
@@ -33,6 +63,15 @@ export function EvolutionPanel() {
   }
 
   if (evolutionStatus === 'loading') {
+    const repositoryLabel = evolutionLoading.currentRepositoryLabel && evolutionLoading.totalRepositories
+      ? `${evolutionLoading.currentRepositoryIndex ?? '?'} / ${evolutionLoading.totalRepositories} — ${evolutionLoading.currentRepositoryLabel}`
+      : undefined;
+    const snapshotLabel = evolutionLoading.totalSnapshots !== undefined
+      ? evolutionLoading.currentSnapshotIndex !== undefined
+        ? `${evolutionLoading.currentSnapshotIndex} / ${evolutionLoading.totalSnapshots}`
+        : `${evolutionLoading.totalSnapshots} selected`
+      : undefined;
+
     return (
       <div className="evolution-panel">
         <div className="panel-header">
@@ -43,6 +82,10 @@ export function EvolutionPanel() {
           message={evolutionLoading.phase}
           loading
           progress={evolutionLoading.progress}
+          stageLabel={formatStageLabel(evolutionLoading.stage)}
+          repositoryLabel={repositoryLabel}
+          snapshotLabel={snapshotLabel}
+          etaLabel={formatEtaLabel(evolutionLoading.etaSeconds)}
         />
       </div>
     );

@@ -98,6 +98,7 @@ export interface EvolutionResult {
 }
 
 export type EvolutionStatus = 'idle' | 'loading' | 'ready' | 'error' | 'stale';
+export type EvolutionProgressStage = 'preparing' | 'sampling' | 'analyzing' | 'finalizing';
 
 // ============================================================================
 // Treemap Types
@@ -395,7 +396,18 @@ export type ExtensionMessage =
     }
   | { type: 'incrementalUpdate'; data: Partial<AnalysisResult> }
   | { type: 'evolutionStarted' }
-  | { type: 'evolutionProgress'; phase: string; progress: number }
+  | {
+      type: 'evolutionProgress';
+      phase: string;
+      progress: number;
+      stage: EvolutionProgressStage;
+      currentRepositoryLabel?: string;
+      currentRepositoryIndex?: number;
+      totalRepositories?: number;
+      currentSnapshotIndex?: number;
+      totalSnapshots?: number;
+      etaSeconds?: number;
+    }
   | { type: 'evolutionComplete'; data: EvolutionResult }
   | { type: 'evolutionError'; error: string }
   | { type: 'evolutionStale'; reason: string }

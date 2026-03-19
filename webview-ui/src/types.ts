@@ -3,6 +3,8 @@
  * Shared contracts live in `src/shared/contracts.ts`; webview-only UI state types stay here.
  */
 
+import type { EvolutionProgressStage } from '../../src/shared/contracts';
+
 export type {
   AnalysisResult,
   AnalysisTargetOption,
@@ -29,6 +31,7 @@ export type {
   EvolutionSettings,
   EvolutionSnapshotPoint,
   EvolutionStatus,
+  EvolutionProgressStage,
   EvolutionTimeSeriesData,
   ExtensionMessage,
   ExtensionSettings,
@@ -75,4 +78,11 @@ export interface LoadingState {
   isLoading: boolean;
   phase: string;
   progress: number;
+  stage?: EvolutionProgressStage;
+  currentRepositoryLabel?: string;
+  currentRepositoryIndex?: number;
+  totalRepositories?: number;
+  currentSnapshotIndex?: number;
+  totalSnapshots?: number;
+  etaSeconds?: number;
 }

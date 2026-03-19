@@ -15,7 +15,19 @@ import { createEvolutionAnalysisSettingsSnapshot } from '../shared/settings.js';
 import { normalizeExtensionForFilter } from './locCounter.js';
 import { createPathPatternMatcher } from './pathMatching.js';
 
-export type EvolutionProgressCallback = (phase: string, progress: number) => void;
+export interface EvolutionProgressUpdate {
+  phase: string;
+  progress: number;
+  stage: 'preparing' | 'sampling' | 'analyzing' | 'finalizing';
+  currentRepositoryLabel?: string;
+  currentRepositoryIndex?: number;
+  totalRepositories?: number;
+  currentSnapshotIndex?: number;
+  totalSnapshots?: number;
+  etaSeconds?: number;
+}
+
+export type EvolutionProgressCallback = (update: EvolutionProgressUpdate) => void;
 
 interface MemberEvolutionProgress {
   completedSnapshots: number;
@@ -439,7 +451,21 @@ export class TargetEvolutionAnalyzer {
   ) {}
 
   async analyze(onProgress?: EvolutionProgressCallback): Promise<EvolutionResult> {
-    onProgress?.('Preparing evolution analysis', 0);
+    const startedAt = Date.now();
+    const totalRepositories = this.target.members.length;
+    const emitProgress = (update: Omit<EvolutionProgressUpdate, 'etaSeconds'>) => {
+      onProgress?.({
+        ...update,
+        etaSeconds: estimateEtaSeconds(startedAt, update.progress),
+      });
+    };
+
+    emitProgress({
+      phase: 'Preparing evolution analysis',
+      progress: 0,
+      stage: 'preparing',
+      totalRepositories,
+    });
 
     const runtimes = this.target.members.map((member) => new MemberEvolutionRuntime(member, this.settings));
     const memberHeads = await Promise.all(runtimes.map((runtime) => runtime.getHeadInfo()));
@@ -447,12 +473,22 @@ export class TargetEvolutionAnalyzer {
       runtimes.map(async (runtime, index) => runtime.getCommitHistory(memberHeads[index].branch))
     );
 
+    emitProgress({
+      phase: `Loaded history for ${totalRepositories} ${totalRepositories === 1 ? 'repository' : 'repositories'}`,
+      progress: 3,
+      stage: 'preparing',
+      totalRepositories,
+    });
+
     const mergedEvents = this.mergeEvents(memberHeads, commitHistories);
-    const sampledEvents = this.sampleEvents(mergedEvents, onProgress);
-    onProgress?.(
-      `Selected ${sampledEvents.length} snapshots across ${mergedEvents.length} history events`,
-      8
-    );
+    const sampledEvents = this.sampleEvents(mergedEvents, emitProgress, totalRepositories);
+    emitProgress({
+      phase: `Selected ${sampledEvents.length} snapshots across ${mergedEvents.length} history events`,
+      progress: 8,
+      stage: 'sampling',
+      totalRepositories,
+      totalSnapshots: sampledEvents.length,
+    });
 
     const memberSelections = runtimes.map((runtime, index) => {
       const selectedCommits = this.selectMemberCommitsForSnapshots(commitHistories[index], sampledEvents);
@@ -478,13 +514,17 @@ export class TargetEvolutionAnalyzer {
     for (let index = 0; index < memberSelections.length; index += 1) {
       const selection = memberSelections[index];
       const { runtime, selectedCommits, uniqueCommits } = selection;
-      const memberOrdinal = `${index + 1}/${memberSelections.length}`;
 
       if (uniqueCommits.length === 0) {
-        onProgress?.(
-          `Repo ${memberOrdinal}: ${runtime.member.displayName} has no sampled snapshots to analyze`,
-          totalSnapshotWork === 0 ? 90 : 10 + Math.round((completedSnapshotWork / totalSnapshotWork) * 80)
-        );
+        emitProgress({
+          phase: `No sampled snapshots to analyze for ${runtime.member.displayName}`,
+          progress: totalSnapshotWork === 0 ? 90 : 10 + Math.round((completedSnapshotWork / totalSnapshotWork) * 80),
+          stage: 'analyzing',
+          currentRepositoryLabel: runtime.member.displayName,
+          currentRepositoryIndex: index + 1,
+          totalRepositories: memberSelections.length,
+          totalSnapshots: 0,
+        });
         memberTotalsBySnapshot.push(sampledEvents.map(() => createEmptyHistogram()));
         continue;
       }
@@ -493,10 +533,16 @@ export class TargetEvolutionAnalyzer {
         const overallProgress = totalSnapshotWork === 0
           ? 90
           : 10 + Math.round(((completedSnapshotWork + completedSnapshots) / totalSnapshotWork) * 80);
-        onProgress?.(
-          `Repo ${memberOrdinal}: ${runtime.member.displayName} — snapshot ${completedSnapshots}/${totalSnapshots}`,
-          overallProgress
-        );
+        emitProgress({
+          phase: `Analyzing snapshots for ${runtime.member.displayName}`,
+          progress: overallProgress,
+          stage: 'analyzing',
+          currentRepositoryLabel: runtime.member.displayName,
+          currentRepositoryIndex: index + 1,
+          totalRepositories: memberSelections.length,
+          currentSnapshotIndex: completedSnapshots,
+          totalSnapshots,
+        });
       });
 
       completedSnapshotWork += uniqueCommits.length;
@@ -546,7 +592,13 @@ export class TargetEvolutionAnalyzer {
       samplingMode: event.samplingMode,
     }));
 
-    onProgress?.('Finalizing evolution data', 95);
+    emitProgress({
+      phase: 'Finalizing evolution data',
+      progress: 95,
+      stage: 'finalizing',
+      totalRepositories,
+      totalSnapshots: sampledEvents.length,
+    });
 
     return {
       generatedAt: new Date().toISOString(),
@@ -608,7 +660,8 @@ export class TargetEvolutionAnalyzer {
 
   private sampleEvents(
     allEvents: TargetSnapshotEvent[],
-    onProgress?: EvolutionProgressCallback
+    onProgress: EvolutionProgressCallback | undefined,
+    totalRepositories: number
   ): TargetSnapshotEvent[] {
     if (allEvents.length === 0) {
       return [];
@@ -618,7 +671,12 @@ export class TargetEvolutionAnalyzer {
     const maxSnapshots = Math.max(2, this.settings.evolution.maxSnapshots);
 
     if (samplingMode === 'auto') {
-      onProgress?.('Auto-distributing snapshots', 4);
+      onProgress?.({
+        phase: 'Auto-distributing snapshots',
+        progress: 4,
+        stage: 'sampling',
+        totalRepositories,
+      });
       return this.downsampleEvents(
         allEvents.map((event) => ({ ...event, samplingMode: 'auto' })),
         maxSnapshots
@@ -674,7 +732,13 @@ export class TargetEvolutionAnalyzer {
       return sampled;
     }
 
-    onProgress?.('Downsampling snapshots', 4);
+    onProgress?.({
+      phase: 'Downsampling snapshots',
+      progress: 4,
+      stage: 'sampling',
+      totalRepositories,
+      totalSnapshots: sampled.length,
+    });
     return this.downsampleEvents(sampled, maxSnapshots);
   }
 
@@ -763,6 +827,16 @@ function createEmptyHistogram(): FileHistogram {
     dir: {},
     domain: {},
   };
+}
+
+function estimateEtaSeconds(startedAt: number, progress: number): number | undefined {
+  if (progress <= 0 || progress >= 100) {
+    return undefined;
+  }
+
+  const elapsedSeconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
+  const remainingProgress = 100 - progress;
+  return Math.max(1, Math.round((elapsedSeconds / progress) * remainingProgress));
 }
 
 function cloneHistogram(histogram: FileHistogram): FileHistogram {
