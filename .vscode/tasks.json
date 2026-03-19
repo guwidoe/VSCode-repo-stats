@@ -8,16 +8,15 @@
       "isBackground": true,
       "presentation": {
         "reveal": "never"
-      },
-      "group": {
-        "kind": "build",
-        "isDefault": true
       }
     },
     {
       "type": "npm",
       "script": "compile",
-      "group": "build",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
       "problemMatcher": "$tsc"
     },
     {
