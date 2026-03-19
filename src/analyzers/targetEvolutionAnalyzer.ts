@@ -17,6 +17,11 @@ import { createPathPatternMatcher } from './pathMatching.js';
 
 export type EvolutionProgressCallback = (phase: string, progress: number) => void;
 
+interface MemberEvolutionProgress {
+  completedSnapshots: number;
+  totalSnapshots: number;
+}
+
 type DimensionCounts = Record<string, number>;
 
 interface FileHistogram {
@@ -140,7 +145,10 @@ class MemberEvolutionRuntime {
     }));
   }
 
-  async analyzeCommits(commits: MemberCommit[]): Promise<Map<string, FileHistogram>> {
+  async analyzeCommits(
+    commits: MemberCommit[],
+    onProgress?: (progress: MemberEvolutionProgress) => void
+  ): Promise<Map<string, FileHistogram>> {
     const totalsBySha = new Map<string, FileHistogram>();
     if (commits.length === 0) {
       return totalsBySha;
@@ -150,7 +158,8 @@ class MemberEvolutionRuntime {
     const fileHistograms = new Map<string, FileHistogram>();
     const runningTotals = this.createEmptyHistogram();
 
-    for (const commit of commits) {
+    for (let commitIndex = 0; commitIndex < commits.length; commitIndex += 1) {
+      const commit = commits[commitIndex];
       const changedPaths: string[] = [];
 
       if (!previousCommit) {
@@ -205,6 +214,10 @@ class MemberEvolutionRuntime {
 
       totalsBySha.set(commit.sha, cloneHistogram(runningTotals));
       previousCommit = commit;
+      onProgress?.({
+        completedSnapshots: commitIndex + 1,
+        totalSnapshots: commits.length,
+      });
     }
 
     return totalsBySha;
@@ -436,33 +449,67 @@ export class TargetEvolutionAnalyzer {
 
     const mergedEvents = this.mergeEvents(memberHeads, commitHistories);
     const sampledEvents = this.sampleEvents(mergedEvents, onProgress);
+    onProgress?.(
+      `Selected ${sampledEvents.length} snapshots across ${mergedEvents.length} history events`,
+      8
+    );
 
-    const memberTotalsBySnapshot = await Promise.all(
-      runtimes.map(async (runtime, index) => {
-        const selectedCommits = this.selectMemberCommitsForSnapshots(commitHistories[index], sampledEvents);
-        const uniqueCommits = Array.from(
-          new Map(
-            selectedCommits
-              .filter((commit): commit is MemberCommit => commit !== null)
-              .map((commit) => [commit.sha, commit])
-          ).values()
-        );
+    const memberSelections = runtimes.map((runtime, index) => {
+      const selectedCommits = this.selectMemberCommitsForSnapshots(commitHistories[index], sampledEvents);
+      const uniqueCommits = Array.from(
+        new Map(
+          selectedCommits
+            .filter((commit): commit is MemberCommit => commit !== null)
+            .map((commit) => [commit.sha, commit])
+        ).values()
+      );
 
+      return {
+        runtime,
+        selectedCommits,
+        uniqueCommits,
+      };
+    });
+
+    const totalSnapshotWork = memberSelections.reduce((sum, selection) => sum + selection.uniqueCommits.length, 0);
+    let completedSnapshotWork = 0;
+    const memberTotalsBySnapshot: FileHistogram[][] = [];
+
+    for (let index = 0; index < memberSelections.length; index += 1) {
+      const selection = memberSelections[index];
+      const { runtime, selectedCommits, uniqueCommits } = selection;
+      const memberOrdinal = `${index + 1}/${memberSelections.length}`;
+
+      if (uniqueCommits.length === 0) {
         onProgress?.(
-          `Analyzing evolution for ${runtime.member.displayName}`,
-          10 + Math.round(((index + 1) / Math.max(1, runtimes.length)) * 75)
+          `Repo ${memberOrdinal}: ${runtime.member.displayName} has no sampled snapshots to analyze`,
+          totalSnapshotWork === 0 ? 90 : 10 + Math.round((completedSnapshotWork / totalSnapshotWork) * 80)
         );
+        memberTotalsBySnapshot.push(sampledEvents.map(() => createEmptyHistogram()));
+        continue;
+      }
 
-        const totalsBySha = await runtime.analyzeCommits(uniqueCommits);
-        return sampledEvents.map((_, snapshotIndex) => {
+      const totalsBySha = await runtime.analyzeCommits(uniqueCommits, ({ completedSnapshots, totalSnapshots }) => {
+        const overallProgress = totalSnapshotWork === 0
+          ? 90
+          : 10 + Math.round(((completedSnapshotWork + completedSnapshots) / totalSnapshotWork) * 80);
+        onProgress?.(
+          `Repo ${memberOrdinal}: ${runtime.member.displayName} — snapshot ${completedSnapshots}/${totalSnapshots}`,
+          overallProgress
+        );
+      });
+
+      completedSnapshotWork += uniqueCommits.length;
+      memberTotalsBySnapshot.push(
+        sampledEvents.map((_, snapshotIndex) => {
           const selectedCommit = selectedCommits[snapshotIndex];
           if (!selectedCommit) {
             return createEmptyHistogram();
           }
           return totalsBySha.get(selectedCommit.sha) ?? createEmptyHistogram();
-        });
-      })
-    );
+        })
+      );
+    }
 
     const snapshotTotals = {
       cohort: [] as DimensionCounts[],

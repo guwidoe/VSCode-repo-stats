@@ -144,7 +144,10 @@ describe('TargetEvolutionAnalyzer', () => {
       ],
     };
 
-    const result = await createTargetEvolutionAnalyzer(target, createSettings()).analyze();
+    const phases: string[] = [];
+    const result = await createTargetEvolutionAnalyzer(target, createSettings()).analyze((phase) => {
+      phases.push(phase);
+    });
 
     expect(result.targetId).toBe('workspace:test');
     expect(result.historyMode).toBe('mergedMembers');
@@ -153,5 +156,10 @@ describe('TargetEvolutionAnalyzer', () => {
     expect(result.dirs.labels).toEqual(expect.arrayContaining(['repo-a/', 'repo-b/']));
     expect(result.authors.snapshots).toHaveLength(2);
     expect(result.authors.y.flat().reduce((sum, value) => sum + value, 0)).toBeGreaterThan(0);
+    expect(phases).toEqual(expect.arrayContaining([
+      expect.stringContaining('Selected 2 snapshots across 2 history events'),
+      expect.stringContaining('Repo 1/2: repo-a — snapshot 1/1'),
+      expect.stringContaining('Repo 2/2: repo-b — snapshot 1/1'),
+    ]));
   });
 });
