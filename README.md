@@ -8,16 +8,18 @@ Visualize your repository statistics directly in VS Code with interactive dashbo
 
 ## Usage
 
-1. Open a folder containing a Git repository
+1. Open a workspace folder (single repo, monorepo, or multi-repo workspace)
 2. Run the command **Repo Stats: Show Dashboard** from the Command Palette (Ctrl+Shift+P / Cmd+Shift+P)
 3. Or click the **Repo Stats** button in the status bar
 
 Results are cached based on the current Git HEAD, so subsequent opens are instant.
 
-| Command                      | Description                   |
-| ---------------------------- | ----------------------------- |
-| `Repo Stats: Show Dashboard` | Open the statistics dashboard |
-| `Repo Stats: Refresh`        | Clear cache and re-analyze    |
+| Command                           | Description                                              |
+| --------------------------------- | -------------------------------------------------------- |
+| `Repo Stats: Show Dashboard`      | Open the statistics dashboard                            |
+| `Repo Stats: Refresh`             | Clear cache and re-analyze                               |
+| `Repo Stats: Select Repositories` | Include/exclude repositories in the current aggregation |
+| `Repo Stats: Add Repository`      | Add another local repository folder to the workspace     |
 
 ## Screenshots
 
@@ -105,7 +107,7 @@ Results are cached based on the current Git HEAD, so subsequent opens are instan
 
 ### Settings Panel
 
-Configure analysis scope, chart granularity, overview display mode, treemap tooltip fields, generated file patterns, binary extensions, and Evolution sampling controls. Multi-repository analysis now comes from the target picker (single repo, repo + submodules, or workspace aggregate) instead of a dedicated submodule toggle.
+Configure analysis scope, chart granularity, overview display mode, treemap tooltip fields, generated file patterns, binary extensions, and Evolution sampling controls. Multi-repository analysis comes from repository membership selection (include/exclude exactly the repositories you want to aggregate).
 
 ## Installation
 
@@ -125,7 +127,7 @@ Configure analysis scope, chart granularity, overview display mode, treemap tool
 
 ## Requirements
 
-- **VS Code** 1.109.0 or higher
+- **VS Code** 1.110.0 or higher
 - **Git** must be installed and available in PATH
 - **scc** (Sloc Cloc and Code) - automatically downloaded if not found in PATH
 
@@ -164,7 +166,7 @@ Tip: If assets like `.svg` files inflate LOC totals for your project, add `.svg`
 
 The following settings can be saved per-repository via the Settings UI and VS Code workspace-folder settings (`.vscode/settings.json`) when repo scope is available: `excludePatterns`, `generatedPatterns`, `binaryExtensions`, `locExcludedExtensions`, `maxCommitsToAnalyze`, `evolution.snapshotIntervalDays`, `evolution.maxSnapshots`, `evolution.maxSeries`, and `evolution.cohortFormat`.
 
-Submodule aggregation is now controlled by the selected analysis target rather than a dedicated setting. Pick a repository target, a repository + submodules target, or the workspace aggregate target from the target selector.
+Use the repository selector in the header (or `Repo Stats: Select Repositories`) to decide exactly which repositories participate in aggregation. Convenience actions include `All`, `Top-level`, and `None`.
 
 <details>
 <summary>Default Generated Patterns</summary>
@@ -200,12 +202,12 @@ Repo Stats is designed to handle large repositories efficiently:
 
 For very large repositories, consider reducing `maxCommitsToAnalyze` or adding exclude patterns for large vendored directories.
 
-Evolution analysis is cached separately from the main dashboard data. If any repository inside the selected target changes, Evolution data is marked stale in the Evolution tab until you recompute it.
+Evolution analysis is cached separately from the main dashboard data. If any selected repository changes, Evolution data is marked stale in the Evolution tab until you recompute it.
 
 ## Known Issues
 
-- **Large monorepos / workspace aggregates**: First analysis may take longer; subsequent loads are cached
-- **Multi-repository targets**: Workspace and submodule aggregates can take longer than single-repo analysis, especially in Evolution
+- **Large monorepos / large repository selections**: First analysis may take longer; subsequent loads are cached
+- **Multi-repository analysis**: Selecting many repositories can take longer than single-repo analysis, especially in Evolution
 - **Binary files**: Shown in treemap with 0 LOC; use "Size (Bytes)" mode to see their actual size
 
 ## Contributing
