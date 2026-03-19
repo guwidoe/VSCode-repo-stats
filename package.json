@@ -355,7 +355,7 @@
     "compile:integration-tests": "tsc -p tsconfig.integration.json",
     "watch": "npm-run-all -p watch:*",
     "watch:extension": "esbuild src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --sourcemap --watch",
-    "watch:webview": "cd webview-ui && npm run dev",
+    "watch:webview": "cd webview-ui && npm run build:watch",
     "typecheck": "tsc --noEmit",
     "typecheck:watch": "tsc --noEmit --watch",
     "lint": "eslint src webview-ui/src --ext ts,tsx",
