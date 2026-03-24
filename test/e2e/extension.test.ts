@@ -27,8 +27,10 @@ describe('Repo Stats Extension E2E', function () {
     await input.setText('Repo Stats: Show Dashboard');
     await input.confirm();
 
-    // Give extension time to activate
-    await driver.sleep(2000);
+    await driver.wait(async () => {
+      const openEditors = await workbench.getEditorView().getOpenEditorTitles();
+      return openEditors.includes('Repo Stats');
+    }, 10000);
 
     // Verify no error notifications appeared
     const notifications = await workbench.getNotifications();
