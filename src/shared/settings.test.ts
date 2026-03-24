@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import type { ExtensionSettings } from './contracts';
 import {
   applySettingsPatch,
+  buildScopedSettingValueFromInspect,
   createCoreAnalysisSettingsSnapshot,
   createEvolutionAnalysisSettingsSnapshot,
   flattenSettingsUpdate,
+  setScopedSettingValue,
   settingsAffectCoreAnalysis,
   settingsAffectEvolutionAnalysis,
 } from './settings';
@@ -151,5 +153,28 @@ describe('flattenSettingsUpdate', () => {
       { key: 'evolution.maxSeries', value: 15 },
       { key: 'evolution.cohortFormat', value: '%Y-%m' },
     ]);
+  });
+});
+
+describe('scoped setting helpers', () => {
+  it('maps workspaceFolder inspect values to repo scoped settings without casts', () => {
+    expect(buildScopedSettingValueFromInspect({
+      defaultValue: ['**/generated/**'],
+      globalValue: ['vendor'],
+      workspaceFolderValue: ['fixtures'],
+    })).toEqual({
+      defaultValue: ['**/generated/**'],
+      globalValue: ['vendor'],
+      repoValue: ['fixtures'],
+      source: 'repo',
+    });
+  });
+
+  it('updates evolution scoped settings through the typed applier map', () => {
+    const current = createSettings();
+    const next = setScopedSettingValue(current, 'evolution.samplingMode', 'commit');
+
+    expect(next.evolution.samplingMode).toBe('commit');
+    expect(next.excludePatterns).toEqual(current.excludePatterns);
   });
 });

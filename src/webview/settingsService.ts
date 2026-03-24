@@ -139,7 +139,7 @@ export class RepositorySettingsService {
       );
     }
 
-    return buildScopedSettingValue(inspect) as unknown as RepoScopedSettings[K];
+    return buildScopedSettingValue(inspect);
   }
 
   private toConfigurationTarget(

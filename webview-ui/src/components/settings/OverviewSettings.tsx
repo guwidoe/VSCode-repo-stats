@@ -22,7 +22,7 @@ export function OverviewSettings({ settings, updateSettings }: Props) {
           { value: 'count', label: 'Absolute Counts' },
         ]}
         onChange={(value) =>
-          updateSettings({ overviewDisplayMode: value as 'percent' | 'count' })
+          updateSettings({ overviewDisplayMode: value })
         }
       />
     </div>

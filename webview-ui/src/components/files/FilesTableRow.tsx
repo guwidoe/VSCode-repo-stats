@@ -7,8 +7,8 @@ interface FilesTableRowProps {
   columns: Array<FileColumnConfig & { width: number }>;
   gridTemplateColumns: string;
   start: number;
-  onOpenFile: (path: string) => void;
-  onRevealInExplorer: (path: string) => void;
+  onOpenFile: (path: string, repositoryId?: string) => void;
+  onRevealInExplorer: (path: string, repositoryId?: string) => void;
 }
 
 function getParentFolderPath(filePath: string) {
@@ -26,12 +26,12 @@ export function FilesTableRow({
 }: FilesTableRowProps) {
   const handlePathClick = (event: ReactMouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
-    onRevealInExplorer(getParentFolderPath(row.path));
+    onRevealInExplorer(getParentFolderPath(row.path), row.repositoryId);
   };
 
   const handleNameClick = (event: ReactMouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
-    onOpenFile(row.path);
+    onOpenFile(row.path, row.repositoryId);
   };
 
   return (
@@ -39,7 +39,7 @@ export function FilesTableRow({
       className="files-table-row"
       style={{ transform: `translateY(${start}px)`, gridTemplateColumns }}
       role="row"
-      onDoubleClick={() => onOpenFile(row.path)}
+      onDoubleClick={() => onOpenFile(row.path, row.repositoryId)}
       title="Double click to open file"
     >
       {columns.map((column) => {

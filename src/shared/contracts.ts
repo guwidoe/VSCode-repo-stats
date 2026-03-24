@@ -428,7 +428,7 @@ export type WebviewMessage =
   | { type: 'updateRepositorySelection'; repositoryIds: string[] }
   | { type: 'openFile'; path: string; repositoryId?: string }
   | { type: 'revealInExplorer'; path: string; repositoryId?: string }
-  | { type: 'copyPath'; path: string }
+  | { type: 'copyPath'; path: string; repositoryId?: string }
   | { type: 'getSettings' }
   | { type: 'updateSettings'; settings: Partial<ExtensionSettings>; target?: SettingWriteTarget }
   | {

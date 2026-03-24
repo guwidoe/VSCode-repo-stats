@@ -182,7 +182,7 @@ export function EvolutionSettings({
         onChange={(value) =>
           updateScopedSetting(
             'evolution.samplingMode',
-            value as ExtensionSettings['evolution']['samplingMode'],
+            value,
             resolvedTargets['evolution.samplingMode']
           )
         }

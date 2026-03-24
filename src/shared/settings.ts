@@ -17,6 +17,12 @@ interface ScopedSettingSeed<T> extends ScopedSettingLookup<T> {
   defaultValue?: T;
 }
 
+interface ConfigurationInspectSeed<T> {
+  defaultValue?: T;
+  globalValue?: T;
+  workspaceFolderValue?: T;
+}
+
 export interface SettingsUpdateEntry {
   key: string;
   value: unknown;
@@ -49,87 +55,98 @@ export function buildScopedSettingValue<T>(seed: ScopedSettingSeed<T>): ScopedSe
   };
 }
 
+export function buildScopedSettingValueFromInspect<T>(inspect: ConfigurationInspectSeed<T>): ScopedSettingValue<T> {
+  return buildScopedSettingValue({
+    defaultValue: inspect.defaultValue,
+    globalValue: inspect.globalValue,
+    repoValue: inspect.workspaceFolderValue,
+  });
+}
+
+function resolveScopedSettingDisplayValue<T>(setting: ScopedSettingValue<T>, target: SettingWriteTarget): T {
+  if (target === 'repo') {
+    return setting.repoValue ?? setting.globalValue ?? setting.defaultValue;
+  }
+
+  return setting.globalValue ?? setting.defaultValue;
+}
+
 export function getScopedSettingDisplayValue<K extends RepoScopableSettingKey>(
   scopedSettings: RepoScopedSettings,
   key: K,
   target: SettingWriteTarget
 ): RepoScopableSettingValueMap[K] {
-  const setting = scopedSettings[key];
-  if (target === 'repo') {
-    return (setting.repoValue ?? setting.globalValue ?? setting.defaultValue) as RepoScopableSettingValueMap[K];
-  }
-
-  return (setting.globalValue ?? setting.defaultValue) as RepoScopableSettingValueMap[K];
+  return resolveScopedSettingDisplayValue(scopedSettings[key], target);
 }
+
+const scopedSettingAppliers: {
+  [K in RepoScopableSettingKey]: (
+    settings: ExtensionSettings,
+    value: RepoScopableSettingValueMap[K]
+  ) => ExtensionSettings;
+} = {
+  excludePatterns: (settings, value) => ({ ...settings, excludePatterns: value }),
+  generatedPatterns: (settings, value) => ({ ...settings, generatedPatterns: value }),
+  binaryExtensions: (settings, value) => ({ ...settings, binaryExtensions: value }),
+  locExcludedExtensions: (settings, value) => ({ ...settings, locExcludedExtensions: value }),
+  maxCommitsToAnalyze: (settings, value) => ({ ...settings, maxCommitsToAnalyze: value }),
+  'evolution.samplingMode': (settings, value) => ({
+    ...settings,
+    evolution: {
+      ...settings.evolution,
+      samplingMode: value,
+    },
+  }),
+  'evolution.snapshotIntervalDays': (settings, value) => ({
+    ...settings,
+    evolution: {
+      ...settings.evolution,
+      snapshotIntervalDays: value,
+    },
+  }),
+  'evolution.snapshotIntervalCommits': (settings, value) => ({
+    ...settings,
+    evolution: {
+      ...settings.evolution,
+      snapshotIntervalCommits: value,
+    },
+  }),
+  'evolution.showInactivePeriods': (settings, value) => ({
+    ...settings,
+    evolution: {
+      ...settings.evolution,
+      showInactivePeriods: value,
+    },
+  }),
+  'evolution.maxSnapshots': (settings, value) => ({
+    ...settings,
+    evolution: {
+      ...settings.evolution,
+      maxSnapshots: value,
+    },
+  }),
+  'evolution.maxSeries': (settings, value) => ({
+    ...settings,
+    evolution: {
+      ...settings.evolution,
+      maxSeries: value,
+    },
+  }),
+  'evolution.cohortFormat': (settings, value) => ({
+    ...settings,
+    evolution: {
+      ...settings.evolution,
+      cohortFormat: value,
+    },
+  }),
+};
 
 export function setScopedSettingValue<K extends RepoScopableSettingKey>(
   settings: ExtensionSettings,
   key: K,
   value: RepoScopableSettingValueMap[K]
 ): ExtensionSettings {
-  switch (key) {
-    case 'evolution.samplingMode':
-      return {
-        ...settings,
-        evolution: {
-          ...settings.evolution,
-          samplingMode: value as ExtensionSettings['evolution']['samplingMode'],
-        },
-      };
-    case 'evolution.snapshotIntervalDays':
-      return {
-        ...settings,
-        evolution: {
-          ...settings.evolution,
-          snapshotIntervalDays: value as number,
-        },
-      };
-    case 'evolution.snapshotIntervalCommits':
-      return {
-        ...settings,
-        evolution: {
-          ...settings.evolution,
-          snapshotIntervalCommits: value as number,
-        },
-      };
-    case 'evolution.showInactivePeriods':
-      return {
-        ...settings,
-        evolution: {
-          ...settings.evolution,
-          showInactivePeriods: value as boolean,
-        },
-      };
-    case 'evolution.maxSnapshots':
-      return {
-        ...settings,
-        evolution: {
-          ...settings.evolution,
-          maxSnapshots: value as number,
-        },
-      };
-    case 'evolution.maxSeries':
-      return {
-        ...settings,
-        evolution: {
-          ...settings.evolution,
-          maxSeries: value as number,
-        },
-      };
-    case 'evolution.cohortFormat':
-      return {
-        ...settings,
-        evolution: {
-          ...settings.evolution,
-          cohortFormat: value as string,
-        },
-      };
-    default:
-      return {
-        ...settings,
-        [key]: value,
-      } as ExtensionSettings;
-  }
+  return scopedSettingAppliers[key](settings, value);
 }
 
 export function applyScopedSettingUpdate<K extends RepoScopableSettingKey>(

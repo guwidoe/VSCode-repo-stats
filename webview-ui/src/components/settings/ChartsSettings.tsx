@@ -37,7 +37,7 @@ export function ChartsSettings({ settings, updateSettings }: Props) {
           { value: 'monthly', label: 'Always Monthly' },
         ]}
         onChange={(value) =>
-          updateSettings({ defaultGranularityMode: value as 'auto' | 'weekly' | 'monthly' })
+          updateSettings({ defaultGranularityMode: value })
         }
       />
 

@@ -19,9 +19,9 @@ interface TreeViewPanelProps {
   onSelect: (node: TreemapNode | null) => void;
   onHover: (node: TreemapNode | null) => void;
   onNavigate: (path: string[]) => void;
-  onOpenFile: (path: string) => void;
-  onRevealInExplorer: (path: string) => void;
-  onCopyPath: (path: string) => void;
+  onOpenFile: (path: string, repositoryId?: string) => void;
+  onRevealInExplorer: (path: string, repositoryId?: string) => void;
+  onCopyPath: (path: string, repositoryId?: string) => void;
   onAddToRepoExcludePatterns: (node: TreemapNode) => void;
 }
 
@@ -172,7 +172,7 @@ export function TreeViewPanel({
       return;
     }
 
-    onOpenFile(node.path);
+    onOpenFile(node.path, node.repositoryId);
   }, [onNavigate, onOpenFile]);
 
   const handleContextMenu = useCallback((event: React.MouseEvent, node: TreemapNode) => {

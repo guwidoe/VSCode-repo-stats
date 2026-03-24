@@ -21,9 +21,9 @@ interface TreemapCanvasProps {
   onHover: (node: TreemapNode | null) => void;
   onSelect: (node: TreemapNode | null) => void;
   onNavigate: (path: string[]) => void;
-  onOpenFile: (path: string) => void;
-  onRevealInExplorer: (path: string) => void;
-  onCopyPath: (path: string) => void;
+  onOpenFile: (path: string, repositoryId?: string) => void;
+  onRevealInExplorer: (path: string, repositoryId?: string) => void;
+  onCopyPath: (path: string, repositoryId?: string) => void;
   onAddToRepoExcludePatterns: (node: TreemapNode) => void;
 }
 
@@ -211,7 +211,7 @@ export function TreemapCanvas({
       }
 
       if (node.data.type === 'file') {
-        onOpenFile(node.data.path);
+        onOpenFile(node.data.path, node.data.repositoryId);
       } else {
         const pathParts = node.data.path.split('/').filter(Boolean);
         onNavigate(pathParts);

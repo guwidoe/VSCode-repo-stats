@@ -28,26 +28,40 @@ interface VsCodeApi {
   setState: (state: unknown) => void;
 }
 
+type VsCodeApiSource = 'vscode' | 'mock';
+
 // ============================================================================
 // Get VSCode API (singleton)
 // ============================================================================
 
 let vsCodeApi: VsCodeApi | null = null;
+let vsCodeApiSource: VsCodeApiSource | null = null;
+
+function createMockVsCodeApi(): VsCodeApi {
+  return {
+    postMessage: (message) => console.log('postMessage:', message),
+    getState: () => ({}),
+    setState: () => {},
+  };
+}
+
+export function resetVsCodeApiForTests(): void {
+  vsCodeApi = null;
+  vsCodeApiSource = null;
+}
 
 function getOrCreateVsCodeApi(): VsCodeApi {
-  if (vsCodeApi) {return vsCodeApi;}
-
-  // In VSCode webview, acquireVsCodeApi is available globally
-  if (typeof acquireVsCodeApi === 'function') {
-    vsCodeApi = acquireVsCodeApi();
-  } else {
-    // Mock for development/testing
-    vsCodeApi = {
-      postMessage: (message) => console.log('postMessage:', message),
-      getState: () => ({}),
-      setState: () => {},
-    };
+  const nextSource: VsCodeApiSource = typeof acquireVsCodeApi === 'function' ? 'vscode' : 'mock';
+  if (nextSource === 'mock') {
+    return createMockVsCodeApi();
   }
+
+  if (vsCodeApi && vsCodeApiSource === nextSource) {
+    return vsCodeApi;
+  }
+
+  vsCodeApi = acquireVsCodeApi();
+  vsCodeApiSource = nextSource;
 
   return vsCodeApi;
 }
@@ -229,16 +243,16 @@ export function useVsCodeApi() {
     getOrCreateVsCodeApi().postMessage({ type: 'requestEvolutionRefresh' });
   }, []);
 
-  const openFile = useCallback((path: string) => {
-    getOrCreateVsCodeApi().postMessage({ type: 'openFile', path });
+  const openFile = useCallback((path: string, repositoryId?: string) => {
+    getOrCreateVsCodeApi().postMessage({ type: 'openFile', path, repositoryId });
   }, []);
 
-  const revealInExplorer = useCallback((path: string) => {
-    getOrCreateVsCodeApi().postMessage({ type: 'revealInExplorer', path });
+  const revealInExplorer = useCallback((path: string, repositoryId?: string) => {
+    getOrCreateVsCodeApi().postMessage({ type: 'revealInExplorer', path, repositoryId });
   }, []);
 
-  const copyPath = useCallback((path: string) => {
-    getOrCreateVsCodeApi().postMessage({ type: 'copyPath', path });
+  const copyPath = useCallback((path: string, repositoryId?: string) => {
+    getOrCreateVsCodeApi().postMessage({ type: 'copyPath', path, repositoryId });
   }, []);
 
   const updateRepositorySelection = useCallback((repositoryIds: string[]) => {

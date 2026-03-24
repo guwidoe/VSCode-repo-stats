@@ -40,8 +40,9 @@ export const useStore = create<RepoStatsState>((set, get, api) => ({
 // Memoization Cache
 // ============================================================================
 
-let cachedData: AnalysisResult | null = null;
+let cachedAllWeeksData: AnalysisResult | null = null;
 let cachedAllWeeks: string[] = [];
+let cachedWeeklyTotalsData: AnalysisResult | null = null;
 let cachedWeeklyTotals: { week: string; commits: number }[] = [];
 
 let cachedFilteredTreemapNode: TreemapNode | null = null;
@@ -65,7 +66,7 @@ export const selectAllWeeks = (state: RepoStatsState): string[] => {
     return [];
   }
 
-  if (state.data === cachedData && cachedAllWeeks.length > 0) {
+  if (state.data === cachedAllWeeksData && cachedAllWeeks.length > 0) {
     return cachedAllWeeks;
   }
 
@@ -78,7 +79,7 @@ export const selectAllWeeks = (state: RepoStatsState): string[] => {
     }
   }
 
-  cachedData = state.data;
+  cachedAllWeeksData = state.data;
   cachedAllWeeks = Array.from(allWeeks).sort();
   return cachedAllWeeks;
 };
@@ -90,7 +91,7 @@ export const selectWeeklyCommitTotals = (
     return [];
   }
 
-  if (state.data === cachedData && cachedWeeklyTotals.length > 0) {
+  if (state.data === cachedWeeklyTotalsData && cachedWeeklyTotals.length > 0) {
     return cachedWeeklyTotals;
   }
 
@@ -106,6 +107,7 @@ export const selectWeeklyCommitTotals = (
   cachedWeeklyTotals = Array.from(weekMap.entries())
     .map(([week, commits]) => ({ week, commits }))
     .sort((a, b) => a.week.localeCompare(b.week));
+  cachedWeeklyTotalsData = state.data;
 
   return cachedWeeklyTotals;
 };

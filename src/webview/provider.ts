@@ -286,7 +286,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
           break;
 
         case 'copyPath':
-          await this.copyRepositoryPath(message.path);
+          await this.copyRepositoryPath(message.path, message.repositoryId);
           vscode.window.showInformationMessage('Path copied to clipboard');
           break;
 
@@ -473,8 +473,8 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     await vscode.commands.executeCommand('revealInExplorer', vscode.Uri.file(filePath));
   }
 
-  private async copyRepositoryPath(logicalPath: string): Promise<void> {
-    const filePath = await this.resolveTargetFilePath(logicalPath);
+  private async copyRepositoryPath(logicalPath: string, repositoryId?: string): Promise<void> {
+    const filePath = await this.resolveTargetFilePath(logicalPath, repositoryId);
     if (!filePath) {
       return;
     }

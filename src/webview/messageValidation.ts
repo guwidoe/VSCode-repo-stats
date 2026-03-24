@@ -210,10 +210,10 @@ export function parseWebviewMessage(message: unknown): WebviewMessage {
       };
 
     case 'copyPath':
-      if (typeof message.path !== 'string') {
+      if (!isPathMessagePayload(message)) {
         throw new Error('Expected copyPath to include a string path payload.');
       }
-      return { type: 'copyPath', path: message.path };
+      return { type: 'copyPath', path: message.path, repositoryId: message.repositoryId };
 
     case 'updateSettings':
       if (!isPartialExtensionSettings(message.settings)) {

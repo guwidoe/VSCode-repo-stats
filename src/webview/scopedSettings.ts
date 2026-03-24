@@ -2,10 +2,9 @@ import type {
   RepoScopableSettingKey,
   RepoScopableSettingValueMap,
   RepoScopedSettings,
-  ScopedSettingValue,
 } from '../types/index.js';
 import {
-  buildScopedSettingValue as buildSharedScopedSettingValue,
+  buildScopedSettingValueFromInspect as buildSharedScopedSettingValueFromInspect,
   getScopedSettingDisplayValue,
   resolveScopedSettingSource as resolveSharedScopedSettingSource,
 } from '../shared/settings.js';
@@ -23,12 +22,10 @@ export function resolveScopedSettingSource<T>(inspect: ConfigInspectValue<T>) {
   });
 }
 
-export function buildScopedSettingValue<T>(inspect: ConfigInspectValue<T>): ScopedSettingValue<T> {
-  return buildSharedScopedSettingValue({
-    defaultValue: inspect.defaultValue,
-    globalValue: inspect.globalValue,
-    repoValue: inspect.workspaceFolderValue,
-  });
+export function buildScopedSettingValue<K extends RepoScopableSettingKey>(
+  inspect: ConfigInspectValue<RepoScopableSettingValueMap[K]>
+): RepoScopedSettings[K] {
+  return buildSharedScopedSettingValueFromInspect(inspect) as RepoScopedSettings[K];
 }
 
 export { getScopedSettingDisplayValue };

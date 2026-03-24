@@ -13,9 +13,9 @@ interface TreemapContextMenuProps {
   x: number;
   y: number;
   node: TreemapNode | null;
-  onOpenFile: (path: string) => void;
-  onRevealInExplorer: (path: string) => void;
-  onCopyPath: (path: string) => void;
+  onOpenFile: (path: string, repositoryId?: string) => void;
+  onRevealInExplorer: (path: string, repositoryId?: string) => void;
+  onCopyPath: (path: string, repositoryId?: string) => void;
   onAddToRepoExcludePatterns: (node: TreemapNode) => void;
   onClose: () => void;
 }
@@ -90,7 +90,7 @@ export function TreemapContextMenu({
           className="context-menu-item"
           role="menuitem"
           onClick={() => {
-            onOpenFile(node.path);
+            onOpenFile(node.path, node.repositoryId);
             onClose();
           }}
         >
@@ -101,7 +101,7 @@ export function TreemapContextMenu({
         className="context-menu-item"
         role="menuitem"
         onClick={() => {
-          onRevealInExplorer(node.path);
+          onRevealInExplorer(node.path, node.repositoryId);
           onClose();
         }}
       >
@@ -111,7 +111,7 @@ export function TreemapContextMenu({
         className="context-menu-item"
         role="menuitem"
         onClick={() => {
-          onCopyPath(node.path);
+          onCopyPath(node.path, node.repositoryId);
           onClose();
         }}
       >
