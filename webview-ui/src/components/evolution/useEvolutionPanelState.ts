@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useStore } from '../store';
-import { useVsCodeApi } from './useVsCodeApi';
-import { processEvolutionSeries, type EvolutionAxisMode } from '../components/evolution/evolutionUtils';
-import type { EvolutionDimension, EvolutionTimeSeriesData } from '../types';
+import { useStore } from '../../store';
+import { useVsCodeApi } from '../../hooks/useVsCodeApi';
+import { processEvolutionSeries, type EvolutionAxisMode } from './evolutionUtils';
+import type { EvolutionDimension, EvolutionTimeSeriesData } from '../../types';
 
 export function useEvolutionPanelState() {
   const evolutionData = useStore((state) => state.evolutionData);

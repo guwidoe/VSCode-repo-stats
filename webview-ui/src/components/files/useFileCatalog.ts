@@ -3,11 +3,11 @@
  */
 
 import { useMemo } from 'react';
-import { useStore } from '../store';
-import type { TreemapNode } from '../types';
-import { buildBinaryExtensionSet, isBinaryFile, isCodeLanguage } from '../utils/fileTypes';
-import { getFileExtension, isGeneratedFile } from '../utils/fileClassification';
-import type { FileCatalog, FileRow } from '../components/files/types';
+import { useStore } from '../../store';
+import type { TreemapNode } from '../../types';
+import { buildBinaryExtensionSet, isBinaryFile, isCodeLanguage } from '../../utils/fileTypes';
+import { getFileExtension, isGeneratedFile } from '../../utils/fileClassification';
+import type { FileCatalog, FileRow } from './types';
 
 function toEpoch(dateValue: string | undefined): number {
   if (!dateValue) {

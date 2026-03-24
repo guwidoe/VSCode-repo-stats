@@ -4,7 +4,7 @@
 
 import { useMemo, useState } from 'react';
 import { useStore } from '../../store';
-import { useOverviewStats } from '../../hooks/useOverviewStats';
+import { useOverviewStats } from './useOverviewStats';
 import { getAvatarColor } from '../../utils/colors';
 import { bucketizeAgeByDay, type AgeBucketDefinition } from '../../utils/ageBuckets';
 import { DonutChart } from './DonutChart';

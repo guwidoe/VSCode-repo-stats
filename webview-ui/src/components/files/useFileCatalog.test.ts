@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { buildBinaryExtensionSet } from '../utils/fileTypes';
-import { DEFAULT_GENERATED_PATTERNS } from '../utils/fileClassification';
+import { buildBinaryExtensionSet } from '../../utils/fileTypes';
+import { DEFAULT_GENERATED_PATTERNS } from '../../utils/fileClassification';
 import { buildFileCatalog } from './useFileCatalog';
-import type { TreemapNode } from '../types';
+import type { TreemapNode } from '../../types';
 
 const mockFileTree: TreemapNode = {
   name: 'demo',

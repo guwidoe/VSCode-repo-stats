@@ -1,4 +1,4 @@
-import { useEvolutionPanelState } from '../../hooks/useEvolutionPanelState';
+import { useEvolutionPanelState } from './useEvolutionPanelState';
 import type { EvolutionProgressStage } from '../../types';
 import { EvolutionControls } from './EvolutionControls';
 import { EvolutionStackChart } from './EvolutionStackChart';

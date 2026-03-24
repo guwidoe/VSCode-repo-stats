@@ -3,15 +3,15 @@
  */
 
 import { useMemo } from 'react';
-import { useStore } from '../store';
-import type { BlameMetrics, TreemapNode } from '../types';
+import { useStore } from '../../store';
+import type { BlameMetrics, TreemapNode } from '../../types';
 import {
   isBinaryFile,
   isCodeLanguage,
   buildBinaryExtensionSet,
-} from '../utils/fileTypes';
-import { getFileExtension, isGeneratedFile } from '../utils/fileClassification';
-import { getLanguageColor } from '../utils/colors';
+} from '../../utils/fileTypes';
+import { getFileExtension, isGeneratedFile } from '../../utils/fileClassification';
+import { getLanguageColor } from '../../utils/colors';
 
 export interface ExtensionStats {
   ext: string;
