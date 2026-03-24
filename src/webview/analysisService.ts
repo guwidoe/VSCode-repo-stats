@@ -14,6 +14,7 @@ import {
   collectTargetMemberHeads,
   createTargetStateHashes,
 } from './targetRevisionState.js';
+import { computeStalenessStatus } from './stalenessStatus.js';
 import { WorkspaceStateStorage } from './workspaceStateStorage.js';
 
 export class RepoAnalysisService {
@@ -240,21 +241,16 @@ export class RepoAnalysisService {
       const hashes = createTargetStateHashes(target.target, settings, memberHeads);
       const lastCoreState = this.stateRegistry.getCoreState(target.target.id);
       const lastEvolutionState = this.stateRegistry.getEvolutionState(target.target.id);
-
-      const coreStaleByRevision =
-        lastCoreState !== undefined && lastCoreState.revisionHash !== hashes.coreRevisionHash;
-      const coreStaleBySettings =
-        lastCoreState !== undefined && lastCoreState.settingsHash !== hashes.coreSettingsHash;
-
-      const evolutionStaleByRevision =
-        lastEvolutionState !== undefined && lastEvolutionState.revisionHash !== hashes.evolutionRevisionHash;
-      const evolutionStaleBySettings =
-        lastEvolutionState !== undefined && lastEvolutionState.settingsHash !== hashes.evolutionSettingsHash;
+      const status = computeStalenessStatus({
+        current: hashes,
+        lastCoreState,
+        lastEvolutionState,
+      });
 
       this.sendMessage(webview, {
         type: 'stalenessStatus',
-        coreStale: coreStaleByRevision || coreStaleBySettings,
-        evolutionStale: evolutionStaleByRevision || evolutionStaleBySettings,
+        coreStale: status.coreStale,
+        evolutionStale: status.evolutionStale,
       });
     } catch (error) {
       console.error('[RepoStats] Failed to compute staleness status:', error);
