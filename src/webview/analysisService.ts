@@ -1,17 +1,18 @@
-import * as crypto from 'crypto';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import simpleGit from 'simple-git';
-import type { ExtensionMessage, ExtensionSettings } from '../types/index.js';
+import type { ExtensionMessage } from '../types/index.js';
 import { TargetAnalysisCoordinator } from '../analyzers/target/targetCoordinator.js';
 import { createTargetEvolutionAnalyzer } from '../analyzers/target/targetEvolutionAnalyzer.js';
 import { CacheManager } from '../cache/cacheManager.js';
 import { EvolutionCacheManager } from '../cache/evolutionCacheManager.js';
-import { createEvolutionRevisionHash, createTargetRevisionHash } from '../cache/targetCacheKeys.js';
+import { createTargetRevisionHash } from '../cache/targetCacheKeys.js';
 import { createCoreSettingsHash } from '../cache/coreSettingsHash.js';
-import { createEvolutionAnalysisSettingsSnapshot } from '../shared/settings.js';
 import type { AnalysisTargetContext } from './context.js';
 import { RepositorySettingsService } from './settingsService.js';
+import {
+  collectTargetMemberHeads,
+  createTargetStateHashes,
+} from './targetRevisionState.js';
 import { WorkspaceStateStorage } from './workspaceStateStorage.js';
 
 interface AnalysisStateSnapshot {
@@ -144,22 +145,12 @@ export class RepoAnalysisService {
       const settings = this.settingsService.getSettings(target.settingsRepository);
       const storage = new WorkspaceStateStorage(this.workspaceState);
       const evolutionCacheManager = new EvolutionCacheManager(storage, target.target.id);
-      const memberHeads = await Promise.all(target.target.members.map(async (member) => {
-        const git = simpleGit(member.repoPath);
-        const [branchRaw, headShaRaw] = await Promise.all([
-          git.revparse(['--abbrev-ref', 'HEAD']),
-          git.revparse(['HEAD']),
-        ]);
-        return {
-          repositoryId: member.id,
-          repositoryName: member.displayName,
-          branch: branchRaw.trim(),
-          headSha: headShaRaw.trim(),
-        };
-      }));
-      const currentRevisionHash = createEvolutionRevisionHash(memberHeads);
-      const settingsHash = createEvolutionSettingsHash(settings);
-      const validCached = evolutionCacheManager.getIfValid(currentRevisionHash, settingsHash);
+      const memberHeads = await collectTargetMemberHeads(target.target);
+      const hashes = createTargetStateHashes(target.target, settings, memberHeads);
+      const validCached = evolutionCacheManager.getIfValid(
+        hashes.evolutionRevisionHash,
+        hashes.evolutionSettingsHash
+      );
 
       if (validCached && !forceRefresh) {
         this.lastEvolutionStateByTarget.set(target.target.id, {
@@ -187,8 +178,8 @@ export class RepoAnalysisService {
           });
 
           if (
-            latestCached.revisionHash !== currentRevisionHash ||
-            latestCached.settingsHash !== settingsHash
+            latestCached.revisionHash !== hashes.evolutionRevisionHash ||
+            latestCached.settingsHash !== hashes.evolutionSettingsHash
           ) {
             this.sendMessage(webview, {
               type: 'evolutionStale',
@@ -249,42 +240,21 @@ export class RepoAnalysisService {
     }
 
     try {
-      const revisions = await Promise.all(target.target.members.map(async (member) => {
-        const git = simpleGit(member.repoPath);
-        const [branchRaw, headShaRaw] = await Promise.all([
-          git.revparse(['--abbrev-ref', 'HEAD']),
-          git.revparse(['HEAD']),
-        ]);
-        return {
-          repositoryId: member.id,
-          branch: branchRaw.trim(),
-          headSha: headShaRaw.trim(),
-        };
-      }));
       const settings = this.settingsService.getSettings(target.settingsRepository);
-      const currentCoreRevisionHash = createTargetRevisionHash(target.target, revisions);
-      const currentCoreSettingsHash = createCoreSettingsHash(settings);
-      const currentEvolutionRevisionHash = createEvolutionRevisionHash(
-        revisions.map((revision, index) => ({
-          repositoryId: revision.repositoryId,
-          repositoryName: target.target.members[index]?.displayName ?? revision.repositoryId,
-          branch: revision.branch,
-          headSha: revision.headSha,
-        }))
-      );
-      const currentEvolutionSettingsHash = createEvolutionSettingsHash(settings);
+      const memberHeads = await collectTargetMemberHeads(target.target);
+      const hashes = createTargetStateHashes(target.target, settings, memberHeads);
       const lastCoreState = this.lastCoreStateByTarget.get(target.target.id);
       const lastEvolutionState = this.lastEvolutionStateByTarget.get(target.target.id);
 
       const coreStaleByRevision =
-        lastCoreState !== undefined && lastCoreState.revisionHash !== currentCoreRevisionHash;
+        lastCoreState !== undefined && lastCoreState.revisionHash !== hashes.coreRevisionHash;
       const coreStaleBySettings =
-        lastCoreState !== undefined && lastCoreState.settingsHash !== currentCoreSettingsHash;
+        lastCoreState !== undefined && lastCoreState.settingsHash !== hashes.coreSettingsHash;
 
       const evolutionStaleByRevision =
-        lastEvolutionState !== undefined && lastEvolutionState.revisionHash !== currentEvolutionRevisionHash;
+        lastEvolutionState !== undefined && lastEvolutionState.revisionHash !== hashes.evolutionRevisionHash;
       const evolutionStaleBySettings =
-        lastEvolutionState !== undefined && lastEvolutionState.settingsHash !== currentEvolutionSettingsHash;
+        lastEvolutionState !== undefined && lastEvolutionState.settingsHash !== hashes.evolutionSettingsHash;
 
       this.sendMessage(webview, {
         type: 'stalenessStatus',
@@ -319,9 +289,4 @@ export class RepoAnalysisService {
 
     return errorMessage;
   }
-}
-
-function createEvolutionSettingsHash(settings: ExtensionSettings): string {
-  const payload = JSON.stringify(createEvolutionAnalysisSettingsSnapshot(settings));
-  return crypto.createHash('sha1').update(payload).digest('hex').slice(0, 16);
 }
