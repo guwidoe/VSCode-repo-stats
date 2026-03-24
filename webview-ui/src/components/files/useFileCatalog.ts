@@ -1,7 +1,3 @@
-/**
- * Hook that flattens the repository tree into a file catalog for the Files tab.
- */
-
 import { useMemo } from 'react';
 import { useStore } from '../../store';
 import type { TreemapNode } from '../../types';

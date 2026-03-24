@@ -1,8 +1,3 @@
-/**
- * Extension type entrypoint.
- * Shared contracts live in `src/shared/contracts.ts`; extension-only errors stay here.
- */
-
 export * from '../shared/contracts.js';
 
 // ============================================================================

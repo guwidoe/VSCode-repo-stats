@@ -1,7 +1,3 @@
-/**
- * Overview Panel - Dashboard showing repository statistics at a glance.
- */
-
 import { useMemo, useState } from 'react';
 import { useStore } from '../../store';
 import { useOverviewStats } from './useOverviewStats';
@@ -38,14 +34,12 @@ export function OverviewPanel() {
     );
   }
 
-  // Prepare donut chart data for languages (all languages by LOC)
   const languageSegments = stats.loc.byLanguage.map((lang) => ({
     label: lang.language,
     value: lang.lines,
     color: lang.color,
   }));
 
-  // Prepare donut chart data for file types (all extensions)
   const extensionColors = [
     '#3178c6', '#f1e05a', '#ff3e00', '#41b883', '#e34c26',
     '#563d7c', '#3572A5', '#00ADD8', '#dea584', '#b07219',

@@ -1,7 +1,3 @@
-/**
- * Commits Chart - Bar chart showing commits over time.
- */
-
 import { useMemo } from 'react';
 import Plot from 'react-plotly.js';
 import type { ContributorStats, FrequencyGranularity } from '../../types';

@@ -1,8 +1,3 @@
-/**
- * Webview Provider - Manages the webview panel lifecycle.
- * This is the VSCode integration layer - thin wrapper around core logic.
- */
-
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';

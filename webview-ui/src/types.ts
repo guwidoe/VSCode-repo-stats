@@ -1,8 +1,3 @@
-/**
- * Webview type entrypoint.
- * Shared contracts live in `src/shared/contracts.ts`; webview-only UI state types stay here.
- */
-
 import type { EvolutionProgressStage } from '@shared/contracts';
 
 export type {

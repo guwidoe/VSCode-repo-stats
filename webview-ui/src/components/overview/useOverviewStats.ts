@@ -1,7 +1,3 @@
-/**
- * Hook for computing overview statistics from the file tree.
- */
-
 import { useMemo } from 'react';
 import { useStore } from '../../store';
 import type { BlameMetrics, TreemapNode } from '../../types';
