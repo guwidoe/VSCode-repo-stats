@@ -1,6 +1,4 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
-import * as fs from 'fs';
 import simpleGit from 'simple-git';
 import {
   ExtensionMessage,
@@ -16,6 +14,7 @@ import { ProviderFileActions } from './providerFileActions.js';
 import { ProviderMessageRouter } from './providerMessageRouter.js';
 import { formatRepositoryDiscoveryWarning, RepositoryService } from './repositoryService.js';
 import { RepositorySettingsService } from './settingsService.js';
+import { getRepoStatsWebviewHtml } from './webviewHtml.js';
 
 export class RepoStatsProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'repoStats.dashboardView';
@@ -412,83 +411,8 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
   }
 
   private getWebviewContent(webview: vscode.Webview): string {
-    const distPath = vscode.Uri.joinPath(this.extensionUri, 'webview-ui', 'dist');
-    const distFsPath = distPath.fsPath;
-    const indexPath = path.join(distFsPath, 'index.html');
-
-    if (!fs.existsSync(indexPath)) {
-      return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Repo Stats</title>
-  <style>
-    body {
-      font-family: var(--vscode-font-family);
-      padding: 20px;
-      color: var(--vscode-foreground);
-      background: var(--vscode-editor-background);
-    }
-    .error {
-      color: var(--vscode-errorForeground);
-    }
-  </style>
-</head>
-<body>
-  <h1>Repo Stats</h1>
-  <p class="error">The webview UI has not been built yet. Run <code>npm run compile:webview</code> to build it.</p>
-</body>
-</html>`;
-    }
-
-    let html = fs.readFileSync(indexPath, 'utf-8');
-
-    const scriptUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(distPath, 'assets', 'index.js')
-    );
-    const styleUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(distPath, 'assets', 'index.css')
-    );
-
-    html = html.replace(
-      /<link rel="stylesheet" crossorigin href="[./]*assets\/index\.css">/g,
-      `<link rel="stylesheet" href="${styleUri}">`
-    );
-    html = html.replace(
-      /<script type="module" crossorigin src="[./]*assets\/index\.js"><\/script>/g,
-      `<script type="module" src="${scriptUri}"></script>`
-    );
-
-    const nonce = getNonce();
-    const csp = `
-      default-src 'none';
-      style-src ${webview.cspSource} 'unsafe-inline';
-      script-src 'nonce-${nonce}' ${webview.cspSource};
-      img-src ${webview.cspSource} data:;
-      font-src ${webview.cspSource};
-    `.replace(/\s+/g, ' ').trim();
-
-    html = html.replace(
-      '<head>',
-      `<head>\n    <meta http-equiv="Content-Security-Policy" content="${csp}">`
-    );
-    html = html.replace(
-      /<script/g,
-      `<script nonce="${nonce}"`
-    );
-
-    return html;
+    return getRepoStatsWebviewHtml(webview, this.extensionUri);
   }
-}
-
-function getNonce(): string {
-  let text = '';
-  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  for (let i = 0; i < 32; i++) {
-    text += possible.charAt(Math.floor(Math.random() * possible.length));
-  }
-  return text;
 }
 
 function delay(ms: number): Promise<void> {
