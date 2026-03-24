@@ -17,6 +17,7 @@ import type { AnalysisTargetSelection } from './context.js';
 import { RepoAnalysisService } from './analysisService.js';
 import { AnalysisTargetService } from './analysisTargetService.js';
 import { parseWebviewMessage, resolveContainedPath, validateLogicalPath } from './messageValidation.js';
+import { ProviderMessageRouter } from './providerMessageRouter.js';
 import { formatRepositoryDiscoveryWarning, RepositoryService } from './repositoryService.js';
 import { RepositorySettingsService } from './settingsService.js';
 
@@ -28,6 +29,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
   private readonly analysisTargetService: AnalysisTargetService;
   private readonly settingsService: RepositorySettingsService;
   private readonly analysisService: RepoAnalysisService;
+  private readonly messageRouter: ProviderMessageRouter;
 
   constructor(
     private readonly extensionUri: vscode.Uri,
@@ -42,6 +44,27 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       globalStoragePath,
       this.settingsService
     );
+    this.messageRouter = new ProviderMessageRouter({
+      runAnalysis: (webview) => this.runAnalysis(webview),
+      refresh: () => this.refresh(),
+      runEvolutionAnalysis: (webview, target, forceRefresh) =>
+        this.analysisService.runEvolutionAnalysis(webview, target, forceRefresh),
+      sendStalenessStatus: (webview, target) => this.analysisService.sendStalenessStatus(webview, target),
+      getSelectedTarget: () => this.analysisTargetService.getSelectedTarget(),
+      updateRepositorySelection: (repositoryIds, webview) => this.updateRepositorySelection(repositoryIds, webview),
+      openRepositoryFile: (relativePath, repositoryId) => this.openRepositoryFile(relativePath, repositoryId),
+      revealRepositoryFile: (relativePath, repositoryId) => this.revealRepositoryFile(relativePath, repositoryId),
+      copyRepositoryPath: (logicalPath, repositoryId) => this.copyRepositoryPath(logicalPath, repositoryId),
+      showPathCopiedMessage: () => {
+        vscode.window.showInformationMessage('Path copied to clipboard');
+      },
+      sendCurrentTargetContext: (webview) => this.sendCurrentTargetContext(webview),
+      updateSettings: (settings, target) => this.updateSettings(settings, target),
+      updateScopedSetting: (key, value, target) => this.updateScopedSetting(key, value, target),
+      resetScopedSettingOverride: (key) => this.resetScopedSettingOverride(key),
+      handlePostSettingsMutation: (webview, shouldPromptReanalysis) =>
+        this.handlePostSettingsMutation(webview, shouldPromptReanalysis),
+    });
   }
 
   resolveWebviewView(
@@ -241,85 +264,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
   ): Promise<void> {
     try {
       const message = parseWebviewMessage(rawMessage);
-
-      switch (message.type) {
-        case 'requestAnalysis':
-          await this.runAnalysis(webview);
-          break;
-
-        case 'requestRefresh':
-          await this.refresh();
-          break;
-
-        case 'requestEvolutionAnalysis':
-          await this.analysisService.runEvolutionAnalysis(
-            webview,
-            await this.analysisTargetService.getSelectedTarget(),
-            false
-          );
-          break;
-
-        case 'requestEvolutionRefresh':
-          await this.analysisService.runEvolutionAnalysis(
-            webview,
-            await this.analysisTargetService.getSelectedTarget(),
-            true
-          );
-          break;
-
-        case 'checkStaleness':
-          await this.analysisService.sendStalenessStatus(
-            webview,
-            await this.analysisTargetService.getSelectedTarget()
-          );
-          break;
-
-        case 'updateRepositorySelection':
-          await this.updateRepositorySelection(message.repositoryIds, webview);
-          break;
-
-        case 'openFile':
-          await this.openRepositoryFile(message.path, message.repositoryId);
-          break;
-
-        case 'revealInExplorer':
-          await this.revealRepositoryFile(message.path, message.repositoryId);
-          break;
-
-        case 'copyPath':
-          await this.copyRepositoryPath(message.path, message.repositoryId);
-          vscode.window.showInformationMessage('Path copied to clipboard');
-          break;
-
-        case 'getSettings':
-          await this.sendCurrentTargetContext(webview);
-          break;
-
-        case 'updateSettings': {
-          const shouldPromptReanalysis = await this.updateSettings(
-            message.settings,
-            message.target ?? 'global'
-          );
-          await this.handlePostSettingsMutation(webview, shouldPromptReanalysis);
-          break;
-        }
-
-        case 'updateScopedSetting': {
-          const shouldPromptReanalysis = await this.updateScopedSetting(
-            message.key,
-            message.value,
-            message.target
-          );
-          await this.handlePostSettingsMutation(webview, shouldPromptReanalysis);
-          break;
-        }
-
-        case 'resetScopedSetting': {
-          const shouldPromptReanalysis = await this.resetScopedSettingOverride(message.key);
-          await this.handlePostSettingsMutation(webview, shouldPromptReanalysis);
-          break;
-        }
-      }
+      await this.messageRouter.route(message, webview);
     } catch (error) {
       console.error('[RepoStats] Failed to handle webview message:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
