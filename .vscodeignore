@@ -28,6 +28,7 @@ test/**
 .vscode/**
 .claude/**
 .pi/**
+.desloppify/**
 .bench-results/**
 .git/**
 .gitignore
