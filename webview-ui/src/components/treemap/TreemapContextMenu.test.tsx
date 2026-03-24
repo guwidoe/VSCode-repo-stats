@@ -93,7 +93,7 @@ describe('TreemapContextMenu', () => {
     renderMenu(mockFileNode, { onOpenFile, onClose });
 
     fireEvent.click(screen.getByText('Open File'));
-    expect(onOpenFile).toHaveBeenCalledWith(mockFileNode.path);
+    expect(onOpenFile).toHaveBeenCalledWith(mockFileNode.path, undefined);
     expect(onClose).toHaveBeenCalled();
   });
 
@@ -103,7 +103,7 @@ describe('TreemapContextMenu', () => {
     renderMenu(mockFileNode, { onRevealInExplorer, onClose });
 
     fireEvent.click(screen.getByText('Reveal in Explorer'));
-    expect(onRevealInExplorer).toHaveBeenCalledWith(mockFileNode.path);
+    expect(onRevealInExplorer).toHaveBeenCalledWith(mockFileNode.path, undefined);
     expect(onClose).toHaveBeenCalled();
   });
 
@@ -113,7 +113,7 @@ describe('TreemapContextMenu', () => {
     renderMenu(mockFileNode, { onCopyPath, onClose });
 
     fireEvent.click(screen.getByText('Copy Path'));
-    expect(onCopyPath).toHaveBeenCalledWith(mockFileNode.path);
+    expect(onCopyPath).toHaveBeenCalledWith(mockFileNode.path, undefined);
     expect(onClose).toHaveBeenCalled();
   });
 
