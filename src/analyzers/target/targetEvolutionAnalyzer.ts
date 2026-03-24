@@ -2,20 +2,31 @@ import * as crypto from 'crypto';
 import * as os from 'os';
 import * as path from 'path';
 import simpleGit, { type SimpleGit } from 'simple-git';
-import {
-  normalizeEvolutionResult,
-  normalizeEvolutionTimeSeriesData,
-} from '../../types/index.js';
+import { normalizeEvolutionResult } from '../../types/index.js';
 import type {
   AnalysisTarget,
   EvolutionResult,
   EvolutionSamplingMode,
   EvolutionSnapshotPoint,
-  EvolutionTimeSeriesData,
   ExtensionSettings,
 } from '../../types/index.js';
 import { createEvolutionRevisionHash } from '../../cache/targetCacheKeys.js';
 import { createEvolutionAnalysisSettingsSnapshot } from '../../shared/settings.js';
+import {
+  cloneHistogram,
+  createEmptyHistogram,
+  formatCohort,
+  getTopDirectory,
+  incrementCount,
+  isExpectedBlameMiss,
+  mergeCounts,
+  mergeHistogram,
+  parseHistoryLog,
+  sampleHistoryEntries,
+  toEvolutionSeries,
+  type DimensionCounts,
+  type EvolutionFileHistogram,
+} from '../evolution/shared.js';
 import { normalizeExtensionForFilter } from '../locCounter.js';
 import { createPathPatternMatcher } from '../pathMatching.js';
 
@@ -36,16 +47,6 @@ export type EvolutionProgressCallback = (update: EvolutionProgressUpdate) => voi
 interface MemberEvolutionProgress {
   completedSnapshots: number;
   totalSnapshots: number;
-}
-
-type DimensionCounts = Record<string, number>;
-
-interface FileHistogram {
-  cohort: DimensionCounts;
-  author: DimensionCounts;
-  ext: DimensionCounts;
-  dir: DimensionCounts;
-  domain: DimensionCounts;
 }
 
 interface MemberCommit {
@@ -90,7 +91,6 @@ interface MemberHeadInfo {
 
 const UNKNOWN_AUTHOR = 'Unknown';
 const UNKNOWN_EMAIL = 'unknown@unknown.local';
-const ROOT_DIR = '[root]';
 const EMPTY_EXT = '[no-ext]';
 
 class MemberEvolutionRuntime {
@@ -140,15 +140,7 @@ class MemberEvolutionRuntime {
       branch,
     ]);
 
-    const parsedCommits = rawLog
-      .split('\n')
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0)
-      .map((line) => {
-        const [sha, tsRaw] = line.split('|');
-        return { sha, timestamp: parseInt(tsRaw, 10) };
-      })
-      .filter((entry) => Boolean(entry.sha) && Number.isFinite(entry.timestamp));
+    const parsedCommits = parseHistoryLog(rawLog);
 
     const totalCommitCount = parsedCommits.length;
 
@@ -164,15 +156,15 @@ class MemberEvolutionRuntime {
   async analyzeCommits(
     commits: MemberCommit[],
     onProgress?: (progress: MemberEvolutionProgress) => void
-  ): Promise<Map<string, FileHistogram>> {
-    const totalsBySha = new Map<string, FileHistogram>();
+  ): Promise<Map<string, EvolutionFileHistogram>> {
+    const totalsBySha = new Map<string, EvolutionFileHistogram>();
     if (commits.length === 0) {
       return totalsBySha;
     }
 
     let previousCommit: MemberCommit | null = null;
-    const fileHistograms = new Map<string, FileHistogram>();
-    const runningTotals = this.createEmptyHistogram();
+    const fileHistograms = new Map<string, EvolutionFileHistogram>();
+    const runningTotals = createEmptyHistogram();
 
     for (let commitIndex = 0; commitIndex < commits.length; commitIndex += 1) {
       const commit = commits[commitIndex];
@@ -190,7 +182,7 @@ class MemberEvolutionRuntime {
           if (diff.oldPath && diff.oldPath !== diff.newPath) {
             const removedHistogram = fileHistograms.get(diff.oldPath);
             if (removedHistogram) {
-              this.mergeHistogram(runningTotals, removedHistogram, -1);
+              mergeHistogram(runningTotals, removedHistogram, -1);
               fileHistograms.delete(diff.oldPath);
             }
           }
@@ -201,7 +193,7 @@ class MemberEvolutionRuntime {
             } else {
               const removedHistogram = fileHistograms.get(diff.newPath);
               if (removedHistogram) {
-                this.mergeHistogram(runningTotals, removedHistogram, -1);
+                mergeHistogram(runningTotals, removedHistogram, -1);
                 fileHistograms.delete(diff.newPath);
               }
             }
@@ -221,11 +213,11 @@ class MemberEvolutionRuntime {
       for (const [filePath, histogram] of updatedHistograms) {
         const existing = fileHistograms.get(filePath);
         if (existing) {
-          this.mergeHistogram(runningTotals, existing, -1);
+          mergeHistogram(runningTotals, existing, -1);
         }
 
         fileHistograms.set(filePath, histogram);
-        this.mergeHistogram(runningTotals, histogram, 1);
+        mergeHistogram(runningTotals, histogram, 1);
       }
 
       totalsBySha.set(commit.sha, cloneHistogram(runningTotals));
@@ -310,8 +302,8 @@ class MemberEvolutionRuntime {
     paths: string[],
     commitSha: string,
     defaultTimestamp: number
-  ): Promise<Map<string, FileHistogram>> {
-    const result = new Map<string, FileHistogram>();
+  ): Promise<Map<string, EvolutionFileHistogram>> {
+    const result = new Map<string, EvolutionFileHistogram>();
     const cpuCount = os.cpus().length;
     const concurrency = Math.max(2, Math.min(12, cpuCount));
     let index = 0;
@@ -335,8 +327,8 @@ class MemberEvolutionRuntime {
     filePath: string,
     commitSha: string,
     defaultTimestamp: number
-  ): Promise<FileHistogram> {
-    const histogram = this.createEmptyHistogram();
+  ): Promise<EvolutionFileHistogram> {
+    const histogram = createEmptyHistogram();
 
     let blameOutput = '';
     try {
@@ -429,23 +421,6 @@ class MemberEvolutionRuntime {
     return histogram;
   }
 
-  private createEmptyHistogram(): FileHistogram {
-    return {
-      cohort: {},
-      author: {},
-      ext: {},
-      dir: {},
-      domain: {},
-    };
-  }
-
-  private mergeHistogram(target: FileHistogram, source: FileHistogram, sign: 1 | -1): void {
-    mergeCounts(target.cohort, source.cohort, sign);
-    mergeCounts(target.author, source.author, sign);
-    mergeCounts(target.ext, source.ext, sign);
-    mergeCounts(target.dir, source.dir, sign);
-    mergeCounts(target.domain, source.domain, sign);
-  }
 }
 
 export class TargetEvolutionAnalyzer {
@@ -513,7 +488,7 @@ export class TargetEvolutionAnalyzer {
 
     const totalSnapshotWork = memberSelections.reduce((sum, selection) => sum + selection.uniqueCommits.length, 0);
     let completedSnapshotWork = 0;
-    const memberTotalsBySnapshot: FileHistogram[][] = [];
+    const memberTotalsBySnapshot: EvolutionFileHistogram[][] = [];
 
     for (let index = 0; index < memberSelections.length; index += 1) {
       const selection = memberSelections[index];
@@ -611,11 +586,11 @@ export class TargetEvolutionAnalyzer {
       revisionHash: createEvolutionRevisionHash(memberHeads),
       settingsHash: this.createSettingsHash(),
       memberHeads,
-      cohorts: this.toSeries(snapshots, snapshotTotals.cohort),
-      authors: this.toSeries(snapshots, snapshotTotals.author),
-      extensions: this.toSeries(snapshots, snapshotTotals.ext),
-      directories: this.toSeries(snapshots, snapshotTotals.dir),
-      domains: this.toSeries(snapshots, snapshotTotals.domain),
+      cohorts: toEvolutionSeries(snapshots, snapshotTotals.cohort),
+      authors: toEvolutionSeries(snapshots, snapshotTotals.author),
+      extensions: toEvolutionSeries(snapshots, snapshotTotals.ext),
+      directories: toEvolutionSeries(snapshots, snapshotTotals.dir),
+      domains: toEvolutionSeries(snapshots, snapshotTotals.domain),
       diagnostics: {
         expectedBlameMisses: runtimes.reduce((sum, runtime) => sum + runtime.expectedBlameMisses, 0),
       },
@@ -667,111 +642,34 @@ export class TargetEvolutionAnalyzer {
     onProgress: EvolutionProgressCallback | undefined,
     totalRepositories: number
   ): TargetSnapshotEvent[] {
-    if (allEvents.length === 0) {
-      return [];
-    }
-
-    const samplingMode = this.settings.evolution.samplingMode;
-    const maxSnapshots = Math.max(2, this.settings.evolution.maxSnapshots);
-
-    if (samplingMode === 'auto') {
-      onProgress?.({
-        phase: 'Auto-distributing snapshots',
-        progress: 4,
-        stage: 'sampling',
-        totalRepositories,
-      });
-      return this.downsampleEvents(
-        allEvents.map((event) => ({ ...event, samplingMode: 'auto' })),
-        maxSnapshots
-      );
-    }
-
-    if (samplingMode === 'commit') {
-      const commitInterval = Math.max(1, this.settings.evolution.snapshotIntervalCommits);
-      const sampled: TargetSnapshotEvent[] = [];
-
-      for (let index = 0; index < allEvents.length; index += commitInterval) {
-        sampled.push({
-          ...allEvents[index],
-          samplingMode: 'commit',
+    return sampleHistoryEntries(allEvents, {
+      samplingMode: this.settings.evolution.samplingMode,
+      maxSnapshots: this.settings.evolution.maxSnapshots,
+      commitInterval: this.settings.evolution.snapshotIntervalCommits,
+      intervalDays: this.settings.evolution.snapshotIntervalDays,
+      mark: (event, samplingMode) => ({
+        ...event,
+        samplingMode,
+      }),
+      getEntryKey: (event) => `${event.repositoryId}:${event.sha}`,
+      onAutoDistribute: () => {
+        onProgress?.({
+          phase: 'Auto-distributing snapshots',
+          progress: 4,
+          stage: 'sampling',
+          totalRepositories,
         });
-      }
-
-      const lastEvent = allEvents[allEvents.length - 1];
-      if (sampled[sampled.length - 1]?.sha !== lastEvent.sha) {
-        sampled.push({
-          ...lastEvent,
-          samplingMode: 'commit',
+      },
+      onDownsample: (selectedCount) => {
+        onProgress?.({
+          phase: 'Downsampling snapshots',
+          progress: 4,
+          stage: 'sampling',
+          totalRepositories,
+          totalSnapshots: selectedCount,
         });
-      }
-
-      return sampled.length <= maxSnapshots ? sampled : this.downsampleEvents(sampled, maxSnapshots);
-    }
-
-    const intervalSeconds = Math.max(1, this.settings.evolution.snapshotIntervalDays) * 24 * 60 * 60;
-    const sampled: TargetSnapshotEvent[] = [{ ...allEvents[0], samplingMode: 'time' }];
-    let lastTimestamp = allEvents[0].timestamp;
-
-    for (let index = 1; index < allEvents.length; index += 1) {
-      const event = allEvents[index];
-      if (event.timestamp >= lastTimestamp + intervalSeconds) {
-        sampled.push({
-          ...event,
-          samplingMode: 'time',
-        });
-        lastTimestamp = event.timestamp;
-      }
-    }
-
-    const lastEvent = allEvents[allEvents.length - 1];
-    if (sampled[sampled.length - 1]?.sha !== lastEvent.sha) {
-      sampled.push({
-        ...lastEvent,
-        samplingMode: 'time',
-      });
-    }
-
-    if (sampled.length <= maxSnapshots) {
-      return sampled;
-    }
-
-    onProgress?.({
-      phase: 'Downsampling snapshots',
-      progress: 4,
-      stage: 'sampling',
-      totalRepositories,
-      totalSnapshots: sampled.length,
+      },
     });
-    return this.downsampleEvents(sampled, maxSnapshots);
-  }
-
-  private downsampleEvents(events: TargetSnapshotEvent[], maxSnapshots: number): TargetSnapshotEvent[] {
-    if (events.length <= maxSnapshots) {
-      return events;
-    }
-
-    const downsampled: TargetSnapshotEvent[] = [];
-    const maxIndex = events.length - 1;
-    const step = maxIndex / (maxSnapshots - 1);
-    let lastAddedKey = '';
-
-    for (let index = 0; index < maxSnapshots; index += 1) {
-      const sourceIndex = Math.round(index * step);
-      const event = events[sourceIndex];
-      const eventKey = `${event.repositoryId}:${event.sha}`;
-      if (event && eventKey !== lastAddedKey) {
-        downsampled.push(event);
-        lastAddedKey = eventKey;
-      }
-    }
-
-    const lastEvent = events[events.length - 1];
-    if (downsampled[downsampled.length - 1]?.sha !== lastEvent.sha) {
-      downsampled.push(lastEvent);
-    }
-
-    return downsampled;
   }
 
   private selectMemberCommitsForSnapshots(
@@ -795,42 +693,10 @@ export class TargetEvolutionAnalyzer {
     return selected;
   }
 
-  private toSeries(
-    snapshots: EvolutionSnapshotPoint[],
-    countsBySnapshot: DimensionCounts[]
-  ): EvolutionTimeSeriesData {
-    const labelSet = new Set<string>();
-    for (const snapshot of countsBySnapshot) {
-      for (const label of Object.keys(snapshot)) {
-        labelSet.add(label);
-      }
-    }
-
-    const labels = Array.from(labelSet).sort((a, b) => a.localeCompare(b));
-    const seriesValues = labels.map((label) => countsBySnapshot.map((snapshot) => snapshot[label] ?? 0));
-
-    return normalizeEvolutionTimeSeriesData({
-      snapshots,
-      timestamps: snapshots.map((snapshot) => snapshot.committedAt),
-      labels,
-      seriesValues,
-    });
-  }
-
   private createSettingsHash(): string {
     const payload = JSON.stringify(createEvolutionAnalysisSettingsSnapshot(this.settings));
     return crypto.createHash('sha1').update(payload).digest('hex').slice(0, 16);
   }
-}
-
-function createEmptyHistogram(): FileHistogram {
-  return {
-    cohort: {},
-    author: {},
-    ext: {},
-    dir: {},
-    domain: {},
-  };
 }
 
 function estimateEtaSeconds(startedAt: number, progress: number): number | undefined {
@@ -841,76 +707,6 @@ function estimateEtaSeconds(startedAt: number, progress: number): number | undef
   const elapsedSeconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
   const remainingProgress = 100 - progress;
   return Math.max(1, Math.round((elapsedSeconds / progress) * remainingProgress));
-}
-
-function cloneHistogram(histogram: FileHistogram): FileHistogram {
-  return {
-    cohort: { ...histogram.cohort },
-    author: { ...histogram.author },
-    ext: { ...histogram.ext },
-    dir: { ...histogram.dir },
-    domain: { ...histogram.domain },
-  };
-}
-
-function incrementCount(target: DimensionCounts, label: string, value: number): void {
-  if (!label) {
-    return;
-  }
-  target[label] = (target[label] ?? 0) + value;
-}
-
-function mergeCounts(target: DimensionCounts, source: DimensionCounts, sign: 1 | -1): void {
-  for (const [label, value] of Object.entries(source)) {
-    const next = (target[label] ?? 0) + value * sign;
-    if (next <= 0) {
-      delete target[label];
-    } else {
-      target[label] = next;
-    }
-  }
-}
-
-function getTopDirectory(filePath: string): string {
-  const normalized = filePath.replace(/\\/g, '/');
-  const slashIndex = normalized.indexOf('/');
-  if (slashIndex === -1) {
-    return ROOT_DIR;
-  }
-  return normalized.slice(0, slashIndex + 1);
-}
-
-function formatCohort(unixSeconds: number, format: string): string {
-  const date = new Date(unixSeconds * 1000);
-  const year = date.getUTCFullYear();
-  const month = `${date.getUTCMonth() + 1}`.padStart(2, '0');
-  const day = `${date.getUTCDate()}`.padStart(2, '0');
-  const week = `${getUtcWeekNumber(date)}`.padStart(2, '0');
-
-  return format
-    .replace(/%Y/g, `${year}`)
-    .replace(/%m/g, month)
-    .replace(/%d/g, day)
-    .replace(/%W/g, week);
-}
-
-function getUtcWeekNumber(date: Date): number {
-  const working = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-  const dayNum = working.getUTCDay() || 7;
-  working.setUTCDate(working.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(working.getUTCFullYear(), 0, 1));
-  return Math.ceil((((working.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
-}
-
-function isExpectedBlameMiss(error: unknown): boolean {
-  const message = (error instanceof Error ? error.message : String(error)).toLowerCase();
-
-  return (
-    message.includes('no such path') ||
-    message.includes('no such file') ||
-    message.includes('file not found') ||
-    message.includes('no such ref')
-  );
 }
 
 export function createTargetEvolutionAnalyzer(

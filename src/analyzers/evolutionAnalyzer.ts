@@ -11,27 +11,28 @@ import {
   EvolutionResult,
   EvolutionSamplingMode,
   EvolutionSnapshotPoint,
-  EvolutionTimeSeriesData,
   ExtensionSettings,
   NotAGitRepoError,
   normalizeEvolutionResult,
-  normalizeEvolutionTimeSeriesData,
 } from '../types/index.js';
 import { createEvolutionAnalysisSettingsSnapshot } from '../shared/settings.js';
+import {
+  createEmptyHistogram,
+  formatCohort,
+  getTopDirectory,
+  incrementCount,
+  isExpectedBlameMiss,
+  mergeHistogram,
+  parseHistoryLog,
+  sampleHistoryEntries,
+  toEvolutionSeries,
+  type DimensionCounts,
+  type EvolutionFileHistogram,
+} from './evolution/shared.js';
 import { normalizeExtensionForFilter } from './locCounter.js';
 import { createPathPatternMatcher } from './pathMatching.js';
 
 export type EvolutionProgressCallback = (phase: string, progress: number) => void;
-
-type DimensionCounts = Record<string, number>;
-
-interface FileHistogram {
-  cohort: DimensionCounts;
-  author: DimensionCounts;
-  ext: DimensionCounts;
-  dir: DimensionCounts;
-  domain: DimensionCounts;
-}
 
 interface SnapshotCommit {
   sha: string;
@@ -56,7 +57,6 @@ interface BlameHunkMeta {
 
 const UNKNOWN_AUTHOR = 'Unknown';
 const UNKNOWN_EMAIL = 'unknown@unknown.local';
-const ROOT_DIR = '[root]';
 const EMPTY_EXT = '[no-ext]';
 
 export interface EvolutionGitClient {
@@ -115,8 +115,8 @@ export class EvolutionAnalyzer {
     const snapshotPoints: EvolutionSnapshotPoint[] = [];
 
     let previousCommit: SnapshotCommit | null = null;
-    const fileHistograms = new Map<string, FileHistogram>();
-    const runningTotals = this.createEmptyHistogram();
+    const fileHistograms = new Map<string, EvolutionFileHistogram>();
+    const runningTotals = createEmptyHistogram();
 
     for (let i = 0; i < commits.length; i++) {
       const commit = commits[i];
@@ -140,7 +140,7 @@ export class EvolutionAnalyzer {
           if (diff.oldPath && diff.oldPath !== diff.newPath) {
             const removedHistogram = fileHistograms.get(diff.oldPath);
             if (removedHistogram) {
-              this.mergeHistogram(runningTotals, removedHistogram, -1);
+              mergeHistogram(runningTotals, removedHistogram, -1);
               fileHistograms.delete(diff.oldPath);
             }
           }
@@ -151,7 +151,7 @@ export class EvolutionAnalyzer {
             } else {
               const removedHistogram = fileHistograms.get(diff.newPath);
               if (removedHistogram) {
-                this.mergeHistogram(runningTotals, removedHistogram, -1);
+                mergeHistogram(runningTotals, removedHistogram, -1);
                 fileHistograms.delete(diff.newPath);
               }
             }
@@ -172,11 +172,11 @@ export class EvolutionAnalyzer {
       for (const [filePath, histogram] of updatedHistograms) {
         const existing = fileHistograms.get(filePath);
         if (existing) {
-          this.mergeHistogram(runningTotals, existing, -1);
+          mergeHistogram(runningTotals, existing, -1);
         }
 
         fileHistograms.set(filePath, histogram);
-        this.mergeHistogram(runningTotals, histogram, 1);
+        mergeHistogram(runningTotals, histogram, 1);
       }
 
       previousCommit = commit;
@@ -212,11 +212,11 @@ export class EvolutionAnalyzer {
           headSha,
         },
       ],
-      cohorts: this.toSeries(snapshotPoints, snapshotTotals.cohort),
-      authors: this.toSeries(snapshotPoints, snapshotTotals.author),
-      extensions: this.toSeries(snapshotPoints, snapshotTotals.ext),
-      directories: this.toSeries(snapshotPoints, snapshotTotals.dir),
-      domains: this.toSeries(snapshotPoints, snapshotTotals.domain),
+      cohorts: toEvolutionSeries(snapshotPoints, snapshotTotals.cohort),
+      authors: toEvolutionSeries(snapshotPoints, snapshotTotals.author),
+      extensions: toEvolutionSeries(snapshotPoints, snapshotTotals.ext),
+      directories: toEvolutionSeries(snapshotPoints, snapshotTotals.dir),
+      domains: toEvolutionSeries(snapshotPoints, snapshotTotals.domain),
       diagnostics: {
         expectedBlameMisses: this.expectedBlameMisses,
       },
@@ -241,15 +241,7 @@ export class EvolutionAnalyzer {
       branch,
     ]);
 
-    const parsedCommits = rawLog
-      .split('\n')
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0)
-      .map((line) => {
-        const [sha, tsRaw] = line.split('|');
-        return { sha, timestamp: parseInt(tsRaw, 10) };
-      })
-      .filter((entry) => Boolean(entry.sha) && Number.isFinite(entry.timestamp));
+    const parsedCommits = parseHistoryLog(rawLog);
 
     const totalCommitCount = parsedCommits.length;
     const allCommits = parsedCommits.map((commit, index) => ({
@@ -263,105 +255,22 @@ export class EvolutionAnalyzer {
       return [];
     }
 
-    const samplingMode = this.settings.evolution.samplingMode;
-    const maxSnapshots = Math.max(2, this.settings.evolution.maxSnapshots);
-
-    if (samplingMode === 'auto') {
-      onProgress?.('Auto-distributing snapshots', 4);
-      return this.downsampleSnapshots(
-        allCommits.map((commit) => ({ ...commit, samplingMode: 'auto' })),
-        maxSnapshots
-      );
-    }
-
-    if (samplingMode === 'commit') {
-      const commitInterval = Math.max(1, this.settings.evolution.snapshotIntervalCommits);
-      const commitSampled: SnapshotCommit[] = [];
-
-      for (let i = 0; i < allCommits.length; i += commitInterval) {
-        commitSampled.push({
-          ...allCommits[i],
-          samplingMode: 'commit',
-        });
-      }
-
-      const lastCommit = allCommits[allCommits.length - 1];
-      if (commitSampled[commitSampled.length - 1]?.sha !== lastCommit.sha) {
-        commitSampled.push({
-          ...lastCommit,
-          samplingMode: 'commit',
-        });
-      }
-
-      return commitSampled.length <= maxSnapshots
-        ? commitSampled
-        : this.downsampleSnapshots(commitSampled, maxSnapshots);
-    }
-
-    const intervalSeconds = Math.max(1, this.settings.evolution.snapshotIntervalDays) * 24 * 60 * 60;
-    const intervalSampled: SnapshotCommit[] = [];
-
-    intervalSampled.push({
-      ...allCommits[0],
-      samplingMode: 'time',
+    return sampleHistoryEntries(allCommits, {
+      samplingMode: this.settings.evolution.samplingMode,
+      maxSnapshots: this.settings.evolution.maxSnapshots,
+      commitInterval: this.settings.evolution.snapshotIntervalCommits,
+      intervalDays: this.settings.evolution.snapshotIntervalDays,
+      mark: (commit, samplingMode) => ({
+        ...commit,
+        samplingMode,
+      }),
+      onAutoDistribute: () => {
+        onProgress?.('Auto-distributing snapshots', 4);
+      },
+      onDownsample: () => {
+        onProgress?.('Downsampling snapshots', 4);
+      },
     });
-    let lastTimestamp = allCommits[0].timestamp;
-
-    for (let i = 1; i < allCommits.length; i++) {
-      const commit = allCommits[i];
-      if (commit.timestamp >= lastTimestamp + intervalSeconds) {
-        intervalSampled.push({
-          ...commit,
-          samplingMode: 'time',
-        });
-        lastTimestamp = commit.timestamp;
-      }
-    }
-
-    const lastCommit = allCommits[allCommits.length - 1];
-    if (intervalSampled[intervalSampled.length - 1].sha !== lastCommit.sha) {
-      intervalSampled.push({
-        ...lastCommit,
-        samplingMode: 'time',
-      });
-    }
-
-    if (intervalSampled.length <= maxSnapshots) {
-      return intervalSampled;
-    }
-
-    onProgress?.('Downsampling snapshots', 4);
-    return this.downsampleSnapshots(intervalSampled, maxSnapshots);
-  }
-
-  private downsampleSnapshots(
-    snapshots: SnapshotCommit[],
-    maxSnapshots: number
-  ): SnapshotCommit[] {
-    if (snapshots.length <= maxSnapshots) {
-      return snapshots;
-    }
-
-    const downsampled: SnapshotCommit[] = [];
-    const maxIndex = snapshots.length - 1;
-    const step = maxIndex / (maxSnapshots - 1);
-    let lastAddedSha = '';
-
-    for (let i = 0; i < maxSnapshots; i++) {
-      const index = Math.round(i * step);
-      const commit = snapshots[index];
-      if (commit && commit.sha !== lastAddedSha) {
-        downsampled.push(commit);
-        lastAddedSha = commit.sha;
-      }
-    }
-
-    const lastCommit = snapshots[snapshots.length - 1];
-    if (downsampled[downsampled.length - 1]?.sha !== lastCommit.sha) {
-      downsampled.push(lastCommit);
-    }
-
-    return downsampled;
   }
 
   private async getTrackedPathsAtCommit(commitSha: string): Promise<string[]> {
@@ -435,8 +344,8 @@ export class EvolutionAnalyzer {
     paths: string[],
     commitSha: string,
     defaultTimestamp: number
-  ): Promise<Map<string, FileHistogram>> {
-    const result = new Map<string, FileHistogram>();
+  ): Promise<Map<string, EvolutionFileHistogram>> {
+    const result = new Map<string, EvolutionFileHistogram>();
     const cpuCount = os.cpus().length;
     const concurrency = Math.max(2, Math.min(12, cpuCount));
     let index = 0;
@@ -460,8 +369,8 @@ export class EvolutionAnalyzer {
     filePath: string,
     commitSha: string,
     defaultTimestamp: number
-  ): Promise<FileHistogram> {
-    const histogram = this.createEmptyHistogram();
+  ): Promise<EvolutionFileHistogram> {
+    const histogram = createEmptyHistogram();
 
     let blameOutput = '';
     try {
@@ -553,47 +462,6 @@ export class EvolutionAnalyzer {
     applyCurrent();
     return histogram;
   }
-
-  private createEmptyHistogram(): FileHistogram {
-    return {
-      cohort: {},
-      author: {},
-      ext: {},
-      dir: {},
-      domain: {},
-    };
-  }
-
-  private mergeHistogram(target: FileHistogram, source: FileHistogram, sign: 1 | -1): void {
-    mergeCounts(target.cohort, source.cohort, sign);
-    mergeCounts(target.author, source.author, sign);
-    mergeCounts(target.ext, source.ext, sign);
-    mergeCounts(target.dir, source.dir, sign);
-    mergeCounts(target.domain, source.domain, sign);
-  }
-
-  private toSeries(
-    snapshots: EvolutionSnapshotPoint[],
-    countsBySnapshot: DimensionCounts[]
-  ): EvolutionTimeSeriesData {
-    const labelSet = new Set<string>();
-    for (const snapshot of countsBySnapshot) {
-      for (const label of Object.keys(snapshot)) {
-        labelSet.add(label);
-      }
-    }
-
-    const labels = Array.from(labelSet).sort((a, b) => a.localeCompare(b));
-    const seriesValues = labels.map((label) => countsBySnapshot.map((snapshot) => snapshot[label] ?? 0));
-
-    return normalizeEvolutionTimeSeriesData({
-      snapshots,
-      timestamps: snapshots.map((snapshot) => snapshot.committedAt),
-      labels,
-      seriesValues,
-    });
-  }
-
   private createSettingsHash(): string {
     const payload = JSON.stringify(createEvolutionAnalysisSettingsSnapshot(this.settings));
     return crypto.createHash('sha1').update(payload).digest('hex').slice(0, 16);
@@ -603,66 +471,6 @@ export class EvolutionAnalyzer {
     const payload = JSON.stringify({ branch, headSha, repoPath: this.repoPath });
     return crypto.createHash('sha1').update(payload).digest('hex').slice(0, 16);
   }
-}
-
-function incrementCount(target: DimensionCounts, label: string, value: number): void {
-  if (!label) {
-    return;
-  }
-  target[label] = (target[label] ?? 0) + value;
-}
-
-function mergeCounts(target: DimensionCounts, source: DimensionCounts, sign: 1 | -1): void {
-  for (const [label, value] of Object.entries(source)) {
-    const next = (target[label] ?? 0) + value * sign;
-    if (next <= 0) {
-      delete target[label];
-    } else {
-      target[label] = next;
-    }
-  }
-}
-
-function getTopDirectory(filePath: string): string {
-  const normalized = filePath.replace(/\\/g, '/');
-  const slashIndex = normalized.indexOf('/');
-  if (slashIndex === -1) {
-    return ROOT_DIR;
-  }
-  return normalized.slice(0, slashIndex + 1);
-}
-
-function formatCohort(unixSeconds: number, format: string): string {
-  const date = new Date(unixSeconds * 1000);
-  const year = date.getUTCFullYear();
-  const month = `${date.getUTCMonth() + 1}`.padStart(2, '0');
-  const day = `${date.getUTCDate()}`.padStart(2, '0');
-  const week = `${getUtcWeekNumber(date)}`.padStart(2, '0');
-
-  return format
-    .replace(/%Y/g, `${year}`)
-    .replace(/%m/g, month)
-    .replace(/%d/g, day)
-    .replace(/%W/g, week);
-}
-
-function getUtcWeekNumber(date: Date): number {
-  const working = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-  const dayNum = working.getUTCDay() || 7;
-  working.setUTCDate(working.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(working.getUTCFullYear(), 0, 1));
-  return Math.ceil((((working.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
-}
-
-function isExpectedBlameMiss(error: unknown): boolean {
-  const message = (error instanceof Error ? error.message : String(error)).toLowerCase();
-
-  return (
-    message.includes('no such path') ||
-    message.includes('no such file') ||
-    message.includes('file not found') ||
-    message.includes('no such ref')
-  );
 }
 
 export function createEvolutionAnalyzer(
