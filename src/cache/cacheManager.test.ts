@@ -135,25 +135,25 @@ describe('CacheManager', () => {
       expect(cacheManager.isValid('rev-1')).toBe(false);
     });
 
-    it('should return true for valid cache with matching revision', () => {
-      cacheManager.save(mockResult, 'rev-1', {}, 'settings-hash-1');
+    it('should return true for valid cache with matching revision', async () => {
+      await cacheManager.save(mockResult, 'rev-1', {}, 'settings-hash-1');
       expect(cacheManager.isValid('rev-1', 'settings-hash-1')).toBe(true);
     });
 
-    it('should return false for cache with different revision', () => {
-      cacheManager.save(mockResult, 'rev-1', {}, 'settings-hash-1');
+    it('should return false for cache with different revision', async () => {
+      await cacheManager.save(mockResult, 'rev-1', {}, 'settings-hash-1');
       expect(cacheManager.isValid('rev-2', 'settings-hash-1')).toBe(false);
     });
 
-    it('should return false for cache with different settings hash', () => {
-      cacheManager.save(mockResult, 'rev-1', {}, 'settings-hash-1');
+    it('should return false for cache with different settings hash', async () => {
+      await cacheManager.save(mockResult, 'rev-1', {}, 'settings-hash-1');
       expect(cacheManager.isValid('rev-1', 'settings-hash-2')).toBe(false);
     });
   });
 
   describe('save and getIfValid', () => {
-    it('should save and retrieve analysis result', () => {
-      cacheManager.save(mockResult, 'rev-1', {}, 'settings-hash-1');
+    it('should save and retrieve analysis result', async () => {
+      await cacheManager.save(mockResult, 'rev-1', {}, 'settings-hash-1');
       const cached = cacheManager.getIfValid('rev-1', 'settings-hash-1');
 
       expect(cached).not.toBeNull();
@@ -163,15 +163,15 @@ describe('CacheManager', () => {
       expect(cached?.blameMetrics.totals.totalBlamedLines).toBe(16);
     });
 
-    it('should return null for invalid revision', () => {
-      cacheManager.save(mockResult, 'rev-1', {}, 'settings-hash-1');
+    it('should return null for invalid revision', async () => {
+      await cacheManager.save(mockResult, 'rev-1', {}, 'settings-hash-1');
       const cached = cacheManager.getIfValid('wrong-rev', 'settings-hash-1');
 
       expect(cached).toBeNull();
     });
 
-    it('should return null for invalid settings hash', () => {
-      cacheManager.save(mockResult, 'rev-1', {}, 'settings-hash-1');
+    it('should return null for invalid settings hash', async () => {
+      await cacheManager.save(mockResult, 'rev-1', {}, 'settings-hash-1');
       const cached = cacheManager.getIfValid('rev-1', 'settings-hash-2');
 
       expect(cached).toBeNull();
@@ -179,18 +179,18 @@ describe('CacheManager', () => {
   });
 
   describe('clear', () => {
-    it('should clear the cache', () => {
-      cacheManager.save(mockResult, 'rev-1');
+    it('should clear the cache', async () => {
+      await cacheManager.save(mockResult, 'rev-1');
       expect(cacheManager.isValid('rev-1')).toBe(true);
 
-      cacheManager.clear();
+      await cacheManager.clear();
       expect(cacheManager.isValid('rev-1')).toBe(false);
     });
   });
 
   describe('getBlameFileCaches', () => {
-    it('should return cached blame file entries when available', () => {
-      cacheManager.save(mockResult, 'rev-1', {
+    it('should return cached blame file entries when available', async () => {
+      await cacheManager.save(mockResult, 'rev-1', {
         '/path/to/repo': {
           'src/a.ts': {
             blobSha: 'blob-a',
@@ -218,8 +218,8 @@ describe('CacheManager', () => {
       expect(cacheManager.getLastAnalyzed()).toBeNull();
     });
 
-    it('should return date for cached result', () => {
-      cacheManager.save(mockResult, 'rev-1');
+    it('should return date for cached result', async () => {
+      await cacheManager.save(mockResult, 'rev-1');
       const lastAnalyzed = cacheManager.getLastAnalyzed();
 
       expect(lastAnalyzed).toBeInstanceOf(Date);
@@ -234,8 +234,8 @@ describe('InMemoryCacheStorage', () => {
     storage = new InMemoryCacheStorage();
   });
 
-  it('should store and retrieve values', () => {
-    storage.set('key', { value: 'test' });
+  it('should store and retrieve values', async () => {
+    await storage.set('key', { value: 'test' });
     expect(storage.get('key')).toEqual({ value: 'test' });
   });
 
@@ -243,9 +243,9 @@ describe('InMemoryCacheStorage', () => {
     expect(storage.get('missing')).toBeUndefined();
   });
 
-  it('should delete values when set to undefined', () => {
-    storage.set('key', { value: 'test' });
-    storage.set('key', undefined);
+  it('should delete values when set to undefined', async () => {
+    await storage.set('key', { value: 'test' });
+    await storage.set('key', undefined);
     expect(storage.get('key')).toBeUndefined();
   });
 });

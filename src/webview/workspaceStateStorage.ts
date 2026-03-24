@@ -8,7 +8,7 @@ export class WorkspaceStateStorage implements CacheStorage {
     return this.state.get<T>(key);
   }
 
-  set<T>(key: string, value: T): void {
-    this.state.update(key, value);
+  async set<T>(key: string, value: T): Promise<void> {
+    await this.state.update(key, value);
   }
 }

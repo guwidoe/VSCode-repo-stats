@@ -2,23 +2,28 @@
  * Select/toggle setting component.
  */
 
-interface SelectSettingProps {
+interface SelectOption<T extends string> {
+  value: T;
+  label: string;
+}
+
+interface SelectSettingProps<T extends string> {
   title: string;
   description: string;
-  value: string;
-  options: { value: string; label: string }[];
-  onChange: (value: string) => void;
+  value: T;
+  options: ReadonlyArray<SelectOption<T>>;
+  onChange: (value: T) => void;
   headerContent?: React.ReactNode;
 }
 
-export function SelectSetting({
+export function SelectSetting<T extends string>({
   title,
   description,
   value,
   options,
   onChange,
   headerContent,
-}: SelectSettingProps) {
+}: SelectSettingProps<T>) {
   return (
     <div className="setting-section">
       <div className="setting-header">

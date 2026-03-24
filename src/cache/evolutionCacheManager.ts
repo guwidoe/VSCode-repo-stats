@@ -55,7 +55,7 @@ export class EvolutionCacheManager {
     return cache.data;
   }
 
-  save(result: EvolutionResult): void {
+  async save(result: EvolutionResult): Promise<void> {
     const cache: EvolutionCacheStructure = {
       version: EVOLUTION_CACHE_VERSION,
       targetId: result.targetId,
@@ -63,11 +63,11 @@ export class EvolutionCacheManager {
       data: result,
     };
 
-    this.storage.set(this.keyPrefix, cache);
+    await this.storage.set(this.keyPrefix, cache);
   }
 
-  clear(): void {
-    this.storage.set(this.keyPrefix, undefined);
+  async clear(): Promise<void> {
+    await this.storage.set(this.keyPrefix, undefined);
   }
 
   private getCache(): EvolutionCacheStructure | null {

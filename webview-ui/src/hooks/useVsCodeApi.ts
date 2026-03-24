@@ -34,7 +34,7 @@ interface VsCodeApi {
 
 let vsCodeApi: VsCodeApi | null = null;
 
-function getVsCodeApi(): VsCodeApi {
+function getOrCreateVsCodeApi(): VsCodeApi {
   if (vsCodeApi) {return vsCodeApi;}
 
   // In VSCode webview, acquireVsCodeApi is available globally
@@ -184,11 +184,11 @@ export function useVsCodeApi() {
 
     // Request settings on mount
     console.log('[RepoStats Webview] Requesting settings...');
-    getVsCodeApi().postMessage({ type: 'getSettings' });
-    getVsCodeApi().postMessage({ type: 'checkStaleness' });
+    getOrCreateVsCodeApi().postMessage({ type: 'getSettings' });
+    getOrCreateVsCodeApi().postMessage({ type: 'checkStaleness' });
 
     const stalenessTimer = window.setInterval(() => {
-      getVsCodeApi().postMessage({ type: 'checkStaleness' });
+      getOrCreateVsCodeApi().postMessage({ type: 'checkStaleness' });
     }, 15000);
 
     return () => {
@@ -214,35 +214,35 @@ export function useVsCodeApi() {
 
   // Actions
   const requestAnalysis = useCallback(() => {
-    getVsCodeApi().postMessage({ type: 'requestAnalysis' });
+    getOrCreateVsCodeApi().postMessage({ type: 'requestAnalysis' });
   }, []);
 
   const requestRefresh = useCallback(() => {
-    getVsCodeApi().postMessage({ type: 'requestRefresh' });
+    getOrCreateVsCodeApi().postMessage({ type: 'requestRefresh' });
   }, []);
 
   const requestEvolutionAnalysis = useCallback(() => {
-    getVsCodeApi().postMessage({ type: 'requestEvolutionAnalysis' });
+    getOrCreateVsCodeApi().postMessage({ type: 'requestEvolutionAnalysis' });
   }, []);
 
   const requestEvolutionRefresh = useCallback(() => {
-    getVsCodeApi().postMessage({ type: 'requestEvolutionRefresh' });
+    getOrCreateVsCodeApi().postMessage({ type: 'requestEvolutionRefresh' });
   }, []);
 
   const openFile = useCallback((path: string) => {
-    getVsCodeApi().postMessage({ type: 'openFile', path });
+    getOrCreateVsCodeApi().postMessage({ type: 'openFile', path });
   }, []);
 
   const revealInExplorer = useCallback((path: string) => {
-    getVsCodeApi().postMessage({ type: 'revealInExplorer', path });
+    getOrCreateVsCodeApi().postMessage({ type: 'revealInExplorer', path });
   }, []);
 
   const copyPath = useCallback((path: string) => {
-    getVsCodeApi().postMessage({ type: 'copyPath', path });
+    getOrCreateVsCodeApi().postMessage({ type: 'copyPath', path });
   }, []);
 
   const updateRepositorySelection = useCallback((repositoryIds: string[]) => {
-    getVsCodeApi().postMessage({ type: 'updateRepositorySelection', repositoryIds });
+    getOrCreateVsCodeApi().postMessage({ type: 'updateRepositorySelection', repositoryIds });
   }, []);
 
   const updateSettings = useCallback((settings: Partial<ExtensionSettings>) => {
@@ -269,7 +269,7 @@ export function useVsCodeApi() {
       state.setStaleness(optimisticStaleness);
     }
 
-    getVsCodeApi().postMessage({ type: 'updateSettings', settings });
+    getOrCreateVsCodeApi().postMessage({ type: 'updateSettings', settings });
   }, []);
 
   const updateScopedSetting = useCallback(
@@ -303,7 +303,7 @@ export function useVsCodeApi() {
         );
       }
 
-      getVsCodeApi().postMessage({
+      getOrCreateVsCodeApi().postMessage({
         type: 'updateScopedSetting',
         key,
         value,
@@ -333,7 +333,7 @@ export function useVsCodeApi() {
       );
     }
 
-    getVsCodeApi().postMessage({ type: 'resetScopedSetting', key });
+    getOrCreateVsCodeApi().postMessage({ type: 'resetScopedSetting', key });
   }, []);
 
   return {

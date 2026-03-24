@@ -29,15 +29,15 @@ export class RepoAnalysisService {
     private readonly settingsService: RepositorySettingsService
   ) {}
 
-  clearCache(target: AnalysisTargetContext): void {
+  async clearCache(target: AnalysisTargetContext): Promise<void> {
     const storage = new WorkspaceStateStorage(this.workspaceState);
     const cacheManager = new CacheManager(storage, target.target.id);
     const evolutionCacheManager = new EvolutionCacheManager(storage, target.target.id);
-    cacheManager.clear();
-    evolutionCacheManager.clear();
+    await cacheManager.clear();
+    await evolutionCacheManager.clear();
   }
 
-  async runAnalysis(webview: vscode.Webview, target?: AnalysisTargetContext): Promise<void> {
+  async runAnalysis(webview: vscode.Webview, target: AnalysisTargetContext | null): Promise<void> {
     if (!target) {
       this.sendMessage(webview, {
         type: 'analysisError',
@@ -103,7 +103,7 @@ export class RepoAnalysisService {
         },
       });
 
-      cacheManager.save(
+      await cacheManager.save(
         result,
         revisionHash,
         coordinator.getLatestBlameFileCaches(),
@@ -129,7 +129,7 @@ export class RepoAnalysisService {
 
   async runEvolutionAnalysis(
     webview: vscode.Webview,
-    target: AnalysisTargetContext | undefined,
+    target: AnalysisTargetContext | null,
     forceRefresh: boolean
   ): Promise<void> {
     if (!target) {
@@ -216,7 +216,7 @@ export class RepoAnalysisService {
         });
       });
 
-      evolutionCacheManager.save(result);
+      await evolutionCacheManager.save(result);
 
       this.lastEvolutionStateByTarget.set(target.target.id, {
         revisionHash: result.revisionHash,
@@ -237,7 +237,7 @@ export class RepoAnalysisService {
 
   async sendStalenessStatus(
     webview: vscode.Webview,
-    target?: AnalysisTargetContext
+    target: AnalysisTargetContext | null
   ): Promise<void> {
     if (!target) {
       this.sendMessage(webview, {
@@ -293,6 +293,10 @@ export class RepoAnalysisService {
       });
     } catch (error) {
       console.error('[RepoStats] Failed to compute staleness status:', error);
+      this.sendMessage(webview, {
+        type: 'analysisError',
+        error: this.formatErrorMessage(error, target.target.label, 'staleness check'),
+      });
     }
   }
 
@@ -303,7 +307,7 @@ export class RepoAnalysisService {
   private formatErrorMessage(
     error: unknown,
     label: string,
-    scope: 'analysis' | 'evolution analysis'
+    scope: 'analysis' | 'evolution analysis' | 'staleness check'
   ): string {
     let errorMessage = `An unexpected error occurred during ${scope}.`;
 

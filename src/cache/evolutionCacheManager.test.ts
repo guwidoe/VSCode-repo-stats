@@ -57,39 +57,39 @@ describe('EvolutionCacheManager', () => {
     expect(cacheManager.getIfValid('rev-1', 'settings-hash-1')).toBeNull();
   });
 
-  it('saves and retrieves valid evolution result', () => {
-    cacheManager.save(mockResult);
+  it('saves and retrieves valid evolution result', async () => {
+    await cacheManager.save(mockResult);
 
     const cached = cacheManager.getIfValid('rev-1', 'settings-hash-1');
     expect(cached).not.toBeNull();
     expect(cached?.authors.labels).toContain('Alice');
   });
 
-  it('invalidates cache when revision changes', () => {
-    cacheManager.save(mockResult);
+  it('invalidates cache when revision changes', async () => {
+    await cacheManager.save(mockResult);
 
     const cached = cacheManager.getIfValid('rev-2', 'settings-hash-1');
     expect(cached).toBeNull();
   });
 
-  it('invalidates cache when settings hash changes', () => {
-    cacheManager.save(mockResult);
+  it('invalidates cache when settings hash changes', async () => {
+    await cacheManager.save(mockResult);
 
     const cached = cacheManager.getIfValid('rev-1', 'settings-hash-2');
     expect(cached).toBeNull();
   });
 
-  it('returns latest cache regardless of validity checks', () => {
-    cacheManager.save(mockResult);
+  it('returns latest cache regardless of validity checks', async () => {
+    await cacheManager.save(mockResult);
 
     const latest = cacheManager.getLatest();
     expect(latest).not.toBeNull();
     expect(latest?.memberHeads[0]?.headSha).toBe('abc123');
   });
 
-  it('clears cache', () => {
-    cacheManager.save(mockResult);
-    cacheManager.clear();
+  it('clears cache', async () => {
+    await cacheManager.save(mockResult);
+    await cacheManager.clear();
 
     expect(cacheManager.getLatest()).toBeNull();
   });

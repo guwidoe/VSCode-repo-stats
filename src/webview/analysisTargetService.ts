@@ -13,20 +13,25 @@ import { RepositoryService } from './repositoryService.js';
 export class AnalysisTargetService {
   private static readonly selectedRepositoryIdsStateKey = 'repoStats.selectedRepositoryIds';
 
+  private readonly selectionStateKey = AnalysisTargetService.selectedRepositoryIdsStateKey;
+
   constructor(
     private readonly workspaceState: { get<T>(key: string): T | undefined; update(key: string, value: unknown): Thenable<void> },
     private readonly repositoryService: RepositoryService
   ) {}
 
-  async getSelectedTarget(): Promise<AnalysisTargetContext | undefined> {
-    const selection = await this.resolveSelection();
-    return selection.selectedTarget ?? undefined;
+  async getSelectedTarget(): Promise<AnalysisTargetContext | null> {
+    const selection = await this.resolveSelection(undefined, { persist: false });
+    return selection.selectedTarget;
   }
 
-  async resolveSelection(preferredRepositoryIds?: string[]): Promise<AnalysisTargetSelection> {
+  async resolveSelection(
+    preferredRepositoryIds?: string[],
+    options: { persist?: boolean } = {}
+  ): Promise<AnalysisTargetSelection> {
     const repositories = await this.repositoryService.listAvailableRepositories();
     const persistedRepositoryIds = preferredRepositoryIds
-      ?? this.workspaceState.get<string[]>(AnalysisTargetService.selectedRepositoryIdsStateKey);
+      ?? this.workspaceState.get<string[]>(this.selectionStateKey);
     const selectedRepositoryIds = selectPreferredRepositoryIds(
       repositories.map((repository) => repository.option),
       persistedRepositoryIds
@@ -34,7 +39,9 @@ export class AnalysisTargetService {
     const selectedRepositories = this.getSelectedRepositories(repositories, selectedRepositoryIds);
     const selectedTarget = this.buildSelectedTarget(selectedRepositories);
 
-    await this.persistSelectedRepositoryIds(selectedRepositoryIds);
+    if (options.persist ?? true) {
+      await this.persistSelectedRepositoryIds(selectedRepositoryIds);
+    }
 
     return {
       repositories,
@@ -46,7 +53,7 @@ export class AnalysisTargetService {
 
   async persistSelectedRepositoryIds(repositoryIds: string[]): Promise<void> {
     await this.workspaceState.update(
-      AnalysisTargetService.selectedRepositoryIdsStateKey,
+      this.selectionStateKey,
       repositoryIds.length > 0 ? repositoryIds : undefined
     );
   }

@@ -45,3 +45,6 @@ temp/
 
 # Pi local agent state
 .pi/
+
+# Desloppify local analysis state
+.desloppify/

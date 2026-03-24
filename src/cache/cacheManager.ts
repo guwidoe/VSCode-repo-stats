@@ -15,7 +15,7 @@ const CACHE_VERSION = '2.0.0';
 
 export interface CacheStorage {
   get<T>(key: string): T | undefined;
-  set<T>(key: string, value: T): void;
+  set<T>(key: string, value: T): Promise<void>;
 }
 
 export class CacheManager {
@@ -50,12 +50,12 @@ export class CacheManager {
     return cache?.blameFileCaches ?? {};
   }
 
-  save(
+  async save(
     result: AnalysisResult,
     revisionHash: string,
     blameFileCaches: Record<string, Record<string, BlameFileCacheEntry>> = {},
     settingsHash?: string
-  ): void {
+  ): Promise<void> {
     const cache: CacheStructure = {
       version: CACHE_VERSION,
       targetId: result.target.id,
@@ -67,11 +67,11 @@ export class CacheManager {
       fileLOC: this.buildFileLOCMap(result.fileTree),
     };
 
-    this.storage.set(this.keyPrefix, cache);
+    await this.storage.set(this.keyPrefix, cache);
   }
 
-  clear(): void {
-    this.storage.set(this.keyPrefix, undefined);
+  async clear(): Promise<void> {
+    await this.storage.set(this.keyPrefix, undefined);
   }
 
   getLastAnalyzed(): Date | null {
@@ -118,7 +118,7 @@ export class InMemoryCacheStorage implements CacheStorage {
     return this.store.get(key) as T | undefined;
   }
 
-  set<T>(key: string, value: T): void {
+  async set<T>(key: string, value: T): Promise<void> {
     if (value === undefined) {
       this.store.delete(key);
     } else {
