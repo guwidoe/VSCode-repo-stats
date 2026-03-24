@@ -13,101 +13,84 @@ import type {
   TreemapNode,
 } from '../types';
 
-class FakeGitClient implements GitClient {
-  async isRepo(): Promise<boolean> {
-    return true;
-  }
-
-  async getRepoInfo(): Promise<RepositoryInfo> {
-    return {
-      name: 'repo',
-      path: '/tmp/repo',
-      branch: 'main',
-      commitCount: 1,
-      headSha: 'abc123',
-    };
-  }
-
-  async getCommitAnalytics(): Promise<CommitAnalytics> {
-    return {
-      authorDirectory: {
-        idByEmail: {},
-        namesById: [],
-        emailsById: [],
-      },
-      records: [],
-      summary: {
-        totalCommits: 0,
-        totalAdditions: 0,
-        totalDeletions: 0,
-        totalChangedLines: 0,
-        averageChangedLines: 0,
-        medianChangedLines: 0,
-        averageFilesChanged: 0,
-      },
-      contributorSummaries: [],
-      changedLineBuckets: [],
-      fileChangeBuckets: [],
-      indexes: {
-        byTimestampAsc: [],
-        byAdditionsDesc: [],
-        byDeletionsDesc: [],
-        byChangedLinesDesc: [],
-        byFilesChangedDesc: [],
-      },
-    };
-  }
-
-  async getContributorStats(): Promise<ContributorStats[]> {
-    return [];
-  }
-
-  async getCodeFrequency(): Promise<CodeFrequency[]> {
-    return [];
-  }
-
-  async getFileModificationDates(): Promise<Map<string, string>> {
-    return new Map();
-  }
-
-  async getTrackedFiles(): Promise<string[]> {
-    return ['backend/fixtures/seed.png'];
-  }
-
-  async getSubmodulePaths(): Promise<string[]> {
-    return [];
-  }
-
-  async getHeadBlobShas(): Promise<Map<string, string>> {
-    return new Map();
-  }
-
-  async raw(): Promise<string> {
-    return '';
-  }
+function createRepoInfo(): RepositoryInfo {
+  return {
+    name: 'repo',
+    path: '/tmp/repo',
+    branch: 'main',
+    commitCount: 1,
+    headSha: 'abc123',
+  };
 }
 
-class FakeLocClient implements LOCClient {
-  async countLines(): Promise<TreemapNode> {
-    return {
-      name: 'repo',
-      path: '',
-      type: 'directory',
-      lines: 0,
-      children: [],
-    };
-  }
+function createCommitAnalytics(): CommitAnalytics {
+  return {
+    authorDirectory: {
+      idByEmail: {},
+      namesById: [],
+      emailsById: [],
+    },
+    records: [],
+    summary: {
+      totalCommits: 0,
+      totalAdditions: 0,
+      totalDeletions: 0,
+      totalChangedLines: 0,
+      averageChangedLines: 0,
+      medianChangedLines: 0,
+      averageFilesChanged: 0,
+    },
+    contributorSummaries: [],
+    changedLineBuckets: [],
+    fileChangeBuckets: [],
+    indexes: {
+      byTimestampAsc: [],
+      byAdditionsDesc: [],
+      byDeletionsDesc: [],
+      byChangedLinesDesc: [],
+      byFilesChangedDesc: [],
+    },
+  };
+}
 
-  async ensureSccAvailable(): Promise<void> {
-    return;
-  }
+function createEmptyTree(): TreemapNode {
+  return {
+    name: 'repo',
+    path: '',
+    type: 'directory',
+    lines: 0,
+    children: [],
+  };
+}
 
-  async getSccInfo(): Promise<SccInfo> {
-    return {
+function createGitClient(overrides: Partial<GitClient> = {}): GitClient {
+  const defaults: GitClient = {
+    isRepo: async () => true,
+    getRepoInfo: async () => createRepoInfo(),
+    getCommitAnalytics: async () => createCommitAnalytics(),
+    getContributorStats: async () => [] satisfies ContributorStats[],
+    getCodeFrequency: async () => [] satisfies CodeFrequency[],
+    getFileModificationDates: async () => new Map<string, string>(),
+    getTrackedFiles: async () => [],
+    getSubmodulePaths: async () => [],
+    getHeadBlobShas: async () => new Map<string, string>(),
+    raw: async () => '',
+  };
+
+  return { ...defaults, ...overrides };
+}
+
+function createLocClient(overrides: Partial<LOCClient> = {}): LOCClient {
+  const defaults: LOCClient = {
+    countLines: async () => createEmptyTree(),
+    ensureSccAvailable: async () => {},
+    getSccInfo: async () => ({
       version: 'test',
       source: 'system',
-    };
-  }
+    } satisfies SccInfo),
+  };
+
+  return { ...defaults, ...overrides };
 }
 
 function createSettings(): ExtensionSettings {
@@ -158,8 +141,10 @@ describe('AnalysisCoordinator', () => {
       '/tmp/repo',
       createSettings(),
       '/tmp/scc',
-      new FakeGitClient(),
-      new FakeLocClient(),
+      createGitClient({
+        getTrackedFiles: async () => ['backend/fixtures/seed.png'],
+      }),
+      createLocClient(),
       {} as Record<string, BlameFileCacheEntry>
     );
 
