@@ -9,7 +9,7 @@ const path = require('path');
 const {
   compareBenchmarkRuns,
   formatBenchmarkComparisonReport,
-} = require('../src/benchmarks/benchmarkComparison.ts');
+} = require('./benchmarks/benchmarkComparison.ts');
 
 function parseArgs(argv) {
   const args = [...argv];

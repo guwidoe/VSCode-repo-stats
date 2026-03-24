@@ -1,4 +1,4 @@
-import type { ExtensionSettings } from '../types/index.js';
+import type { ExtensionSettings } from '../../src/types/index.js';
 
 export interface AnalysisBenchmarkTarget {
   name: string;

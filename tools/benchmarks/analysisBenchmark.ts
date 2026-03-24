@@ -4,10 +4,10 @@ import * as os from 'os';
 import * as path from 'path';
 import { spawnSync } from 'child_process';
 import { performance } from 'perf_hooks';
-import { AnalysisCoordinator } from '../analyzers/coordinator.js';
-import { createGitAnalyzer, type GitClient } from '../analyzers/gitAnalyzer.js';
-import { createLOCCounter, type LOCClient } from '../analyzers/locCounter.js';
-import type { AnalysisResult, ExtensionSettings, TreemapNode } from '../types/index.js';
+import { AnalysisCoordinator } from '../../src/analyzers/coordinator.js';
+import { createGitAnalyzer, type GitClient } from '../../src/analyzers/gitAnalyzer.js';
+import { createLOCCounter, type LOCClient } from '../../src/analyzers/locCounter.js';
+import type { AnalysisResult, ExtensionSettings, TreemapNode } from '../../src/types/index.js';
 import {
   ANALYSIS_BENCHMARK_TARGETS,
   getAnalysisBenchmarkTarget,

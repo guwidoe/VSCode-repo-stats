@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "noEmit": true
+  },
+  "include": ["tools/**/*.ts"],
+  "exclude": ["node_modules", "out", "webview-ui"]
+}

@@ -14,7 +14,7 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./webview-ui/test/setup.ts'],
-    include: ['webview-ui/**/*.test.{ts,tsx}', 'src/**/*.test.ts'],
+    include: ['webview-ui/**/*.test.{ts,tsx}', 'src/**/*.test.ts', 'tools/**/*.test.ts'],
     exclude: ['**/node_modules/**', '**/out/**', 'test/extension/**'],
     coverage: {
       provider: 'v8',

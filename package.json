@@ -357,7 +357,7 @@
     "watch": "npm-run-all -p watch:*",
     "watch:extension": "esbuild src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --sourcemap --watch",
     "watch:webview": "cd webview-ui && npm run build:watch",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.tools.json",
     "typecheck:watch": "tsc --noEmit --watch",
     "lint": "eslint src webview-ui/src --ext ts,tsx",
     "lint:fix": "eslint src webview-ui/src --ext ts,tsx --fix",
