@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import simpleGit from 'simple-git';
 import {
   ExtensionMessage,
   RepoScopableSettingKey,
@@ -9,6 +8,7 @@ import {
 import type { AnalysisTargetSelection } from './context.js';
 import { RepoAnalysisService } from './analysisService.js';
 import { AnalysisTargetService } from './analysisTargetService.js';
+import { BookmarkedRepositoryManager } from './bookmarkedRepositoryManager.js';
 import { parseWebviewMessage } from './messageValidation.js';
 import { ProviderFileActions } from './providerFileActions.js';
 import { ProviderMessageRouter } from './providerMessageRouter.js';
@@ -26,6 +26,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
   private readonly analysisService: RepoAnalysisService;
   private readonly messageRouter: ProviderMessageRouter;
   private readonly fileActions: ProviderFileActions;
+  private readonly bookmarkedRepositoryManager: BookmarkedRepositoryManager;
 
   constructor(
     private readonly extensionUri: vscode.Uri,
@@ -40,6 +41,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       globalStoragePath,
       this.settingsService
     );
+    this.bookmarkedRepositoryManager = new BookmarkedRepositoryManager();
     this.fileActions = new ProviderFileActions({
       getSelectedTarget: () => this.analysisTargetService.getSelectedTarget(),
     });
@@ -172,43 +174,10 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
   }
 
   public async addRepository(): Promise<void> {
-    const pickedUris = await vscode.window.showOpenDialog({
-      canSelectFiles: false,
-      canSelectFolders: true,
-      canSelectMany: false,
-      openLabel: 'Add Repository',
-      title: 'Select a Git repository to bookmark',
-    });
-
-    const pickedUri = pickedUris?.[0];
-    if (!pickedUri) {
+    const addedRepositoryPath = await this.bookmarkedRepositoryManager.promptAndAddRepository();
+    if (!addedRepositoryPath) {
       return;
     }
-
-    const git = simpleGit(pickedUri.fsPath);
-    const isGitRepo = await git.checkIsRepo();
-    if (!isGitRepo) {
-      vscode.window.showErrorMessage(`Selected folder is not a Git repository: ${pickedUri.fsPath}`);
-      return;
-    }
-
-    const repositoryRootPath = (await git.revparse(['--show-toplevel'])).trim();
-    if (repositoryRootPath.length === 0) {
-      vscode.window.showErrorMessage(`Could not determine the Git repository root for: ${pickedUri.fsPath}`);
-      return;
-    }
-
-    const bookmarkedRepositories = this.getConfiguredBookmarkedRepositories();
-    if (bookmarkedRepositories.includes(repositoryRootPath)) {
-      vscode.window.showInformationMessage(`Repository already bookmarked: ${repositoryRootPath}`);
-      return;
-    }
-
-    await vscode.workspace
-      .getConfiguration('repoStats')
-      .update('bookmarkedRepositories', [...bookmarkedRepositories, repositoryRootPath], vscode.ConfigurationTarget.Global);
-
-    vscode.window.showInformationMessage(`Added bookmarked repository: ${repositoryRootPath}`);
 
     if (!this.panel) {
       return;
@@ -274,18 +243,6 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
         await this.analysisTargetService.getSelectedTarget()
       );
     }
-  }
-
-  private getConfiguredBookmarkedRepositories(): string[] {
-    const configured = vscode.workspace
-      .getConfiguration('repoStats')
-      .get<unknown>('bookmarkedRepositories');
-
-    if (!Array.isArray(configured)) {
-      return [];
-    }
-
-    return configured.filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
   }
 
   private async runAnalysis(webview: vscode.Webview): Promise<void> {
