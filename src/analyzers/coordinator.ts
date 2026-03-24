@@ -33,7 +33,17 @@ export type ProgressCallback = (phase: string, progress: number) => void;
 
 export interface AnalysisCallbacks {
   onProgress?: ProgressCallback;
+  /**
+   * Fired when core analysis data is ready before blame finishes.
+   * Guaranteed for single-repository analysis. Aggregate multi-repository targets
+   * may choose to skip staged callbacks and report only the final result.
+   */
   onCoreReady?: (result: AnalysisResult) => void;
+  /**
+   * Fired with incremental blame updates after core data is ready.
+   * Guaranteed for single-repository analysis. Aggregate multi-repository targets
+   * may choose to skip staged callbacks and report only the final result.
+   */
   onBlameUpdate?: (blameMetrics: BlameMetrics) => void;
 }
 

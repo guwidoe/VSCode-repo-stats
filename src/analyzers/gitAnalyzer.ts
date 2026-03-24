@@ -11,6 +11,7 @@ import {
   RepositoryInfo,
   NotAGitRepoError,
   GitNotFoundError,
+  GitOperationError,
 } from '../types/index.js';
 import {
   buildCodeFrequencyFromCommitAnalytics,
@@ -271,7 +272,11 @@ export class GitAnalyzer implements GitClient {
         result.set(filePath, parts[2]);
       }
     } catch (error) {
-      console.error('Failed to get HEAD blob SHAs:', error);
+      throw new GitOperationError(
+        `Failed to read HEAD blob SHAs for repository "${this.repoPath}".`,
+        'HEAD_BLOB_LOOKUP_FAILED',
+        { cause: error }
+      );
     }
 
     return result;

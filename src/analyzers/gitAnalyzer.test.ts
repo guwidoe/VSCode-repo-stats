@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import path from 'path';
 import { execFileSync } from 'child_process';
+import { GitOperationError } from '../types';
 import { GitAnalyzer } from './gitAnalyzer';
 
 function runGit(args: string[], cwd: string, env: NodeJS.ProcessEnv = {}): string {
@@ -130,5 +131,21 @@ describe('GitAnalyzer', () => {
       { additions: 1, deletions: 0 },
       { additions: 2, deletions: 1 },
     ]);
+  });
+
+  it('throws a typed error when HEAD blob lookup fails', async () => {
+    const repoPath = mkdtempSync(path.join(tmpdir(), 'repo-stats-git-analyzer-empty-'));
+    repos.push(repoPath);
+
+    runGit(['init', '-b', 'main'], repoPath);
+
+    const analyzer = new GitAnalyzer(repoPath);
+
+    await expect(analyzer.getHeadBlobShas()).rejects.toMatchObject({
+      name: 'GitOperationError',
+      code: 'HEAD_BLOB_LOOKUP_FAILED',
+    });
+
+    await expect(analyzer.getHeadBlobShas()).rejects.toBeInstanceOf(GitOperationError);
   });
 });

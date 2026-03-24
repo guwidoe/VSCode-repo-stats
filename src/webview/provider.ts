@@ -17,7 +17,7 @@ import type { AnalysisTargetSelection } from './context.js';
 import { RepoAnalysisService } from './analysisService.js';
 import { AnalysisTargetService } from './analysisTargetService.js';
 import { parseWebviewMessage, resolveContainedPath, validateLogicalPath } from './messageValidation.js';
-import { RepositoryService } from './repositoryService.js';
+import { formatRepositoryDiscoveryWarning, RepositoryService } from './repositoryService.js';
 import { RepositorySettingsService } from './settingsService.js';
 
 export class RepoStatsProvider implements vscode.WebviewViewProvider {
@@ -109,7 +109,10 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
   public async promptRepositorySelection(): Promise<void> {
     const selection = await this.analysisTargetService.resolveSelection();
     if (selection.repositories.length === 0) {
-      vscode.window.showInformationMessage('No Git repositories were found in the workspace or bookmarked list.');
+      const message = selection.repositoryDiscoveryWarnings.length > 0
+        ? this.createRepositoryDiscoveryMessage(selection.repositoryDiscoveryWarnings)
+        : 'No Git repositories were found in the workspace or bookmarked list.';
+      vscode.window.showWarningMessage(message);
       return;
     }
 
@@ -369,10 +372,17 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
   }
 
   private async runAnalysis(webview: vscode.Webview): Promise<void> {
-    await this.analysisService.runAnalysis(
-      webview,
-      await this.analysisTargetService.getSelectedTarget()
-    );
+    const selection = await this.analysisTargetService.resolveSelection(undefined, { persist: false });
+    if (!selection.selectedTarget && selection.repositoryDiscoveryWarnings.length > 0) {
+      await this.sendCurrentTargetContext(webview, selection);
+      this.sendMessage(webview, {
+        type: 'analysisError',
+        error: this.createRepositoryDiscoveryMessage(selection.repositoryDiscoveryWarnings),
+      });
+      return;
+    }
+
+    await this.analysisService.runAnalysis(webview, selection.selectedTarget);
   }
 
   private async updateRepositorySelection(
@@ -516,6 +526,17 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
         : logicalPath;
 
     return resolveContainedPath(matchingMember.repoPath, relativePath, path);
+  }
+
+  private createRepositoryDiscoveryMessage(warnings: string[] | AnalysisTargetSelection['repositoryDiscoveryWarnings']): string {
+    const details = warnings
+      .map((warning) => typeof warning === 'string' ? warning : formatRepositoryDiscoveryWarning(warning))
+      .slice(0, 3);
+    const remaining = warnings.length - details.length;
+
+    return remaining > 0
+      ? `Repository discovery encountered problems: ${details.join(' | ')} | +${remaining} more`
+      : `Repository discovery encountered problems: ${details.join(' | ')}`;
   }
 
   private sendMessage(webview: vscode.Webview, message: ExtensionMessage): void {

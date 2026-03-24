@@ -29,7 +29,8 @@ export class AnalysisTargetService {
     preferredRepositoryIds?: string[],
     options: { persist?: boolean } = {}
   ): Promise<AnalysisTargetSelection> {
-    const repositories = await this.repositoryService.listAvailableRepositories();
+    const discovery = await this.repositoryService.listAvailableRepositoriesDetailed();
+    const repositories = discovery.repositories;
     const persistedRepositoryIds = preferredRepositoryIds
       ?? this.workspaceState.get<string[]>(this.selectionStateKey);
     const selectedRepositoryIds = selectPreferredRepositoryIds(
@@ -48,6 +49,7 @@ export class AnalysisTargetService {
       selectedRepositoryIds,
       selectedTarget,
       selectedTargetOption: selectedTarget ? toAnalysisTargetOption(selectedTarget.target) : null,
+      repositoryDiscoveryWarnings: discovery.warnings,
     };
   }
 

@@ -6,18 +6,42 @@ import {
 } from './repositorySelection.js';
 import type {
   GitExtensionExports,
+  RepositoryDiscoveryWarning,
   RepositoryContext,
 } from './context.js';
+
+export interface RepositoryDiscoveryResult {
+  repositories: RepositoryContext[];
+  warnings: RepositoryDiscoveryWarning[];
+}
+
+type RepositoryRootResolution =
+  | { kind: 'resolved'; rootUri: vscode.Uri }
+  | { kind: 'not-repository' }
+  | { kind: 'error'; warning: RepositoryDiscoveryWarning };
+
+export function formatRepositoryDiscoveryWarning(warning: RepositoryDiscoveryWarning): string {
+  const location = warning.repositoryPath ? ` (${warning.repositoryPath})` : '';
+  return `${warning.source}: ${warning.message}${location}`;
+}
 
 export class RepositoryService {
   constructor(_workspaceState: vscode.Memento) {}
 
   async listAvailableRepositories(): Promise<RepositoryContext[]> {
-    const workspaceRepositories = await this.listWorkspaceRepositories();
-    const seenPaths = new Set(workspaceRepositories.map((repository) => repository.option.path));
-    const bookmarkedRepositories = await this.listBookmarkedRepositories(seenPaths);
+    const result = await this.listAvailableRepositoriesDetailed();
 
-    return [...workspaceRepositories, ...bookmarkedRepositories].sort((a, b) => {
+    return result.repositories;
+  }
+
+  async listAvailableRepositoriesDetailed(): Promise<RepositoryDiscoveryResult> {
+    const workspaceDiscovery = await this.listWorkspaceRepositories();
+    const workspaceRepositories = workspaceDiscovery.repositories;
+    const seenPaths = new Set(workspaceRepositories.map((repository) => repository.option.path));
+    const bookmarkedDiscovery = await this.listBookmarkedRepositories(seenPaths);
+    const bookmarkedRepositories = bookmarkedDiscovery.repositories;
+
+    const repositories = [...workspaceRepositories, ...bookmarkedRepositories].sort((a, b) => {
       const sourceOrder = this.getSourceOrder(a) - this.getSourceOrder(b);
       if (sourceOrder !== 0) {
         return sourceOrder;
@@ -28,21 +52,25 @@ export class RepositoryService {
         || a.option.name.localeCompare(b.option.name)
         || a.option.path.localeCompare(b.option.path);
     });
+
+    return {
+      repositories,
+      warnings: [...workspaceDiscovery.warnings, ...bookmarkedDiscovery.warnings],
+    };
   }
 
   private getSourceOrder(repository: RepositoryContext): number {
     return repository.option.source === 'workspace' ? 0 : 1;
   }
 
-  private async listWorkspaceRepositories(): Promise<RepositoryContext[]> {
+  private async listWorkspaceRepositories(): Promise<RepositoryDiscoveryResult> {
     const workspaceFolders = vscode.workspace.workspaceFolders ?? [];
     if (workspaceFolders.length === 0) {
-      return [];
+      return { repositories: [], warnings: [] };
     }
 
-    const repositoryRoots = await this.getRepositoryRootUris(workspaceFolders);
-
-    return repositoryRoots.flatMap((rootUri) => {
+    const discovery = await this.getRepositoryRootUris(workspaceFolders);
+    const repositories = discovery.repositories.flatMap((rootUri) => {
       const workspaceFolder = vscode.workspace.getWorkspaceFolder(rootUri);
       if (!workspaceFolder) {
         return [];
@@ -59,20 +87,37 @@ export class RepositoryService {
         workspaceFolder,
       } satisfies RepositoryContext];
     });
+
+    return {
+      repositories,
+      warnings: discovery.warnings,
+    };
   }
 
   private async listBookmarkedRepositories(
     seenPaths: Set<string>
-  ): Promise<RepositoryContext[]> {
+  ): Promise<RepositoryDiscoveryResult> {
     const bookmarkedPaths = this.getBookmarkedRepositoryPaths();
     const repositories: RepositoryContext[] = [];
+    const warnings: RepositoryDiscoveryWarning[] = [];
 
     for (const bookmarkedPath of bookmarkedPaths) {
-      const rootUri = await this.resolveRepositoryRootUri(bookmarkedPath);
-      if (!rootUri) {
-        console.warn(`[RepoStats] Ignoring bookmarked repository that is not available as a Git repo: ${bookmarkedPath}`);
+      const resolution = await this.resolveRepositoryRootUri(bookmarkedPath, 'bookmarked');
+      if (resolution.kind === 'not-repository') {
+        warnings.push({
+          source: 'bookmarked',
+          message: 'Configured bookmark is not currently a Git repository.',
+          repositoryPath: bookmarkedPath,
+        });
         continue;
       }
+
+      if (resolution.kind === 'error') {
+        warnings.push(resolution.warning);
+        continue;
+      }
+
+      const rootUri = resolution.rootUri;
 
       if (seenPaths.has(rootUri.fsPath)) {
         continue;
@@ -89,7 +134,10 @@ export class RepositoryService {
       });
     }
 
-    return repositories;
+    return {
+      repositories,
+      warnings,
+    };
   }
 
   private getBookmarkedRepositoryPaths(): string[] {
@@ -106,31 +154,48 @@ export class RepositoryService {
       .map((value) => path.resolve(value.trim()));
   }
 
-  private async resolveRepositoryRootUri(repoPath: string): Promise<vscode.Uri | undefined> {
+  private async resolveRepositoryRootUri(
+    repoPath: string,
+    source: RepositoryDiscoveryWarning['source']
+  ): Promise<RepositoryRootResolution> {
     const git = simpleGit(repoPath);
 
     try {
       if (!(await git.checkIsRepo())) {
-        return undefined;
+        return { kind: 'not-repository' };
       }
 
       const rootPath = (await git.revparse(['--show-toplevel'])).trim();
       if (rootPath.length === 0) {
-        return undefined;
+        return {
+          kind: 'error',
+          warning: {
+            source,
+            message: 'Git reported a repository but did not return a root path.',
+            repositoryPath: repoPath,
+          },
+        };
       }
 
-      return vscode.Uri.file(rootPath);
+      return { kind: 'resolved', rootUri: vscode.Uri.file(rootPath) };
     } catch (error) {
-      console.warn(`[RepoStats] Failed to resolve repository root for ${repoPath}:`, error);
-      return undefined;
+      return {
+        kind: 'error',
+        warning: {
+          source,
+          message: `Failed to resolve repository root: ${this.formatErrorMessage(error)}`,
+          repositoryPath: repoPath,
+        },
+      };
     }
   }
 
   private async getRepositoryRootUris(
     workspaceFolders: readonly vscode.WorkspaceFolder[]
-  ): Promise<vscode.Uri[]> {
+  ): Promise<{ repositories: vscode.Uri[]; warnings: RepositoryDiscoveryWarning[] }> {
     const seen = new Set<string>();
     const repositories: vscode.Uri[] = [];
+    const warnings: RepositoryDiscoveryWarning[] = [];
 
     const addRepositoryUri = (rootUri: vscode.Uri) => {
       const workspaceFolder = vscode.workspace.getWorkspaceFolder(rootUri);
@@ -142,81 +207,128 @@ export class RepositoryService {
       repositories.push(rootUri);
     };
 
-    const gitExtensionRoots = await this.getGitExtensionRepositoryUris();
+    const gitExtensionDiscovery = await this.getGitExtensionRepositoryUris();
+    warnings.push(...gitExtensionDiscovery.warnings);
+    const gitExtensionRoots = gitExtensionDiscovery.repositories;
     gitExtensionRoots.forEach(addRepositoryUri);
 
-    const scannedRoots = await this.findNestedRepositoryRootUris(workspaceFolders);
+    const scannedDiscovery = await this.findNestedRepositoryRootUris(workspaceFolders);
+    warnings.push(...scannedDiscovery.warnings);
+    const scannedRoots = scannedDiscovery.repositories;
     scannedRoots.forEach(addRepositoryUri);
 
-    const submoduleRoots = await this.findSubmoduleRootUris(repositories);
+    const submoduleDiscovery = await this.findSubmoduleRootUris(repositories);
+    warnings.push(...submoduleDiscovery.warnings);
+    const submoduleRoots = submoduleDiscovery.repositories;
     submoduleRoots.forEach(addRepositoryUri);
 
     if (repositories.length > 0) {
-      return repositories;
+      return { repositories, warnings };
     }
 
     for (const workspaceFolder of workspaceFolders) {
-      const rootUri = await this.resolveRepositoryRootUri(workspaceFolder.uri.fsPath);
-      if (rootUri) {
-        addRepositoryUri(rootUri);
+      const resolution = await this.resolveRepositoryRootUri(workspaceFolder.uri.fsPath, 'workspace');
+      if (resolution.kind === 'resolved') {
+        addRepositoryUri(resolution.rootUri);
+      } else if (resolution.kind === 'error') {
+        warnings.push(resolution.warning);
       }
     }
 
-    return repositories;
+    return { repositories, warnings };
   }
 
-  private async getGitExtensionRepositoryUris(): Promise<vscode.Uri[]> {
+  private async getGitExtensionRepositoryUris(): Promise<{ repositories: vscode.Uri[]; warnings: RepositoryDiscoveryWarning[] }> {
     const gitExtension = vscode.extensions.getExtension<GitExtensionExports>('vscode.git');
     if (!gitExtension) {
-      return [];
+      return { repositories: [], warnings: [] };
     }
 
     let gitApi: GitExtensionExports | undefined;
     try {
       gitApi = (gitExtension.isActive ? gitExtension.exports : await gitExtension.activate()) as GitExtensionExports;
     } catch (error) {
-      console.warn('[RepoStats] Failed to activate the Git extension while discovering repositories:', error);
+      return {
+        repositories: [],
+        warnings: [{
+          source: 'git-extension',
+          message: `Failed to activate the Git extension while discovering repositories: ${this.formatErrorMessage(error)}`,
+        }],
+      };
     }
 
     if (!gitApi) {
-      return [];
+      return { repositories: [], warnings: [] };
     }
 
     try {
-      return gitApi.getAPI(1).repositories.map((repository) => repository.rootUri);
+      return {
+        repositories: gitApi.getAPI(1).repositories.map((repository) => repository.rootUri),
+        warnings: [],
+      };
     } catch (error) {
-      console.warn('[RepoStats] Failed to read repositories from Git extension:', error);
+      return {
+        repositories: [],
+        warnings: [{
+          source: 'git-extension',
+          message: `Failed to read repositories from the Git extension: ${this.formatErrorMessage(error)}`,
+        }],
+      };
     }
-
-    return [];
   }
 
   private async findNestedRepositoryRootUris(
     workspaceFolders: readonly vscode.WorkspaceFolder[]
-  ): Promise<vscode.Uri[]> {
+  ): Promise<{ repositories: vscode.Uri[]; warnings: RepositoryDiscoveryWarning[] }> {
     const discovered = new Map<string, vscode.Uri>();
+    const warnings: RepositoryDiscoveryWarning[] = [];
 
     for (const workspaceFolder of workspaceFolders) {
-      const configUris = await vscode.workspace.findFiles(
-        new vscode.RelativePattern(workspaceFolder, '**/.git/config'),
-        new vscode.RelativePattern(workspaceFolder, '**/{node_modules,dist,build,.next,.nuxt,.yarn,.pnpm-store}/**')
-      );
+      try {
+        const configUris = await vscode.workspace.findFiles(
+          new vscode.RelativePattern(workspaceFolder, '**/.git/config'),
+          new vscode.RelativePattern(workspaceFolder, '**/{node_modules,dist,build,.next,.nuxt,.yarn,.pnpm-store}/**')
+        );
 
-      for (const configUri of configUris) {
-        const repoRoot = path.dirname(path.dirname(configUri.fsPath));
-        discovered.set(repoRoot, vscode.Uri.file(repoRoot));
+        for (const configUri of configUris) {
+          const repoRoot = path.dirname(path.dirname(configUri.fsPath));
+          discovered.set(repoRoot, vscode.Uri.file(repoRoot));
+        }
+      } catch (error) {
+        warnings.push({
+          source: 'workspace',
+          message: `Failed to scan workspace folder for nested repositories: ${this.formatErrorMessage(error)}`,
+          repositoryPath: workspaceFolder.uri.fsPath,
+        });
       }
     }
 
-    return [...discovered.values()];
+    return {
+      repositories: [...discovered.values()],
+      warnings,
+    };
   }
 
-  private async findSubmoduleRootUris(repositoryRoots: readonly vscode.Uri[]): Promise<vscode.Uri[]> {
+  private async findSubmoduleRootUris(
+    repositoryRoots: readonly vscode.Uri[]
+  ): Promise<{ repositories: vscode.Uri[]; warnings: RepositoryDiscoveryWarning[] }> {
     const discovered = new Map<string, vscode.Uri>();
+    const warnings: RepositoryDiscoveryWarning[] = [];
 
     for (const repositoryRoot of repositoryRoots) {
       const git = simpleGit(repositoryRoot.fsPath);
-      const output = await git.raw(['submodule', 'status', '--recursive']).catch(() => '');
+      let output: string;
+
+      try {
+        output = await git.raw(['submodule', 'status', '--recursive']);
+      } catch (error) {
+        warnings.push({
+          source: 'submodule',
+          message: `Failed to inspect submodules: ${this.formatErrorMessage(error)}`,
+          repositoryPath: repositoryRoot.fsPath,
+        });
+        continue;
+      }
 
       for (const line of output.split('\n')) {
         const trimmed = line.trim();
@@ -234,13 +346,22 @@ export class RepositoryService {
           continue;
         }
 
-        const resolvedRoot = await this.resolveRepositoryRootUri(submoduleRoot);
-        if (resolvedRoot) {
-          discovered.set(resolvedRoot.fsPath, resolvedRoot);
+        const resolution = await this.resolveRepositoryRootUri(submoduleRoot, 'submodule');
+        if (resolution.kind === 'resolved') {
+          discovered.set(resolution.rootUri.fsPath, resolution.rootUri);
+        } else if (resolution.kind === 'error') {
+          warnings.push(resolution.warning);
         }
       }
     }
 
-    return [...discovered.values()];
+    return {
+      repositories: [...discovered.values()],
+      warnings,
+    };
+  }
+
+  private formatErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
   }
 }

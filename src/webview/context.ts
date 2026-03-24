@@ -23,6 +23,12 @@ export interface RepositoryContext {
   workspaceFolder?: vscode.WorkspaceFolder;
 }
 
+export interface RepositoryDiscoveryWarning {
+  source: 'workspace' | 'bookmarked' | 'git-extension' | 'submodule';
+  message: string;
+  repositoryPath?: string;
+}
+
 export interface AnalysisTargetContext {
   option: AnalysisTargetOption;
   target: AnalysisTarget;
@@ -39,4 +45,5 @@ export interface AnalysisTargetSelection {
   selectedRepositoryIds: string[];
   selectedTarget: AnalysisTargetContext | null;
   selectedTargetOption: AnalysisTargetOption | null;
+  repositoryDiscoveryWarnings: RepositoryDiscoveryWarning[];
 }

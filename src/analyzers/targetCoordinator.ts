@@ -1,8 +1,5 @@
 import * as path from 'path';
-import type {
-  AnalysisCallbacks,
-  AnalysisCoordinator,
-} from './coordinator.js';
+import type { AnalysisCallbacks } from './coordinator.js';
 import { createAnalysisCoordinator } from './coordinator.js';
 import { mergeBlameMetrics } from './mergeBlameMetrics.js';
 import { mergeTargetFileTrees } from './mergeTrees.js';
@@ -24,10 +21,21 @@ export interface TargetAnalysisCoordinatorOptions {
   settings: ExtensionSettings;
   sccStoragePath: string;
   previousBlameFileCaches?: Record<string, Record<string, BlameFileCacheEntry>>;
+  coordinatorFactory?: (
+    member: AnalysisTarget['members'][number],
+    settings: ExtensionSettings,
+    previousBlameFileCache: Record<string, BlameFileCacheEntry>
+  ) => TargetMemberCoordinator;
+}
+
+interface TargetMemberCoordinator {
+  analyze(callbacks?: AnalysisCallbacks): Promise<AnalysisResult>;
+  getLatestBlameFileCache(): Record<string, BlameFileCacheEntry>;
+  getRepositoryInfo(): Promise<{ branch: string; headSha: string }>;
 }
 
 export class TargetAnalysisCoordinator {
-  private readonly coordinators = new Map<string, AnalysisCoordinator>();
+  private readonly coordinators = new Map<string, TargetMemberCoordinator>();
   private readonly latestBlameFileCaches: Record<string, Record<string, BlameFileCacheEntry>> = {};
 
   constructor(private readonly options: TargetAnalysisCoordinatorOptions) {}
@@ -36,21 +44,26 @@ export class TargetAnalysisCoordinator {
     const memberResults: AnalysisResult[] = [];
     const totalMembers = this.options.target.members.length;
 
+    if (totalMembers === 1) {
+      const member = this.options.target.members[0];
+      const coordinator = this.createCoordinator(member);
+      const memberResult = await coordinator.analyze({
+        onProgress: (phase, progress) => {
+          callbacks.onProgress?.(`${member.displayName}: ${phase}`, progress);
+        },
+        onCoreReady: (coreResult) => {
+          callbacks.onCoreReady?.(this.decorateMemberResult(coreResult, member));
+        },
+        onBlameUpdate: callbacks.onBlameUpdate,
+      });
+
+      this.latestBlameFileCaches[member.id] = coordinator.getLatestBlameFileCache();
+      return this.decorateMemberResult(memberResult, member);
+    }
+
     for (let index = 0; index < totalMembers; index += 1) {
       const member = this.options.target.members[index];
-      const memberSettings: ExtensionSettings = {
-        ...this.options.settings,
-        excludePatterns: [
-          ...this.options.settings.excludePatterns,
-          ...(member.excludePatterns ?? []),
-        ],
-      };
-      const coordinator = createAnalysisCoordinator(
-        member.repoPath,
-        memberSettings,
-        this.options.sccStoragePath,
-        this.options.previousBlameFileCaches?.[member.id] ?? {}
-      );
+      const coordinator = this.createCoordinator(member);
       this.coordinators.set(member.id, coordinator);
 
       const memberResult = await coordinator.analyze({
@@ -66,11 +79,6 @@ export class TargetAnalysisCoordinator {
     }
 
     const aggregated = this.aggregateMemberResults(memberResults);
-    callbacks.onCoreReady?.({
-      ...aggregated,
-      blameMetrics: mergeBlameMetrics(memberResults.map((result) => result.blameMetrics)),
-    });
-    callbacks.onBlameUpdate?.(aggregated.blameMetrics);
     callbacks.onProgress?.('Analysis complete', 100);
     return aggregated;
   }
@@ -98,6 +106,29 @@ export class TargetAnalysisCoordinator {
     }
 
     return revisions;
+  }
+
+  private createCoordinator(member: AnalysisTarget['members'][number]): TargetMemberCoordinator {
+    const memberSettings: ExtensionSettings = {
+      ...this.options.settings,
+      excludePatterns: [
+        ...this.options.settings.excludePatterns,
+        ...(member.excludePatterns ?? []),
+      ],
+    };
+
+    const nextCoordinator = this.options.coordinatorFactory?.(
+      member,
+      memberSettings,
+      this.options.previousBlameFileCaches?.[member.id] ?? {}
+    ) ?? createAnalysisCoordinator(
+      member.repoPath,
+      memberSettings,
+      this.options.sccStoragePath,
+      this.options.previousBlameFileCaches?.[member.id] ?? {}
+    );
+    this.coordinators.set(member.id, nextCoordinator);
+    return nextCoordinator;
   }
 
   private decorateMemberResult(result: AnalysisResult, member: AnalysisTarget['members'][number]): AnalysisResult {

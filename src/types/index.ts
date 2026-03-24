@@ -19,6 +19,20 @@ export class RepoStatsError extends Error {
   }
 }
 
+export class GitOperationError extends RepoStatsError {
+  public readonly cause?: unknown;
+
+  constructor(
+    message: string,
+    code = 'GIT_OPERATION_FAILED',
+    options: { cause?: unknown } = {}
+  ) {
+    super(message, code);
+    this.name = 'GitOperationError';
+    this.cause = options.cause;
+  }
+}
+
 export class NotAGitRepoError extends RepoStatsError {
   constructor(path: string) {
     super(`"${path}" is not a Git repository`, 'NOT_GIT_REPO');
