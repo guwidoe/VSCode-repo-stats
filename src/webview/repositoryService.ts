@@ -5,6 +5,7 @@ import {
   buildRepositoryOption,
 } from './repositorySelection.js';
 import { getConfiguredBookmarkedRepositories } from './bookmarkedRepositoryConfig.js';
+import { RepositoryRootResolver, type RepositoryRootResolution } from './repositoryRootResolver.js';
 import type {
   GitExtensionExports,
   RepositoryDiscoveryWarning,
@@ -16,17 +17,14 @@ export interface RepositoryDiscoveryResult {
   warnings: RepositoryDiscoveryWarning[];
 }
 
-type RepositoryRootResolution =
-  | { kind: 'resolved'; rootUri: vscode.Uri }
-  | { kind: 'not-repository' }
-  | { kind: 'error'; warning: RepositoryDiscoveryWarning };
-
 export function formatRepositoryDiscoveryWarning(warning: RepositoryDiscoveryWarning): string {
   const location = warning.repositoryPath ? ` (${warning.repositoryPath})` : '';
   return `${warning.source}: ${warning.message}${location}`;
 }
 
 export class RepositoryService {
+  private readonly rootResolver = new RepositoryRootResolver();
+
   constructor(_workspaceState: vscode.Memento) {}
 
   async listAvailableRepositories(): Promise<RepositoryContext[]> {
@@ -145,36 +143,7 @@ export class RepositoryService {
     repoPath: string,
     source: RepositoryDiscoveryWarning['source']
   ): Promise<RepositoryRootResolution> {
-    const git = simpleGit(repoPath);
-
-    try {
-      if (!(await git.checkIsRepo())) {
-        return { kind: 'not-repository' };
-      }
-
-      const rootPath = (await git.revparse(['--show-toplevel'])).trim();
-      if (rootPath.length === 0) {
-        return {
-          kind: 'error',
-          warning: {
-            source,
-            message: 'Git reported a repository but did not return a root path.',
-            repositoryPath: repoPath,
-          },
-        };
-      }
-
-      return { kind: 'resolved', rootUri: vscode.Uri.file(rootPath) };
-    } catch (error) {
-      return {
-        kind: 'error',
-        warning: {
-          source,
-          message: `Failed to resolve repository root: ${this.formatErrorMessage(error)}`,
-          repositoryPath: repoPath,
-        },
-      };
-    }
+    return this.rootResolver.resolve(repoPath, source);
   }
 
   private async getRepositoryRootUris(
