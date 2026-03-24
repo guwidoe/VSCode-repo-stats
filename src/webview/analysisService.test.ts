@@ -74,7 +74,7 @@ vi.mock('../cache/evolutionCacheManager.js', () => ({
   },
 }));
 
-vi.mock('../analyzers/targetCoordinator.js', () => ({
+vi.mock('../analyzers/target/targetCoordinator.js', () => ({
   TargetAnalysisCoordinator: class {
     async getTargetRevision() {
       return mockCoordinatorState.revisions;
@@ -88,7 +88,7 @@ vi.mock('../analyzers/targetCoordinator.js', () => ({
   },
 }));
 
-vi.mock('../analyzers/targetEvolutionAnalyzer.js', () => ({
+vi.mock('../analyzers/target/targetEvolutionAnalyzer.js', () => ({
   createTargetEvolutionAnalyzer: () => ({
     analyze: mockEvolutionAnalyzerState.analyze,
   }),

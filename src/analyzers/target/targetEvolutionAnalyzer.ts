@@ -5,7 +5,7 @@ import simpleGit, { type SimpleGit } from 'simple-git';
 import {
   normalizeEvolutionResult,
   normalizeEvolutionTimeSeriesData,
-} from '../types/index.js';
+} from '../../types/index.js';
 import type {
   AnalysisTarget,
   EvolutionResult,
@@ -13,11 +13,11 @@ import type {
   EvolutionSnapshotPoint,
   EvolutionTimeSeriesData,
   ExtensionSettings,
-} from '../types/index.js';
-import { createEvolutionRevisionHash } from '../cache/targetCacheKeys.js';
-import { createEvolutionAnalysisSettingsSnapshot } from '../shared/settings.js';
-import { normalizeExtensionForFilter } from './locCounter.js';
-import { createPathPatternMatcher } from './pathMatching.js';
+} from '../../types/index.js';
+import { createEvolutionRevisionHash } from '../../cache/targetCacheKeys.js';
+import { createEvolutionAnalysisSettingsSnapshot } from '../../shared/settings.js';
+import { normalizeExtensionForFilter } from '../locCounter.js';
+import { createPathPatternMatcher } from '../pathMatching.js';
 
 export interface EvolutionProgressUpdate {
   phase: string;

@@ -1,5 +1,5 @@
-import type { BlameMetrics, BlameOwnershipEntry } from '../types/index.js';
-import { createEmptyBlameMetrics } from './blameMetrics.js';
+import type { BlameMetrics, BlameOwnershipEntry } from '../../types/index.js';
+import { createEmptyBlameMetrics } from '../blameMetrics.js';
 
 export function mergeBlameMetrics(metricsList: BlameMetrics[]): BlameMetrics {
   if (metricsList.length === 0) {

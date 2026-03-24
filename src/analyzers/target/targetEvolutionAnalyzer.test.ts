@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import path from 'path';
 import { execFileSync } from 'child_process';
-import type { AnalysisTarget, ExtensionSettings } from '../types';
+import type { AnalysisTarget, ExtensionSettings } from '../../types';
 import { createTargetEvolutionAnalyzer } from './targetEvolutionAnalyzer';
 
 function runGit(args: string[], cwd: string, env: NodeJS.ProcessEnv = {}): string {

@@ -1,20 +1,20 @@
 import * as path from 'path';
-import type { AnalysisCallbacks } from './coordinator.js';
-import { createAnalysisCoordinator } from './coordinator.js';
-import { mergeBlameMetrics } from './mergeBlameMetrics.js';
-import { mergeTargetFileTrees } from './mergeTrees.js';
+import type { AnalysisCallbacks } from '../coordinator.js';
+import { createAnalysisCoordinator } from '../coordinator.js';
+import { mergeBlameMetrics } from '../merge/mergeBlameMetrics.js';
+import { mergeTargetFileTrees } from '../merge/mergeTrees.js';
 import {
   buildContributorStatsFromCommitAnalytics,
   buildCodeFrequencyFromCommitAnalytics,
   mergeCommitAnalytics,
-} from './commitAnalytics.js';
+} from '../commitAnalytics.js';
 import type {
   AnalysisResult,
   AnalysisTarget,
   BlameFileCacheEntry,
   ExtensionSettings,
   SccInfo,
-} from '../types/index.js';
+} from '../../types/index.js';
 
 export interface TargetAnalysisCoordinatorOptions {
   target: AnalysisTarget;

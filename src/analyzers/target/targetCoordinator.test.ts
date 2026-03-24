@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { AnalysisCallbacks } from './coordinator';
-import { createEmptyBlameMetrics } from './blameMetrics';
+import type { AnalysisCallbacks } from '../coordinator';
+import { createEmptyBlameMetrics } from '../blameMetrics';
 import { TargetAnalysisCoordinator } from './targetCoordinator';
 import type {
   AnalysisResult,
@@ -8,7 +8,7 @@ import type {
   BlameFileCacheEntry,
   BlameMetrics,
   ExtensionSettings,
-} from '../types';
+} from '../../types';
 
 function createSettings(): ExtensionSettings {
   return {

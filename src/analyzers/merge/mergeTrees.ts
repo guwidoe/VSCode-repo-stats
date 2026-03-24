@@ -1,4 +1,4 @@
-import type { AnalysisTargetMember, TreemapNode } from '../types/index.js';
+import type { AnalysisTargetMember, TreemapNode } from '../../types/index.js';
 
 interface TreeMetrics {
   lines: number;
