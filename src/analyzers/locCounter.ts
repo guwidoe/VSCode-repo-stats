@@ -184,7 +184,7 @@ export class LOCCounter implements LOCClient {
   /**
    * Get information about the scc installation.
    */
-  async getSccInfo(): Promise<SccInfo> {
+  getSccInfo(): Promise<SccInfo> {
     return this.binaryManager.getSccInfo();
   }
 

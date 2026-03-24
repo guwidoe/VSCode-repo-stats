@@ -10,8 +10,6 @@ import {
   BlameFileCacheEntry,
   BlameMetrics,
   RepositoryInfo,
-  ContributorStats,
-  CodeFrequency,
   TreemapNode,
   ExtensionSettings,
 } from '../types/index.js';
@@ -499,29 +497,8 @@ export class AnalysisCoordinator {
     return binaryLanguages[ext] ?? 'Binary';
   }
 
-  async getRepositoryInfo(): Promise<RepositoryInfo> {
+  getRepositoryInfo(): Promise<RepositoryInfo> {
     return this.gitClient.getRepoInfo();
-  }
-
-  async getContributors(): Promise<ContributorStats[]> {
-    return this.gitClient.getContributorStats(
-      this.settings.maxCommitsToAnalyze,
-      this.settings.excludePatterns
-    );
-  }
-
-  async getCodeFrequency(): Promise<CodeFrequency[]> {
-    return this.gitClient.getCodeFrequency(
-      this.settings.maxCommitsToAnalyze,
-      this.settings.excludePatterns
-    );
-  }
-
-  async getFileTree(): Promise<TreemapNode> {
-    return this.locClient.countLines(
-      this.settings.excludePatterns,
-      this.settings.locExcludedExtensions
-    );
   }
 
   getLatestBlameFileCache(): Record<string, BlameFileCacheEntry> {

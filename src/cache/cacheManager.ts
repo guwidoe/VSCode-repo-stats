@@ -126,7 +126,3 @@ export class InMemoryCacheStorage implements CacheStorage {
     }
   }
 }
-
-export function createCacheManager(storage: CacheStorage, cacheId: string): CacheManager {
-  return new CacheManager(storage, cacheId);
-}

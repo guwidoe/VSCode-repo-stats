@@ -79,7 +79,3 @@ export class EvolutionCacheManager {
     return crypto.createHash('md5').update(value).digest('hex').slice(0, 8);
   }
 }
-
-export function createEvolutionCacheManager(storage: CacheStorage, targetId: string): EvolutionCacheManager {
-  return new EvolutionCacheManager(storage, targetId);
-}
