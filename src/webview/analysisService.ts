@@ -8,6 +8,7 @@ import { EvolutionCacheManager } from '../cache/evolutionCacheManager.js';
 import { createTargetRevisionHash } from '../cache/targetCacheKeys.js';
 import { createCoreSettingsHash } from '../cache/coreSettingsHash.js';
 import type { AnalysisTargetContext } from './context.js';
+import { AnalysisStateRegistry } from './analysisStateRegistry.js';
 import { RepositorySettingsService } from './settingsService.js';
 import {
   collectTargetMemberHeads,
@@ -15,14 +16,8 @@ import {
 } from './targetRevisionState.js';
 import { WorkspaceStateStorage } from './workspaceStateStorage.js';
 
-interface AnalysisStateSnapshot {
-  revisionHash: string;
-  settingsHash: string;
-}
-
 export class RepoAnalysisService {
-  private readonly lastCoreStateByTarget = new Map<string, AnalysisStateSnapshot>();
-  private readonly lastEvolutionStateByTarget = new Map<string, AnalysisStateSnapshot>();
+  private readonly stateRegistry = new AnalysisStateRegistry();
 
   constructor(
     private readonly workspaceState: vscode.Memento,
@@ -64,7 +59,7 @@ export class RepoAnalysisService {
       const cached = cacheManager.getIfValid(revisionHash, settingsHash);
 
       if (cached) {
-        this.lastCoreStateByTarget.set(target.target.id, {
+        this.stateRegistry.setCoreState(target.target.id, {
           revisionHash,
           settingsHash,
         });
@@ -87,7 +82,7 @@ export class RepoAnalysisService {
           });
         },
         onCoreReady: (coreResult) => {
-          this.lastCoreStateByTarget.set(target.target.id, {
+          this.stateRegistry.setCoreState(target.target.id, {
             revisionHash,
             settingsHash,
           });
@@ -111,7 +106,7 @@ export class RepoAnalysisService {
         settingsHash
       );
 
-      this.lastCoreStateByTarget.set(target.target.id, {
+      this.stateRegistry.setCoreState(target.target.id, {
         revisionHash,
         settingsHash,
       });
@@ -153,7 +148,7 @@ export class RepoAnalysisService {
       );
 
       if (validCached && !forceRefresh) {
-        this.lastEvolutionStateByTarget.set(target.target.id, {
+        this.stateRegistry.setEvolutionState(target.target.id, {
           revisionHash: validCached.revisionHash,
           settingsHash: validCached.settingsHash,
         });
@@ -168,7 +163,7 @@ export class RepoAnalysisService {
       if (!forceRefresh) {
         const latestCached = evolutionCacheManager.getLatest();
         if (latestCached) {
-          this.lastEvolutionStateByTarget.set(target.target.id, {
+          this.stateRegistry.setEvolutionState(target.target.id, {
             revisionHash: latestCached.revisionHash,
             settingsHash: latestCached.settingsHash,
           });
@@ -209,7 +204,7 @@ export class RepoAnalysisService {
 
       await evolutionCacheManager.save(result);
 
-      this.lastEvolutionStateByTarget.set(target.target.id, {
+      this.stateRegistry.setEvolutionState(target.target.id, {
         revisionHash: result.revisionHash,
         settingsHash: result.settingsHash,
       });
@@ -243,8 +238,8 @@ export class RepoAnalysisService {
       const settings = this.settingsService.getSettings(target.settingsRepository);
       const memberHeads = await collectTargetMemberHeads(target.target);
       const hashes = createTargetStateHashes(target.target, settings, memberHeads);
-      const lastCoreState = this.lastCoreStateByTarget.get(target.target.id);
-      const lastEvolutionState = this.lastEvolutionStateByTarget.get(target.target.id);
+      const lastCoreState = this.stateRegistry.getCoreState(target.target.id);
+      const lastEvolutionState = this.stateRegistry.getEvolutionState(target.target.id);
 
       const coreStaleByRevision =
         lastCoreState !== undefined && lastCoreState.revisionHash !== hashes.coreRevisionHash;
