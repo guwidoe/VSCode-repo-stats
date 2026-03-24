@@ -2,7 +2,6 @@ import * as fs from 'fs/promises';
 import { existsSync } from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { spawnSync } from 'child_process';
 import type { AnalysisResult, TreemapNode } from '../../src/types/index.js';
 import {
   ANALYSIS_BENCHMARK_TARGETS,
@@ -22,6 +21,12 @@ import {
   readFixtureMarker,
   type FixtureMarker,
 } from './fixtureMarker.js';
+import {
+  benchmarkWorkspaceRoot,
+  runGit,
+  safeGitValue,
+  sccStoragePath,
+} from './environment.js';
 import { summarizeBenchmarkValues } from './statistics.js';
 import { runBenchmarkIteration } from './iterationRunner.js';
 import type {
@@ -61,37 +66,6 @@ function mulberry32(seed: number): () => number {
 
 function randomInt(random: () => number, minInclusive: number, maxExclusive: number): number {
   return Math.floor(random() * (maxExclusive - minInclusive)) + minInclusive;
-}
-
-function repoRoot(): string {
-  return path.resolve(__dirname, '../..');
-}
-
-function benchmarkWorkspaceRoot(): string {
-  return path.join(repoRoot(), '.bench-results', 'workspaces', 'analysis');
-}
-
-function sccStoragePath(): string {
-  return path.join(repoRoot(), '.bench-results', 'scc-storage');
-}
-
-function runGit(repoPath: string, args: string[], extraEnv: NodeJS.ProcessEnv = {}): string {
-  const result = spawnSync('git', args, {
-    cwd: repoPath,
-    encoding: 'utf8',
-    env: {
-      ...process.env,
-      ...extraEnv,
-    },
-  });
-
-  if (result.status !== 0) {
-    throw new Error(
-      `git ${args.join(' ')} failed in ${repoPath}: ${result.stderr || result.stdout || 'unknown error'}`
-    );
-  }
-
-  return result.stdout.trim();
 }
 
 async function ensureDirectory(dirPath: string): Promise<void> {
@@ -290,14 +264,6 @@ async function benchmarkTarget(
       limitReached: lastResult.limitReached,
     },
   };
-}
-
-function safeGitValue(args: string[], fallback: string): string {
-  const result = spawnSync('git', args, {
-    cwd: repoRoot(),
-    encoding: 'utf8',
-  });
-  return result.status === 0 ? result.stdout.trim() : fallback;
 }
 
 export async function runAnalysisBenchmarks(options: AnalysisBenchmarkOptions = {}): Promise<BenchmarkRunResult> {
