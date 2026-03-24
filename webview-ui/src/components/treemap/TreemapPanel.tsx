@@ -135,7 +135,6 @@ export function TreemapPanel() {
 
       <TreeViewPanel
         root={filteredTreemapNode}
-        colorMode={colorMode}
         selectedPath={selectedNode?.path ?? null}
         hoveredPath={hoveredNode?.path ?? null}
         onSelect={setSelectedNode}

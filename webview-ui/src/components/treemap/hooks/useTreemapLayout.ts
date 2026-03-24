@@ -1,4 +1,3 @@
-// webview-ui/src/components/treemap/hooks/useTreemapLayout.ts
 import { useMemo, useCallback } from 'react';
 import * as d3 from 'd3-hierarchy';
 import type { TreemapNode } from '../../../types';

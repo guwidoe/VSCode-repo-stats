@@ -1,4 +1,3 @@
-// webview-ui/src/components/treemap/hooks/useTreemapLayout.test.ts
 import { describe, it, expect } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { useTreemapLayout } from './useTreemapLayout';

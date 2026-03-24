@@ -210,7 +210,6 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
         return;
       }
 
-      console.log('[RepoStats] Initializing dashboard panel');
       await this.sendCurrentTargetContext(panel.webview);
       await this.runAnalysis(panel.webview);
       await this.sendCurrentTargetContext(panel.webview);
@@ -242,7 +241,6 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
   ): Promise<void> {
     try {
       const message = parseWebviewMessage(rawMessage);
-      console.log('[RepoStats] Received message from webview:', message.type);
 
       switch (message.type) {
         case 'requestAnalysis':
@@ -294,7 +292,6 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
           break;
 
         case 'getSettings':
-          console.log('[RepoStats] Handling getSettings request');
           await this.sendCurrentTargetContext(webview);
           break;
 
@@ -303,15 +300,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
             message.settings,
             message.target ?? 'global'
           );
-          await this.sendCurrentTargetContext(webview);
-          await this.analysisService.sendStalenessStatus(
-            webview,
-            await this.analysisTargetService.getSelectedTarget()
-          );
-
-          if (shouldPromptReanalysis) {
-            await this.promptReanalysisForFileScopeSetting(webview);
-          }
+          await this.handlePostSettingsMutation(webview, shouldPromptReanalysis);
           break;
         }
 
@@ -321,29 +310,13 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
             message.value,
             message.target
           );
-          await this.sendCurrentTargetContext(webview);
-          await this.analysisService.sendStalenessStatus(
-            webview,
-            await this.analysisTargetService.getSelectedTarget()
-          );
-
-          if (shouldPromptReanalysis) {
-            await this.promptReanalysisForFileScopeSetting(webview);
-          }
+          await this.handlePostSettingsMutation(webview, shouldPromptReanalysis);
           break;
         }
 
         case 'resetScopedSetting': {
           const shouldPromptReanalysis = await this.resetScopedSettingOverride(message.key);
-          await this.sendCurrentTargetContext(webview);
-          await this.analysisService.sendStalenessStatus(
-            webview,
-            await this.analysisTargetService.getSelectedTarget()
-          );
-
-          if (shouldPromptReanalysis) {
-            await this.promptReanalysisForFileScopeSetting(webview);
-          }
+          await this.handlePostSettingsMutation(webview, shouldPromptReanalysis);
           break;
         }
       }
@@ -462,6 +435,19 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
 
     if (action === 'Re-analyze now') {
       await this.runAnalysis(webview);
+    }
+  }
+
+  private async handlePostSettingsMutation(
+    webview: vscode.Webview,
+    shouldPromptReanalysis: boolean
+  ): Promise<void> {
+    const selectedTarget = await this.analysisTargetService.getSelectedTarget();
+    await this.sendCurrentTargetContext(webview);
+    await this.analysisService.sendStalenessStatus(webview, selectedTarget);
+
+    if (shouldPromptReanalysis) {
+      await this.promptReanalysisForFileScopeSetting(webview);
     }
   }
 

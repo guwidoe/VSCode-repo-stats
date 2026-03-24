@@ -5,7 +5,7 @@
  */
 
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import type { TreemapNode, ColorMode } from '../../types';
+import type { TreemapNode } from '../../types';
 import { TreeViewRow } from './TreeViewRow';
 import { TreemapContextMenu } from './TreemapContextMenu';
 import { InfoTooltip } from '../common/InfoTooltip';
@@ -13,7 +13,6 @@ import './TreeViewPanel.css';
 
 interface TreeViewPanelProps {
   root: TreemapNode | null;
-  colorMode: ColorMode;
   selectedPath: string | null;
   hoveredPath: string | null;
   onSelect: (node: TreemapNode | null) => void;

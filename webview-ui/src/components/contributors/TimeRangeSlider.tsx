@@ -175,21 +175,26 @@ export function TimeRangeSlider() {
     setIsDragging(handle);
   }, []);
 
+  const applyRangeUpdate = useCallback((handle: 'start' | 'end', candidateIdx: number) => {
+    if (handle === 'start') {
+      const newStart = Math.max(0, Math.min(candidateIdx, localEnd - 1));
+      setLocalStart(newStart);
+      scheduleStoreUpdate(newStart, localEnd);
+      return;
+    }
+
+    const newEnd = Math.min(maxIdx, Math.max(candidateIdx, localStart + 1));
+    setLocalEnd(newEnd);
+    scheduleStoreUpdate(localStart, newEnd);
+  }, [localEnd, localStart, maxIdx, scheduleStoreUpdate]);
+
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDragging) {return;}
 
     const newIdx = getIndexFromPosition(e.clientX);
 
-    if (isDragging === 'start') {
-      const newStart = Math.max(0, Math.min(newIdx, localEnd - 1));
-      setLocalStart(newStart);
-      scheduleStoreUpdate(newStart, localEnd);
-    } else {
-      const newEnd = Math.min(maxIdx, Math.max(newIdx, localStart + 1));
-      setLocalEnd(newEnd);
-      scheduleStoreUpdate(localStart, newEnd);
-    }
-  }, [isDragging, localStart, localEnd, maxIdx, getIndexFromPosition, scheduleStoreUpdate]);
+    applyRangeUpdate(isDragging, newIdx);
+  }, [applyRangeUpdate, getIndexFromPosition, isDragging]);
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(null);
@@ -204,16 +209,8 @@ export function TimeRangeSlider() {
     const distToStart = Math.abs(clickIdx - localStart);
     const distToEnd = Math.abs(clickIdx - localEnd);
 
-    if (distToStart <= distToEnd) {
-      const newStart = Math.max(0, Math.min(clickIdx, localEnd - 1));
-      setLocalStart(newStart);
-      scheduleStoreUpdate(newStart, localEnd);
-    } else {
-      const newEnd = Math.min(maxIdx, Math.max(clickIdx, localStart + 1));
-      setLocalEnd(newEnd);
-      scheduleStoreUpdate(localStart, newEnd);
-    }
-  }, [isDragging, localStart, localEnd, maxIdx, getIndexFromPosition, scheduleStoreUpdate]);
+    applyRangeUpdate(distToStart <= distToEnd ? 'start' : 'end', clickIdx);
+  }, [applyRangeUpdate, getIndexFromPosition, isDragging, localEnd, localStart]);
 
   useEffect(() => {
     if (isDragging) {

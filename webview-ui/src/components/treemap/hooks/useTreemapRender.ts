@@ -1,4 +1,3 @@
-// webview-ui/src/components/treemap/hooks/useTreemapRender.ts
 import { useCallback } from 'react';
 import type { TreemapNode, ColorMode } from '../../../types';
 import type { LayoutNode, SizeDisplayMode } from '../types';

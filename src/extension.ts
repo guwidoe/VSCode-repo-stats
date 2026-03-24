@@ -62,14 +62,10 @@ export function activate(context: vscode.ExtensionContext): void {
   statusBarItem.tooltip = 'Open Repo Stats Dashboard';
   statusBarItem.show();
   context.subscriptions.push(statusBarItem);
-
-  // Log activation
-  console.log('Repo Stats extension activated');
 }
 
 export function deactivate(): void {
   provider = undefined;
-  console.log('Repo Stats extension deactivated');
 }
 
 async function runProviderCommand(

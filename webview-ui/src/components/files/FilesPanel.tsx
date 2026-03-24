@@ -2,7 +2,7 @@
  * Files panel with virtualized table, header filters, and flexible column layout.
  */
 
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent } from 'react';
 import { ChevronDown, Columns3 } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
@@ -41,6 +41,12 @@ export function FilesPanel() {
   const deferredFilters = useDeferredValue(columnFilters);
   const panelRef = useRef<HTMLDivElement>(null);
   const tableContainerRef = useRef<HTMLDivElement>(null);
+  const resizeCleanupRef = useRef<(() => void) | null>(null);
+
+  const clearActiveResize = useCallback(() => {
+    resizeCleanupRef.current?.();
+    resizeCleanupRef.current = null;
+  }, []);
 
   useEffect(() => {
     const onWindowMouseDown = (event: MouseEvent) => {
@@ -54,8 +60,9 @@ export function FilesPanel() {
     window.addEventListener('mousedown', onWindowMouseDown);
     return () => {
       window.removeEventListener('mousedown', onWindowMouseDown);
+      clearActiveResize();
     };
-  }, []);
+  }, [clearActiveResize]);
 
   const visibleColumns = useMemo(
     () => columnOrder
@@ -174,6 +181,8 @@ export function FilesPanel() {
   };
 
   const startColumnResize = (key: FileSortKey, startX: number) => {
+    clearActiveResize();
+
     const baseWidth = columnWidths[key] ?? getColumnConfig(key).width;
 
     const previousCursor = document.body.style.cursor;
@@ -191,15 +200,23 @@ export function FilesPanel() {
       }));
     };
 
-    const onMouseUp = () => {
+    const cleanup = () => {
       document.body.style.cursor = previousCursor;
       document.body.style.userSelect = previousSelect;
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
+      if (resizeCleanupRef.current === cleanup) {
+        resizeCleanupRef.current = null;
+      }
+    };
+
+    const onMouseUp = () => {
+      cleanup();
     };
 
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
+    resizeCleanupRef.current = cleanup;
   };
 
   const isInResizeHotZone = (
