@@ -37,7 +37,52 @@ function commitFile(options: {
   });
 }
 
-function createSettings(): ExtensionSettings {
+function commitEmpty(options: {
+  repoPath: string;
+  name: string;
+  email: string;
+  date: string;
+  message: string;
+}): void {
+  runGit(['commit', '--allow-empty', '-m', options.message], options.repoPath, {
+    GIT_AUTHOR_NAME: options.name,
+    GIT_AUTHOR_EMAIL: options.email,
+    GIT_AUTHOR_DATE: options.date,
+    GIT_COMMITTER_NAME: options.name,
+    GIT_COMMITTER_EMAIL: options.email,
+    GIT_COMMITTER_DATE: options.date,
+  });
+}
+
+function initializeRepo(repoPath: string): void {
+  runGit(['init', '-b', 'main'], repoPath);
+  runGit(['config', 'user.name', 'Test User'], repoPath);
+  runGit(['config', 'user.email', 'test@example.com'], repoPath);
+  runGit(['config', 'commit.gpgsign', 'false'], repoPath);
+}
+
+function createTarget(
+  members: Array<{ repoPath: string; displayName: string }>,
+  id = 'workspace:test',
+  kind: AnalysisTarget['kind'] = 'workspace'
+): AnalysisTarget {
+  return {
+    id,
+    kind,
+    label: kind === 'repository' ? members[0]?.displayName ?? 'Repository' : 'Workspace repositories',
+    settingsScope: kind === 'repository' ? 'repo' : 'workspace',
+    members: members.map((member) => ({
+      id: member.repoPath,
+      role: kind === 'repository' ? 'primary' : 'workspaceRepo',
+      repoPath: member.repoPath,
+      displayName: member.displayName,
+      logicalRoot: member.displayName,
+      pathPrefix: kind === 'repository' ? '' : member.displayName,
+    })),
+  };
+}
+
+function createSettings(overrides: Partial<ExtensionSettings['evolution']> = {}): ExtensionSettings {
   return {
     excludePatterns: [],
     maxCommitsToAnalyze: 1000,
@@ -75,6 +120,7 @@ function createSettings(): ExtensionSettings {
       maxSnapshots: 20,
       maxSeries: 20,
       cohortFormat: '%Y',
+      ...overrides,
     },
   };
 }
@@ -94,10 +140,7 @@ describe('TargetEvolutionAnalyzer', () => {
     repos.push(repoA, repoB);
 
     for (const repoPath of [repoA, repoB]) {
-      runGit(['init', '-b', 'main'], repoPath);
-      runGit(['config', 'user.name', 'Test User'], repoPath);
-      runGit(['config', 'user.email', 'test@example.com'], repoPath);
-      runGit(['config', 'commit.gpgsign', 'false'], repoPath);
+      initializeRepo(repoPath);
     }
 
     commitFile({
@@ -119,30 +162,10 @@ describe('TargetEvolutionAnalyzer', () => {
       message: 'add util',
     });
 
-    const target: AnalysisTarget = {
-      id: 'workspace:test',
-      kind: 'workspace',
-      label: 'Workspace repositories',
-      settingsScope: 'workspace',
-      members: [
-        {
-          id: repoA,
-          role: 'workspaceRepo',
-          repoPath: repoA,
-          displayName: 'repo-a',
-          logicalRoot: 'repo-a',
-          pathPrefix: 'repo-a',
-        },
-        {
-          id: repoB,
-          role: 'workspaceRepo',
-          repoPath: repoB,
-          displayName: 'repo-b',
-          logicalRoot: 'repo-b',
-          pathPrefix: 'repo-b',
-        },
-      ],
-    };
+    const target = createTarget([
+      { repoPath: repoA, displayName: 'repo-a' },
+      { repoPath: repoB, displayName: 'repo-b' },
+    ]);
 
     const phases: string[] = [];
     const result = await createTargetEvolutionAnalyzer(target, createSettings()).analyze((update) => {
@@ -161,5 +184,86 @@ describe('TargetEvolutionAnalyzer', () => {
       expect.stringContaining('Analyzing snapshots for repo-a'),
       expect.stringContaining('Analyzing snapshots for repo-b'),
     ]));
+  });
+
+  it('keeps single-member targets on the canonical evolution analyzer path', async () => {
+    const repoPath = mkdtempSync(path.join(tmpdir(), 'repo-stats-target-evo-single-'));
+    repos.push(repoPath);
+    initializeRepo(repoPath);
+
+    commitFile({
+      repoPath,
+      filePath: 'src/app.ts',
+      content: 'const app = 1;\nconst other = 2;\n',
+      name: 'Alice',
+      email: 'alice@example.com',
+      date: '2020-01-01T12:00:00Z',
+      message: 'add app',
+    });
+    commitEmpty({
+      repoPath,
+      name: 'Alice',
+      email: 'alice@example.com',
+      date: '2020-02-01T12:00:00Z',
+      message: 'empty checkpoint',
+    });
+    commitFile({
+      repoPath,
+      filePath: 'src/app.ts',
+      content: 'const renamed = 10;\nconst changed = 20;\nconst third = 30;\n',
+      name: 'Bob',
+      email: 'bob@example.com',
+      date: '2022-01-01T12:00:00Z',
+      message: 'rewrite app',
+    });
+
+    const result = await createTargetEvolutionAnalyzer(
+      createTarget([{ repoPath, displayName: 'single-repo' }], 'repo:single', 'repository'),
+      createSettings()
+    ).analyze();
+
+    expect(result.targetId).toBe('repo:single');
+    expect(result.historyMode).toBe('singleBranch');
+    expect(result.memberHeads).toHaveLength(1);
+    expect(result.memberHeads[0]?.repositoryName).toBe('single-repo');
+    expect(result.authors.labels).toEqual(expect.arrayContaining(['Alice', 'Bob']));
+
+    const aliceIndex = result.authors.labels.indexOf('Alice');
+    const bobIndex = result.authors.labels.indexOf('Bob');
+
+    expect(result.authors.y[aliceIndex]).toEqual([2, 2, 0]);
+    expect(result.authors.y[bobIndex]).toEqual([0, 0, 3]);
+    expect(result.authors.snapshots).toHaveLength(3);
+    expect(result.authors.snapshots?.map((snapshot) => snapshot.commitIndex)).toEqual([0, 1, 2]);
+  });
+
+  it('supports commit-based sampling for single-member targets', async () => {
+    const repoPath = mkdtempSync(path.join(tmpdir(), 'repo-stats-target-evo-commit-'));
+    repos.push(repoPath);
+    initializeRepo(repoPath);
+
+    for (let index = 0; index < 8; index += 1) {
+      commitFile({
+        repoPath,
+        filePath: `src/file${index}.ts`,
+        content: `export const value${index} = ${index};\n`,
+        name: `User${index}`,
+        email: `user${index}@example.com`,
+        date: new Date(Date.UTC(2024, 0, index + 1, 12, 0, 0)).toISOString(),
+        message: `commit ${index}`,
+      });
+    }
+
+    const result = await createTargetEvolutionAnalyzer(
+      createTarget([{ repoPath, displayName: 'commit-repo' }], 'repo:commit', 'repository'),
+      createSettings({
+        samplingMode: 'commit',
+        snapshotIntervalCommits: 3,
+      })
+    ).analyze();
+
+    expect(result.historyMode).toBe('singleBranch');
+    expect(result.authors.snapshots?.map((snapshot) => snapshot.commitIndex)).toEqual([0, 3, 6, 7]);
+    expect(result.authors.snapshots?.every((snapshot) => snapshot.samplingMode === 'commit')).toBe(true);
   });
 });
