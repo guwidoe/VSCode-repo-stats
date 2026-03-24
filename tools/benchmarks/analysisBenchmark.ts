@@ -15,6 +15,17 @@ import {
   type AnalysisBenchmarkTarget,
   type GeneratedRepoFixtureSpec,
 } from './analysisTargets.js';
+import {
+  buildInitialTextFile,
+  buildMutationBlock,
+  TEXT_FILE_VARIANTS,
+} from './fixtureContent.js';
+import {
+  fixtureMarkerMatches,
+  writeFixtureMarker,
+  readFixtureMarker,
+  type FixtureMarker,
+} from './fixtureMarker.js';
 import type {
   BenchmarkIterationSummary,
   BenchmarkRunResult,
@@ -32,47 +43,6 @@ const FIXTURE_SCHEMA_VERSION = 1;
 const BENCHMARK_SCHEMA_VERSION = 1;
 const DEFAULT_WARMUP_ITERATIONS = 1;
 const DEFAULT_MEASURED_ITERATIONS = 3;
-const TEXT_FILE_VARIANTS = [
-  { extension: '.ts', directory: 'src/core', lines: (i: number) => [
-    `export function feature${i}(input: number): number {`,
-    `  return input + ${i};`,
-    '}',
-  ] },
-  { extension: '.tsx', directory: 'src/ui', lines: (i: number) => [
-    `export function Card${i}() {`,
-    `  return <section data-card="${i}">Card ${i}</section>;`,
-    '}',
-  ] },
-  { extension: '.js', directory: 'scripts', lines: (i: number) => [
-    `function task${i}() {`,
-    `  return 'task-${i}';`,
-    '}',
-    `module.exports = { task${i} };`,
-  ] },
-  { extension: '.json', directory: 'config', lines: (i: number) => [
-    '{',
-    `  "name": "config-${i}",`,
-    `  "enabled": ${i % 2 === 0 ? 'true' : 'false'}`,
-    '}',
-  ] },
-  { extension: '.md', directory: 'docs', lines: (i: number) => [
-    `# Document ${i}`,
-    '',
-    `Generated benchmark note ${i}.`,
-  ] },
-  { extension: '.css', directory: 'styles', lines: (i: number) => [
-    `.card-${i} {`,
-    `  padding: ${(i % 6) + 4}px;`,
-    '}',
-  ] },
-  { extension: '.yml', directory: '.github/workflows', lines: (i: number) => [
-    `name: workflow-${i}`,
-    'on: [push]',
-    'jobs:',
-    '  check:',
-    '    runs-on: ubuntu-latest',
-  ] },
-];
 
 export interface AnalysisBenchmarkOptions {
   targetNames?: string[];
@@ -80,12 +50,6 @@ export interface AnalysisBenchmarkOptions {
   measuredIterations?: number;
   outputPath?: string;
   maxCommitsOverride?: number;
-}
-
-interface FixtureMarker {
-  schemaVersion: number;
-  targetName: string;
-  fixture: GeneratedRepoFixtureSpec;
 }
 
 interface IterationAccumulator {
@@ -208,23 +172,6 @@ async function appendTextFile(filePath: string, lines: string[]): Promise<void> 
   await fs.appendFile(filePath, `${lines.join('\n')}\n`, 'utf8');
 }
 
-function buildInitialTextFile(relativePath: string, fileIndex: number): string[] {
-  const variant = TEXT_FILE_VARIANTS[fileIndex % TEXT_FILE_VARIANTS.length];
-  return [
-    ...variant.lines(fileIndex),
-    '',
-    `// benchmark-file: ${relativePath}`,
-  ];
-}
-
-function buildMutationBlock(commitIndex: number, mutationIndex: number, lines: number): string[] {
-  const block: string[] = [`// mutation ${commitIndex}-${mutationIndex}`];
-  for (let i = 0; i < lines; i += 1) {
-    block.push(`export const benchmark_${commitIndex}_${mutationIndex}_${i} = ${commitIndex + mutationIndex + i};`);
-  }
-  return block;
-}
-
 async function createGeneratedRepoFixture(target: AnalysisBenchmarkTarget, targetDir: string): Promise<void> {
   const random = mulberry32(target.fixture.seed);
   await fs.rm(targetDir, { recursive: true, force: true });
@@ -296,16 +243,12 @@ async function createGeneratedRepoFixture(target: AnalysisBenchmarkTarget, targe
     commitFixtureState(targetDir, commitIndex);
   }
 
-  const marker: FixtureMarker = {
+  const marker: FixtureMarker<GeneratedRepoFixtureSpec> = {
     schemaVersion: FIXTURE_SCHEMA_VERSION,
     targetName: target.name,
     fixture: target.fixture,
   };
-  await fs.writeFile(
-    path.join(targetDir, '.repo-stats-benchmark-fixture.json'),
-    `${JSON.stringify(marker, null, 2)}\n`,
-    'utf8'
-  );
+  await writeFixtureMarker(path.join(targetDir, '.repo-stats-benchmark-fixture.json'), marker);
 }
 
 function commitFixtureState(targetDir: string, commitIndex: number): void {
@@ -324,12 +267,14 @@ async function ensureGeneratedFixture(target: AnalysisBenchmarkTarget): Promise<
   const markerPath = path.join(targetDir, '.repo-stats-benchmark-fixture.json');
 
   if (existsSync(markerPath)) {
-    const markerRaw = await fs.readFile(markerPath, 'utf8');
-    const marker = JSON.parse(markerRaw) as FixtureMarker;
+    const marker = await readFixtureMarker<GeneratedRepoFixtureSpec>(markerPath);
     if (
-      marker.schemaVersion === FIXTURE_SCHEMA_VERSION &&
-      marker.targetName === target.name &&
-      JSON.stringify(marker.fixture) === JSON.stringify(target.fixture) &&
+      fixtureMarkerMatches({
+        marker,
+        schemaVersion: FIXTURE_SCHEMA_VERSION,
+        targetName: target.name,
+        fixture: target.fixture,
+      }) &&
       existsSync(path.join(targetDir, '.git'))
     ) {
       return targetDir;
