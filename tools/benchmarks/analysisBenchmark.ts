@@ -26,17 +26,19 @@ import {
   readFixtureMarker,
   type FixtureMarker,
 } from './fixtureMarker.js';
+import {
+  roundBenchmarkMetric,
+  summarizeBenchmarkValues,
+} from './statistics.js';
 import type {
   BenchmarkIterationSummary,
   BenchmarkRunResult,
   BenchmarkTargetResult,
-  SummaryStats,
 } from './contracts.js';
 export type {
   BenchmarkIterationSummary,
   BenchmarkRunResult,
   BenchmarkTargetResult,
-  SummaryStats,
 } from './contracts.js';
 
 const FIXTURE_SCHEMA_VERSION = 1;
@@ -70,61 +72,6 @@ function mulberry32(seed: number): () => number {
 
 function randomInt(random: () => number, minInclusive: number, maxExclusive: number): number {
   return Math.floor(random() * (maxExclusive - minInclusive)) + minInclusive;
-}
-
-function median(values: number[]): number {
-  if (values.length === 0) {
-    return 0;
-  }
-
-  const sorted = [...values].sort((a, b) => a - b);
-  const middle = Math.floor(sorted.length / 2);
-  if (sorted.length % 2 === 0) {
-    return (sorted[middle - 1] + sorted[middle]) / 2;
-  }
-  return sorted[middle];
-}
-
-function percentile(values: number[], percentileValue: number): number {
-  if (values.length === 0) {
-    return 0;
-  }
-
-  const sorted = [...values].sort((a, b) => a - b);
-  const index = Math.min(
-    sorted.length - 1,
-    Math.max(0, Math.ceil((percentileValue / 100) * sorted.length) - 1)
-  );
-  return sorted[index];
-}
-
-function summarize(values: number[]): SummaryStats {
-  if (values.length === 0) {
-    return {
-      count: 0,
-      min: 0,
-      max: 0,
-      mean: 0,
-      median: 0,
-      p95: 0,
-    };
-  }
-
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
-  return {
-    count: values.length,
-    min: roundMetric(min),
-    max: roundMetric(max),
-    mean: roundMetric(mean),
-    median: roundMetric(median(values)),
-    p95: roundMetric(percentile(values, 95)),
-  };
-}
-
-function roundMetric(value: number): number {
-  return Math.round(value * 100) / 100;
 }
 
 function repoRoot(): string {
@@ -399,9 +346,9 @@ async function runSingleIteration(
 
   return {
     iteration: {
-      totalMs: roundMetric(totalMs),
+      totalMs: roundBenchmarkMetric(totalMs),
       phaseTotalsMs: Object.fromEntries(
-        Object.entries(accumulator.phaseTotalsMs).map(([key, value]) => [key, roundMetric(value)])
+        Object.entries(accumulator.phaseTotalsMs).map(([key, value]) => [key, roundBenchmarkMetric(value)])
       ),
       phaseCallCounts: accumulator.phaseCallCounts,
     },
@@ -441,7 +388,7 @@ async function benchmarkTarget(
       .sort((a, b) => a.localeCompare(b))
       .map((phaseName) => [
         phaseName,
-        summarize(iterations.map((iteration) => iteration.phaseTotalsMs[phaseName] ?? 0)),
+        summarizeBenchmarkValues(iterations.map((iteration) => iteration.phaseTotalsMs[phaseName] ?? 0)),
       ])
   );
 
@@ -454,7 +401,7 @@ async function benchmarkTarget(
     description: target.description,
     fixturePath,
     iterations,
-    totalMs: summarize(iterations.map((iteration) => iteration.totalMs)),
+    totalMs: summarizeBenchmarkValues(iterations.map((iteration) => iteration.totalMs)),
     phaseStats,
     metadata: {
       repositoryCommitCount: Number(runGit(fixturePath, ['rev-list', '--count', 'HEAD'])),
