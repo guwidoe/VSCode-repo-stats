@@ -5,7 +5,6 @@ import {
   RepoScopableSettingValueMap,
   SettingWriteTarget,
 } from '../types/index.js';
-import type { AnalysisTargetSelection } from './context.js';
 import { RepoAnalysisService } from './analysisService.js';
 import { AnalysisTargetService } from './analysisTargetService.js';
 import { BookmarkedRepositoryManager } from './bookmarkedRepositoryManager.js';
@@ -13,7 +12,11 @@ import { parseWebviewMessage } from './messageValidation.js';
 import { ProviderContextSync } from './providerContextSync.js';
 import { ProviderFileActions } from './providerFileActions.js';
 import { ProviderMessageRouter } from './providerMessageRouter.js';
-import { formatRepositoryDiscoveryWarning, RepositoryService } from './repositoryService.js';
+import {
+  buildRepositorySelectionQuickPickItems,
+  createRepositorySelectionMessage,
+} from './repositorySelectionPrompt.js';
+import { RepositoryService } from './repositoryService.js';
 import { RepositorySettingsService } from './settingsService.js';
 import { getRepoStatsWebviewHtml } from './webviewHtml.js';
 
@@ -146,23 +149,14 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     const selection = await this.analysisTargetService.resolveSelection();
     if (selection.repositories.length === 0) {
       const message = selection.repositoryDiscoveryWarnings.length > 0
-        ? this.createRepositoryDiscoveryMessage(selection.repositoryDiscoveryWarnings)
+        ? createRepositorySelectionMessage(selection.repositoryDiscoveryWarnings)
         : 'No Git repositories were found in the workspace or bookmarked list.';
       vscode.window.showWarningMessage(message);
       return;
     }
 
-    const selectedIds = new Set(selection.selectedRepositoryIds);
     const picked = await vscode.window.showQuickPick(
-      selection.repositories.map((repository) => ({
-        label: repository.option.name,
-        description: repository.option.workspaceFolderName
-          ? `${repository.option.workspaceFolderName} • ${repository.option.relativePath ?? '.'}`
-          : 'Bookmarked repository',
-        detail: repository.rootUri.fsPath,
-        picked: selectedIds.has(repository.option.path),
-        repositoryId: repository.option.path,
-      })),
+      buildRepositorySelectionQuickPickItems(selection),
       {
         canPickMany: true,
         title: 'Select Repositories',
@@ -263,7 +257,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       await this.contextSync.sendCurrentTargetContext(webview, selection);
       this.sendMessage(webview, {
         type: 'analysisError',
-        error: this.createRepositoryDiscoveryMessage(selection.repositoryDiscoveryWarnings),
+        error: createRepositorySelectionMessage(selection.repositoryDiscoveryWarnings),
       });
       return;
     }
@@ -316,17 +310,6 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     if (action === 'Re-analyze now') {
       await this.runAnalysis(webview);
     }
-  }
-
-  private createRepositoryDiscoveryMessage(warnings: string[] | AnalysisTargetSelection['repositoryDiscoveryWarnings']): string {
-    const details = warnings
-      .map((warning) => typeof warning === 'string' ? warning : formatRepositoryDiscoveryWarning(warning))
-      .slice(0, 3);
-    const remaining = warnings.length - details.length;
-
-    return remaining > 0
-      ? `Repository discovery encountered problems: ${details.join(' | ')} | +${remaining} more`
-      : `Repository discovery encountered problems: ${details.join(' | ')}`;
   }
 
   private sendMessage(webview: vscode.Webview, message: ExtensionMessage): void {
