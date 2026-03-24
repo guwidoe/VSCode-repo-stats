@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { AnalysisResult, EvolutionResult, ExtensionSettings } from '../types';
+import { normalizeEvolutionResult, type AnalysisResult, type EvolutionResult, type ExtensionSettings } from '../types';
 import type { AnalysisTargetContext } from './context';
 
 const mockCacheManagerState = {
@@ -221,7 +221,7 @@ function createAnalysisResult(label: string, blamedLines: number): AnalysisResul
 }
 
 function createEvolutionResult(revisionHash: string, settingsHash: string): EvolutionResult {
-  return {
+  return normalizeEvolutionResult({
     generatedAt: '2026-03-24T00:00:00.000Z',
     targetId: 'target-1',
     historyMode: 'singleBranch',
@@ -240,7 +240,7 @@ function createEvolutionResult(revisionHash: string, settingsHash: string): Evol
     exts: { ts: [], y: [], labels: [] },
     dirs: { ts: [], y: [], labels: [] },
     domains: { ts: [], y: [], labels: [] },
-  };
+  });
 }
 
 function createTargetContext(): AnalysisTargetContext {

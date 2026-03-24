@@ -142,8 +142,8 @@ function selectDimensionData(
   data: {
     cohorts: EvolutionTimeSeriesData;
     authors: EvolutionTimeSeriesData;
-    exts: EvolutionTimeSeriesData;
-    dirs: EvolutionTimeSeriesData;
+    extensions: EvolutionTimeSeriesData;
+    directories: EvolutionTimeSeriesData;
     domains: EvolutionTimeSeriesData;
   },
   dimension: EvolutionDimension
@@ -154,9 +154,9 @@ function selectDimensionData(
     case 'author':
       return data.authors;
     case 'ext':
-      return data.exts;
+      return data.extensions;
     case 'dir':
-      return data.dirs;
+      return data.directories;
     case 'domain':
       return data.domains;
   }

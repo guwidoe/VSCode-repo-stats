@@ -6,10 +6,21 @@ import type {
 
 export interface ProcessedSeriesData {
   snapshots: EvolutionSnapshotPoint[];
-  ts: string[];
+  timestamps: string[];
   labels: string[];
+  seriesValues: Array<Array<number | null>>;
+  ts: string[];
   y: Array<Array<number | null>>;
 }
+
+type LegacySeriesData = {
+  snapshots?: EvolutionSnapshotPoint[];
+  timestamps?: string[];
+  ts?: string[];
+  labels: string[];
+  seriesValues?: Array<Array<number | null>>;
+  y?: Array<Array<number | null>>;
+};
 
 export type EvolutionAxisMode = 'time' | 'commit';
 
@@ -32,31 +43,31 @@ export interface EvolutionTimeAxisConfig {
 }
 
 export function processEvolutionSeries(
-  data: EvolutionTimeSeriesData,
+  data: EvolutionTimeSeriesData | LegacySeriesData,
   maxSeries: number,
   normalize: boolean,
   dimension: EvolutionDimension,
   showInactivePeriods: boolean = false
 ): ProcessedSeriesData {
-  const baseTs = data.ts;
-  const baseSnapshots = data.snapshots ?? baseTs.map((committedAt, index) => ({
+  const baseTimestamps = data.timestamps ?? data.ts ?? [];
+  const baseSnapshots = data.snapshots ?? baseTimestamps.map((committedAt, index) => ({
     commitSha: '',
     commitIndex: index,
-    totalCommitCount: baseTs.length,
+    totalCommitCount: baseTimestamps.length,
     committedAt,
     samplingMode: 'time' as const,
   }));
   const labels = [...data.labels];
-  const baseY = data.y.map((series) => [...series]);
+  const baseSeriesValues = (data.seriesValues ?? data.y ?? []).map((series) => [...series]);
   const expanded = showInactivePeriods
-    ? fillInactivePeriods(baseSnapshots, baseY)
-    : { snapshots: baseSnapshots, ts: baseTs, y: baseY };
-  const ts = expanded.ts;
+    ? fillInactivePeriods(baseSnapshots, baseSeriesValues)
+    : { snapshots: baseSnapshots, timestamps: baseTimestamps, seriesValues: baseSeriesValues };
+  const timestamps = expanded.timestamps;
   const snapshots = expanded.snapshots;
-  const y = expanded.y;
+  const seriesValues = expanded.seriesValues;
 
   const indexed = labels.map((label, index) => {
-    const series = y[index] || [];
+    const series = seriesValues[index] || [];
     return {
       label,
       index,
@@ -71,24 +82,24 @@ export function processEvolutionSeries(
   const rest = indexed.slice(Math.max(1, maxSeries));
 
   let outLabels = top.map((entry) => entry.label);
-  let outY = top.map((entry) => y[entry.index] || Array(ts.length).fill(0));
+  let outSeriesValues = top.map((entry) => seriesValues[entry.index] || Array(timestamps.length).fill(0));
 
   if (rest.length > 0) {
-    const other = Array(ts.length).fill(0);
+    const other = Array(timestamps.length).fill(0);
     for (const entry of rest) {
-      const series = y[entry.index] ?? [];
-      for (let i = 0; i < ts.length; i++) {
+      const series = seriesValues[entry.index] ?? [];
+      for (let i = 0; i < timestamps.length; i++) {
         other[i] += series[i] ?? 0;
       }
     }
     outLabels.push('Other');
-    outY.push(other);
+    outSeriesValues.push(other);
   }
 
   if (dimension === 'cohort') {
     const zipped = outLabels.map((label, index) => ({
       label,
-      series: outY[index],
+      series: outSeriesValues[index],
       isOther: label === 'Other',
       key: cohortSortKey(label),
     }));
@@ -110,15 +121,22 @@ export function processEvolutionSeries(
     });
 
     outLabels = zipped.map((entry) => entry.label);
-    outY = zipped.map((entry) => entry.series);
+    outSeriesValues = zipped.map((entry) => entry.series);
   }
 
   if (!normalize) {
-    return { snapshots, ts, labels: outLabels, y: outY };
+    return {
+      snapshots,
+      timestamps,
+      labels: outLabels,
+      seriesValues: outSeriesValues,
+      ts: timestamps,
+      y: outSeriesValues,
+    };
   }
 
-  const normalized = outY.map((series) => [...series]);
-  for (let i = 0; i < ts.length; i++) {
+  const normalized = outSeriesValues.map((series) => [...series]);
+  for (let i = 0; i < timestamps.length; i++) {
     let total = 0;
     for (const series of normalized) {
       const value = series[i];
@@ -141,22 +159,26 @@ export function processEvolutionSeries(
 
   return {
     snapshots,
-    ts,
+    timestamps,
     labels: outLabels,
+    seriesValues: normalized,
+    ts: timestamps,
     y: normalized,
   };
 }
 
 export function getEvolutionTimeAxisConfig(
   data: {
-    ts: string[];
+    timestamps?: string[];
+    ts?: string[];
     snapshots?: EvolutionSnapshotPoint[];
   },
   axisMode: EvolutionAxisMode = 'time'
 ): EvolutionTimeAxisConfig {
-  const granularity = inferEvolutionTimeGranularity(data.ts);
+  const timestamps = data.timestamps ?? data.ts ?? [];
+  const granularity = inferEvolutionTimeGranularity(timestamps);
   const snapshots = data.snapshots ?? [];
-  const hoverLabels = data.ts.map((isoDate, index) => formatSnapshotHoverLabel(snapshots[index], isoDate, granularity));
+  const hoverLabels = timestamps.map((isoDate, index) => formatSnapshotHoverLabel(snapshots[index], isoDate, granularity));
 
   if (axisMode === 'commit') {
     return {
@@ -176,7 +198,7 @@ export function getEvolutionTimeAxisConfig(
   }
 
   return {
-    x: data.ts,
+    x: timestamps,
     axisType: 'date',
     axisTitle: 'Time',
     granularity,
@@ -306,19 +328,19 @@ export function formatTimeLabel(
 
 function fillInactivePeriods(
   snapshots: EvolutionSnapshotPoint[],
-  y: Array<Array<number | null>>
-): { snapshots: EvolutionSnapshotPoint[]; ts: string[]; y: Array<Array<number | null>> } {
+  seriesValues: Array<Array<number | null>>
+): { snapshots: EvolutionSnapshotPoint[]; timestamps: string[]; seriesValues: Array<Array<number | null>> } {
   if (snapshots.length < 2) {
     return {
       snapshots,
-      ts: snapshots.map((snapshot) => snapshot.committedAt),
-      y,
+      timestamps: snapshots.map((snapshot) => snapshot.committedAt),
+      seriesValues,
     };
   }
 
   const granularity = inferEvolutionTimeGranularity(snapshots.map((snapshot) => snapshot.committedAt));
   const expandedSnapshots: EvolutionSnapshotPoint[] = [snapshots[0]];
-  const expandedY: Array<Array<number | null>> = y.map((series) => [series[0] ?? 0]);
+  const expandedSeriesValues: Array<Array<number | null>> = seriesValues.map((series) => [series[0] ?? 0]);
 
   for (let snapshotIndex = 1; snapshotIndex < snapshots.length; snapshotIndex++) {
     const previousSnapshot = snapshots[snapshotIndex - 1];
@@ -333,22 +355,22 @@ function fillInactivePeriods(
         committedAt,
         synthetic: true,
       });
-      for (let seriesIndex = 0; seriesIndex < expandedY.length; seriesIndex++) {
-        expandedY[seriesIndex].push(null);
+      for (let seriesIndex = 0; seriesIndex < expandedSeriesValues.length; seriesIndex++) {
+        expandedSeriesValues[seriesIndex].push(null);
       }
       cursor = addGranularity(committedAt, granularity);
     }
 
     expandedSnapshots.push(currentSnapshot);
-    for (let seriesIndex = 0; seriesIndex < expandedY.length; seriesIndex++) {
-      expandedY[seriesIndex].push(y[seriesIndex]?.[snapshotIndex] ?? 0);
+    for (let seriesIndex = 0; seriesIndex < expandedSeriesValues.length; seriesIndex++) {
+      expandedSeriesValues[seriesIndex].push(seriesValues[seriesIndex]?.[snapshotIndex] ?? 0);
     }
   }
 
   return {
     snapshots: expandedSnapshots,
-    ts: expandedSnapshots.map((snapshot) => snapshot.committedAt),
-    y: expandedY,
+    timestamps: expandedSnapshots.map((snapshot) => snapshot.committedAt),
+    seriesValues: expandedSeriesValues,
   };
 }
 

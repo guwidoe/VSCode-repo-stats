@@ -3,7 +3,7 @@
  */
 
 import * as crypto from 'crypto';
-import { EvolutionResult } from '../types/index.js';
+import { EvolutionResult, normalizeEvolutionResult } from '../types/index.js';
 import type { CacheStorage } from './cacheManager.js';
 
 const EVOLUTION_CACHE_VERSION = '2.0.0';
@@ -43,7 +43,7 @@ export class EvolutionCacheManager {
       return null;
     }
 
-    return cache.data;
+    return normalizeEvolutionResult(cache.data);
   }
 
   getLatest(): EvolutionResult | null {
@@ -52,7 +52,7 @@ export class EvolutionCacheManager {
       return null;
     }
 
-    return cache.data;
+    return normalizeEvolutionResult(cache.data);
   }
 
   async save(result: EvolutionResult): Promise<void> {
@@ -60,7 +60,7 @@ export class EvolutionCacheManager {
       version: EVOLUTION_CACHE_VERSION,
       targetId: result.targetId,
       lastAnalyzed: Date.now(),
-      data: result,
+      data: normalizeEvolutionResult(result),
     };
 
     await this.storage.set(this.keyPrefix, cache);

@@ -16,6 +16,7 @@ const PALETTE = [
 
 export function EvolutionLineChart({ data, normalize, axisMode = 'time' }: Props) {
   const timeAxis = getEvolutionTimeAxisConfig(data, axisMode);
+  const seriesValues = data.seriesValues ?? data.y;
 
   return (
     <Plot
@@ -24,7 +25,7 @@ export function EvolutionLineChart({ data, normalize, axisMode = 'time' }: Props
         mode: 'lines+markers',
         name: label,
         x: timeAxis.x,
-        y: data.y[index],
+        y: seriesValues[index],
         customdata: timeAxis.hoverLabels,
         connectgaps: true,
         line: {

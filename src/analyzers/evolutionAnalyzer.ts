@@ -14,6 +14,8 @@ import {
   EvolutionTimeSeriesData,
   ExtensionSettings,
   NotAGitRepoError,
+  normalizeEvolutionResult,
+  normalizeEvolutionTimeSeriesData,
 } from '../types/index.js';
 import { createEvolutionAnalysisSettingsSnapshot } from '../shared/settings.js';
 import { normalizeExtensionForFilter } from './locCounter.js';
@@ -196,7 +198,7 @@ export class EvolutionAnalyzer {
 
     const settingsHash = this.createSettingsHash();
 
-    const result: EvolutionResult = {
+    const result: EvolutionResult = normalizeEvolutionResult({
       generatedAt: new Date().toISOString(),
       targetId: this.repoPath,
       historyMode: 'singleBranch',
@@ -212,13 +214,13 @@ export class EvolutionAnalyzer {
       ],
       cohorts: this.toSeries(snapshotPoints, snapshotTotals.cohort),
       authors: this.toSeries(snapshotPoints, snapshotTotals.author),
-      exts: this.toSeries(snapshotPoints, snapshotTotals.ext),
-      dirs: this.toSeries(snapshotPoints, snapshotTotals.dir),
+      extensions: this.toSeries(snapshotPoints, snapshotTotals.ext),
+      directories: this.toSeries(snapshotPoints, snapshotTotals.dir),
       domains: this.toSeries(snapshotPoints, snapshotTotals.domain),
       diagnostics: {
         expectedBlameMisses: this.expectedBlameMisses,
       },
-    };
+    });
 
     onProgress?.('Evolution analysis complete', 100);
 
@@ -582,14 +584,14 @@ export class EvolutionAnalyzer {
     }
 
     const labels = Array.from(labelSet).sort((a, b) => a.localeCompare(b));
-    const y = labels.map((label) => countsBySnapshot.map((snapshot) => snapshot[label] ?? 0));
+    const seriesValues = labels.map((label) => countsBySnapshot.map((snapshot) => snapshot[label] ?? 0));
 
-    return {
+    return normalizeEvolutionTimeSeriesData({
       snapshots,
-      ts: snapshots.map((snapshot) => snapshot.committedAt),
+      timestamps: snapshots.map((snapshot) => snapshot.committedAt),
       labels,
-      y,
-    };
+      seriesValues,
+    });
   }
 
   private createSettingsHash(): string {

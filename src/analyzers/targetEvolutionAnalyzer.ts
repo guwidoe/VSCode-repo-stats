@@ -2,6 +2,10 @@ import * as crypto from 'crypto';
 import * as os from 'os';
 import * as path from 'path';
 import simpleGit, { type SimpleGit } from 'simple-git';
+import {
+  normalizeEvolutionResult,
+  normalizeEvolutionTimeSeriesData,
+} from '../types/index.js';
 import type {
   AnalysisTarget,
   EvolutionResult,
@@ -600,7 +604,7 @@ export class TargetEvolutionAnalyzer {
       totalSnapshots: sampledEvents.length,
     });
 
-    return {
+    return normalizeEvolutionResult({
       generatedAt: new Date().toISOString(),
       targetId: this.target.id,
       historyMode: this.target.members.length === 1 ? 'singleBranch' : 'mergedMembers',
@@ -609,13 +613,13 @@ export class TargetEvolutionAnalyzer {
       memberHeads,
       cohorts: this.toSeries(snapshots, snapshotTotals.cohort),
       authors: this.toSeries(snapshots, snapshotTotals.author),
-      exts: this.toSeries(snapshots, snapshotTotals.ext),
-      dirs: this.toSeries(snapshots, snapshotTotals.dir),
+      extensions: this.toSeries(snapshots, snapshotTotals.ext),
+      directories: this.toSeries(snapshots, snapshotTotals.dir),
       domains: this.toSeries(snapshots, snapshotTotals.domain),
       diagnostics: {
         expectedBlameMisses: runtimes.reduce((sum, runtime) => sum + runtime.expectedBlameMisses, 0),
       },
-    };
+    });
   }
 
   private mergeEvents(
@@ -803,14 +807,14 @@ export class TargetEvolutionAnalyzer {
     }
 
     const labels = Array.from(labelSet).sort((a, b) => a.localeCompare(b));
-    const y = labels.map((label) => countsBySnapshot.map((snapshot) => snapshot[label] ?? 0));
+    const seriesValues = labels.map((label) => countsBySnapshot.map((snapshot) => snapshot[label] ?? 0));
 
-    return {
+    return normalizeEvolutionTimeSeriesData({
       snapshots,
-      ts: snapshots.map((snapshot) => snapshot.committedAt),
+      timestamps: snapshots.map((snapshot) => snapshot.committedAt),
       labels,
-      y,
-    };
+      seriesValues,
+    });
   }
 
   private createSettingsHash(): string {

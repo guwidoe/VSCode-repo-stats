@@ -1,13 +1,13 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 import { InMemoryCacheStorage } from './cacheManager';
 import { EvolutionCacheManager } from './evolutionCacheManager';
-import type { EvolutionResult } from '../types';
+import { normalizeEvolutionResult, type EvolutionResult } from '../types';
 
 describe('EvolutionCacheManager', () => {
   let storage: InMemoryCacheStorage;
   let cacheManager: EvolutionCacheManager;
 
-  const mockResult: EvolutionResult = {
+  const mockResult: EvolutionResult = normalizeEvolutionResult({
     generatedAt: '2026-03-05T00:00:00.000Z',
     targetId: 'repo:/tmp/repo',
     historyMode: 'singleBranch',
@@ -46,7 +46,7 @@ describe('EvolutionCacheManager', () => {
       labels: ['example.com'],
       y: [[100]],
     },
-  };
+  });
 
   beforeEach(() => {
     storage = new InMemoryCacheStorage();

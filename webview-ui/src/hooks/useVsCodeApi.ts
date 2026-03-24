@@ -3,6 +3,7 @@
  */
 
 import { useCallback, useEffect } from 'react';
+import { normalizeEvolutionResult } from '@shared/contracts';
 import type {
   WebviewMessage,
   ExtensionMessage,
@@ -160,7 +161,7 @@ export function useVsCodeApi() {
           break;
 
         case 'evolutionComplete':
-          setEvolutionData(message.data);
+          setEvolutionData(normalizeEvolutionResult(message.data));
           break;
 
         case 'evolutionError':

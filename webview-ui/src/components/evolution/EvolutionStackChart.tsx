@@ -16,6 +16,7 @@ const PALETTE = [
 
 export function EvolutionStackChart({ data, normalize, axisMode = 'time' }: Props) {
   const timeAxis = getEvolutionTimeAxisConfig(data, axisMode);
+  const seriesValues = data.seriesValues ?? data.y;
 
   return (
     <Plot
@@ -24,7 +25,7 @@ export function EvolutionStackChart({ data, normalize, axisMode = 'time' }: Prop
         mode: 'lines',
         name: label,
         x: timeAxis.x,
-        y: data.y[index],
+        y: seriesValues[index],
         customdata: timeAxis.hoverLabels,
         stackgroup: 'one',
         stackgaps: 'interpolate',
