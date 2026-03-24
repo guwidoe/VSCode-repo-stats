@@ -11,7 +11,8 @@ import {
 import type { AnalysisTargetSelection } from './context.js';
 import { RepoAnalysisService } from './analysisService.js';
 import { AnalysisTargetService } from './analysisTargetService.js';
-import { parseWebviewMessage, resolveContainedPath, validateLogicalPath } from './messageValidation.js';
+import { parseWebviewMessage } from './messageValidation.js';
+import { ProviderFileActions } from './providerFileActions.js';
 import { ProviderMessageRouter } from './providerMessageRouter.js';
 import { formatRepositoryDiscoveryWarning, RepositoryService } from './repositoryService.js';
 import { RepositorySettingsService } from './settingsService.js';
@@ -25,6 +26,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
   private readonly settingsService: RepositorySettingsService;
   private readonly analysisService: RepoAnalysisService;
   private readonly messageRouter: ProviderMessageRouter;
+  private readonly fileActions: ProviderFileActions;
 
   constructor(
     private readonly extensionUri: vscode.Uri,
@@ -39,6 +41,9 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       globalStoragePath,
       this.settingsService
     );
+    this.fileActions = new ProviderFileActions({
+      getSelectedTarget: () => this.analysisTargetService.getSelectedTarget(),
+    });
     this.messageRouter = new ProviderMessageRouter({
       runAnalysis: (webview) => this.runAnalysis(webview),
       refresh: () => this.refresh(),
@@ -47,9 +52,9 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       sendStalenessStatus: (webview, target) => this.analysisService.sendStalenessStatus(webview, target),
       getSelectedTarget: () => this.analysisTargetService.getSelectedTarget(),
       updateRepositorySelection: (repositoryIds, webview) => this.updateRepositorySelection(repositoryIds, webview),
-      openRepositoryFile: (relativePath, repositoryId) => this.openRepositoryFile(relativePath, repositoryId),
-      revealRepositoryFile: (relativePath, repositoryId) => this.revealRepositoryFile(relativePath, repositoryId),
-      copyRepositoryPath: (logicalPath, repositoryId) => this.copyRepositoryPath(logicalPath, repositoryId),
+      openRepositoryFile: (relativePath, repositoryId) => this.fileActions.openRepositoryFile(relativePath, repositoryId),
+      revealRepositoryFile: (relativePath, repositoryId) => this.fileActions.revealRepositoryFile(relativePath, repositoryId),
+      copyRepositoryPath: (logicalPath, repositoryId) => this.fileActions.copyRepositoryPath(logicalPath, repositoryId),
       showPathCopiedMessage: () => {
         vscode.window.showInformationMessage('Path copied to clipboard');
       },
@@ -389,69 +394,6 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     if (shouldPromptReanalysis) {
       await this.promptReanalysisForFileScopeSetting(webview);
     }
-  }
-
-  private async openRepositoryFile(relativePath: string, repositoryId?: string): Promise<void> {
-    const filePath = await this.resolveTargetFilePath(relativePath, repositoryId);
-    if (!filePath) {
-      return;
-    }
-
-    await vscode.window.showTextDocument(vscode.Uri.file(filePath));
-  }
-
-  private async revealRepositoryFile(relativePath: string, repositoryId?: string): Promise<void> {
-    const filePath = await this.resolveTargetFilePath(relativePath, repositoryId);
-    if (!filePath) {
-      return;
-    }
-
-    await vscode.commands.executeCommand('revealInExplorer', vscode.Uri.file(filePath));
-  }
-
-  private async copyRepositoryPath(logicalPath: string, repositoryId?: string): Promise<void> {
-    const filePath = await this.resolveTargetFilePath(logicalPath, repositoryId);
-    if (!filePath) {
-      return;
-    }
-
-    await vscode.env.clipboard.writeText(filePath);
-  }
-
-  private async resolveTargetFilePath(
-    logicalPath: string,
-    repositoryId?: string
-  ): Promise<string | undefined> {
-    validateLogicalPath(logicalPath);
-
-    const analysisTarget = await this.analysisTargetService.getSelectedTarget();
-    if (!analysisTarget) {
-      return undefined;
-    }
-
-    const matchingMember = repositoryId
-      ? analysisTarget.target.members.find((member) => member.id === repositoryId)
-      : [...analysisTarget.target.members]
-        .sort((a, b) => b.pathPrefix.length - a.pathPrefix.length)
-        .find((member) => {
-          if (!member.pathPrefix) {
-            return true;
-          }
-
-          return logicalPath === member.pathPrefix || logicalPath.startsWith(`${member.pathPrefix}/`);
-        });
-
-    if (!matchingMember) {
-      return undefined;
-    }
-
-    const relativePath = matchingMember.pathPrefix && logicalPath.startsWith(`${matchingMember.pathPrefix}/`)
-      ? logicalPath.slice(matchingMember.pathPrefix.length + 1)
-      : matchingMember.pathPrefix === logicalPath
-        ? ''
-        : logicalPath;
-
-    return resolveContainedPath(matchingMember.repoPath, relativePath, path);
   }
 
   private createRepositoryDiscoveryMessage(warnings: string[] | AnalysisTargetSelection['repositoryDiscoveryWarnings']): string {

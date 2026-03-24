@@ -50,11 +50,9 @@ function createProvider() {
     analysisService: Record<string, unknown>;
     analysisTargetService: Record<string, unknown>;
     settingsService: Record<string, unknown>;
+    fileActions: Record<string, unknown>;
     handleWebviewMessage: (message: unknown, webview: { postMessage: (message: unknown) => void }) => Promise<void>;
     runAnalysis: (webview: unknown) => Promise<void>;
-    openRepositoryFile: (path: string, repositoryId?: string) => Promise<void>;
-    revealRepositoryFile: (path: string, repositoryId?: string) => Promise<void>;
-    copyRepositoryPath: (path: string, repositoryId?: string) => Promise<void>;
     updateSettings: (settings: unknown, target: string) => Promise<boolean>;
     updateScopedSetting: (key: string, value: unknown, target: string) => Promise<boolean>;
     handlePostSettingsMutation: (webview: unknown, shouldPromptReanalysis: boolean) => Promise<void>;
@@ -81,6 +79,11 @@ function createProvider() {
     getRepoScopedSettings: vi.fn(() => ({})),
     canUseRepoScope: vi.fn(() => false),
   };
+  providerAny.fileActions = {
+    openRepositoryFile: vi.fn(async () => {}),
+    revealRepositoryFile: vi.fn(async () => {}),
+    copyRepositoryPath: vi.fn(async () => {}),
+  };
 
   return {
     provider,
@@ -106,17 +109,17 @@ describe('RepoStatsProvider message routing', () => {
 
   it('routes file actions with repository identity', async () => {
     const { providerAny, webview } = createProvider();
-    providerAny.openRepositoryFile = vi.fn(async () => {});
-    providerAny.revealRepositoryFile = vi.fn(async () => {});
-    providerAny.copyRepositoryPath = vi.fn(async () => {});
+    providerAny.fileActions.openRepositoryFile = vi.fn(async () => {});
+    providerAny.fileActions.revealRepositoryFile = vi.fn(async () => {});
+    providerAny.fileActions.copyRepositoryPath = vi.fn(async () => {});
 
     await providerAny.handleWebviewMessage({ type: 'openFile', path: 'src/app.ts', repositoryId: 'repo-1' }, webview);
     await providerAny.handleWebviewMessage({ type: 'revealInExplorer', path: 'src', repositoryId: 'repo-2' }, webview);
     await providerAny.handleWebviewMessage({ type: 'copyPath', path: 'README.md', repositoryId: 'repo-3' }, webview);
 
-    expect(providerAny.openRepositoryFile).toHaveBeenCalledWith('src/app.ts', 'repo-1');
-    expect(providerAny.revealRepositoryFile).toHaveBeenCalledWith('src', 'repo-2');
-    expect(providerAny.copyRepositoryPath).toHaveBeenCalledWith('README.md', 'repo-3');
+    expect(providerAny.fileActions.openRepositoryFile).toHaveBeenCalledWith('src/app.ts', 'repo-1');
+    expect(providerAny.fileActions.revealRepositoryFile).toHaveBeenCalledWith('src', 'repo-2');
+    expect(providerAny.fileActions.copyRepositoryPath).toHaveBeenCalledWith('README.md', 'repo-3');
     expect(vscodeMocks.showInformationMessage).toHaveBeenCalledWith('Path copied to clipboard');
   });
 
