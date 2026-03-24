@@ -6,6 +6,10 @@
     "module": "ESNext",
     "skipLibCheck": true,
     "moduleResolution": "bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["../shared/*"]
+    },
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
@@ -16,7 +20,7 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "../src/shared/**/*.ts"],
+  "include": ["src", "../shared/**/*.ts"],
   "exclude": ["src/**/*.test.tsx", "src/**/*.test.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

@@ -3,7 +3,7 @@ import {
   applySettingsPatch,
   settingsAffectCoreAnalysis,
   settingsAffectEvolutionAnalysis,
-} from '../../../src/shared/settings';
+} from '@shared/settings';
 
 interface SettingsStalenessInput {
   currentSettings: ExtensionSettings;

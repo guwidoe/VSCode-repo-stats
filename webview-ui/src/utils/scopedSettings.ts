@@ -4,4 +4,4 @@ export {
   getScopedSettingSourceLabel,
   resetRepoScopedSettingOverride,
   setScopedSettingValue,
-} from '../../../src/shared/settings';
+} from '@shared/settings';

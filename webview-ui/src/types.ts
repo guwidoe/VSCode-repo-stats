@@ -3,7 +3,7 @@
  * Shared contracts live in `src/shared/contracts.ts`; webview-only UI state types stay here.
  */
 
-import type { EvolutionProgressStage } from '../../src/shared/contracts';
+import type { EvolutionProgressStage } from '@shared/contracts';
 
 export type {
   AnalysisResult,
@@ -51,9 +51,9 @@ export type {
   TreemapSettings,
   WebviewMessage,
   WeeklyCommit,
-} from '../../src/shared/contracts';
+} from '@shared/contracts';
 
-export { REPO_SCOPABLE_SETTING_KEYS } from '../../src/shared/contracts';
+export { REPO_SCOPABLE_SETTING_KEYS } from '@shared/contracts';
 
 // ============================================================================
 // UI State Types
