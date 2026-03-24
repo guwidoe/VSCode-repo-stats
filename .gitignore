@@ -43,5 +43,8 @@ tools/remote_benchmark.env
 tmp/
 temp/
 
+# Nested local working repos
+/desloppify-work/
+
 # Pi local agent state
 .pi/
