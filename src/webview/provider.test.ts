@@ -50,13 +50,12 @@ function createProvider() {
     analysisService: Record<string, unknown>;
     analysisTargetService: Record<string, unknown>;
     settingsService: Record<string, unknown>;
+    contextSync: Record<string, unknown>;
     fileActions: Record<string, unknown>;
     handleWebviewMessage: (message: unknown, webview: { postMessage: (message: unknown) => void }) => Promise<void>;
     runAnalysis: (webview: unknown) => Promise<void>;
     updateSettings: (settings: unknown, target: string) => Promise<boolean>;
     updateScopedSetting: (key: string, value: unknown, target: string) => Promise<boolean>;
-    handlePostSettingsMutation: (webview: unknown, shouldPromptReanalysis: boolean) => Promise<void>;
-    sendCurrentTargetContext: (webview: unknown) => Promise<void>;
   };
 
   providerAny.analysisService = {
@@ -78,6 +77,11 @@ function createProvider() {
     getSettings: vi.fn(() => ({})),
     getRepoScopedSettings: vi.fn(() => ({})),
     canUseRepoScope: vi.fn(() => false),
+  };
+  providerAny.contextSync = {
+    sendCurrentTargetContext: vi.fn(async () => {}),
+    updateRepositorySelection: vi.fn(async () => {}),
+    handlePostSettingsMutation: vi.fn(async () => {}),
   };
   providerAny.fileActions = {
     openRepositoryFile: vi.fn(async () => {}),
@@ -127,7 +131,7 @@ describe('RepoStatsProvider message routing', () => {
     const { providerAny, webview } = createProvider();
     providerAny.updateSettings = vi.fn(async () => true);
     providerAny.updateScopedSetting = vi.fn(async () => false);
-    providerAny.handlePostSettingsMutation = vi.fn(async () => {});
+    providerAny.contextSync.handlePostSettingsMutation = vi.fn(async () => {});
 
     await providerAny.handleWebviewMessage({
       type: 'updateSettings',
@@ -143,18 +147,18 @@ describe('RepoStatsProvider message routing', () => {
 
     expect(providerAny.updateSettings).toHaveBeenCalledWith({ overviewDisplayMode: 'count' }, 'global');
     expect(providerAny.updateScopedSetting).toHaveBeenCalledWith('excludePatterns', ['fixtures'], 'repo');
-    expect(providerAny.handlePostSettingsMutation).toHaveBeenNthCalledWith(1, webview, true);
-    expect(providerAny.handlePostSettingsMutation).toHaveBeenNthCalledWith(2, webview, false);
+    expect(providerAny.contextSync.handlePostSettingsMutation).toHaveBeenNthCalledWith(1, webview, true);
+    expect(providerAny.contextSync.handlePostSettingsMutation).toHaveBeenNthCalledWith(2, webview, false);
   });
 
   it('recovers from invalid messages by surfacing an error and refreshing context', async () => {
     const { providerAny, webview } = createProvider();
-    providerAny.sendCurrentTargetContext = vi.fn(async () => {});
+    providerAny.contextSync.sendCurrentTargetContext = vi.fn(async () => {});
 
     await providerAny.handleWebviewMessage({ path: 'missing-type' }, webview);
 
     expect(vscodeMocks.showErrorMessage).toHaveBeenCalledWith(expect.stringContaining('Repo Stats error:'));
-    expect(providerAny.sendCurrentTargetContext).toHaveBeenCalledWith(webview);
+    expect(providerAny.contextSync.sendCurrentTargetContext).toHaveBeenCalledWith(webview);
     expect((providerAny.analysisService as { sendStalenessStatus: ReturnType<typeof vi.fn> }).sendStalenessStatus).toHaveBeenCalled();
   });
 });

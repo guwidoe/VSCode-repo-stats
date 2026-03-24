@@ -10,6 +10,7 @@ import { RepoAnalysisService } from './analysisService.js';
 import { AnalysisTargetService } from './analysisTargetService.js';
 import { BookmarkedRepositoryManager } from './bookmarkedRepositoryManager.js';
 import { parseWebviewMessage } from './messageValidation.js';
+import { ProviderContextSync } from './providerContextSync.js';
 import { ProviderFileActions } from './providerFileActions.js';
 import { ProviderMessageRouter } from './providerMessageRouter.js';
 import { formatRepositoryDiscoveryWarning, RepositoryService } from './repositoryService.js';
@@ -25,6 +26,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
   private readonly settingsService: RepositorySettingsService;
   private readonly analysisService: RepoAnalysisService;
   private readonly messageRouter: ProviderMessageRouter;
+  private readonly contextSync: ProviderContextSync;
   private readonly fileActions: ProviderFileActions;
   private readonly bookmarkedRepositoryManager: BookmarkedRepositoryManager;
 
@@ -45,6 +47,16 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     this.fileActions = new ProviderFileActions({
       getSelectedTarget: () => this.analysisTargetService.getSelectedTarget(),
     });
+    this.contextSync = new ProviderContextSync({
+      resolveSelection: (repositoryIds, options) => this.analysisTargetService.resolveSelection(repositoryIds, options),
+      getSelectedTarget: () => this.analysisTargetService.getSelectedTarget(),
+      getSettings: (repository) => this.settingsService.getSettings(repository),
+      getRepoScopedSettings: (repository) => this.settingsService.getRepoScopedSettings(repository),
+      canUseRepoScope: (repository) => this.settingsService.canUseRepoScope(repository),
+      sendStalenessStatus: (webview, target) => this.analysisService.sendStalenessStatus(webview, target),
+      runAnalysis: (webview, target) => this.analysisService.runAnalysis(webview, target),
+      promptReanalysis: (webview) => this.promptReanalysisForFileScopeSetting(webview),
+    });
     this.messageRouter = new ProviderMessageRouter({
       runAnalysis: (webview) => this.runAnalysis(webview),
       refresh: () => this.refresh(),
@@ -52,19 +64,19 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
         this.analysisService.runEvolutionAnalysis(webview, target, forceRefresh),
       sendStalenessStatus: (webview, target) => this.analysisService.sendStalenessStatus(webview, target),
       getSelectedTarget: () => this.analysisTargetService.getSelectedTarget(),
-      updateRepositorySelection: (repositoryIds, webview) => this.updateRepositorySelection(repositoryIds, webview),
+      updateRepositorySelection: (repositoryIds, webview) => this.contextSync.updateRepositorySelection(repositoryIds, webview),
       openRepositoryFile: (relativePath, repositoryId) => this.fileActions.openRepositoryFile(relativePath, repositoryId),
       revealRepositoryFile: (relativePath, repositoryId) => this.fileActions.revealRepositoryFile(relativePath, repositoryId),
       copyRepositoryPath: (logicalPath, repositoryId) => this.fileActions.copyRepositoryPath(logicalPath, repositoryId),
       showPathCopiedMessage: () => {
         vscode.window.showInformationMessage('Path copied to clipboard');
       },
-      sendCurrentTargetContext: (webview) => this.sendCurrentTargetContext(webview),
+      sendCurrentTargetContext: (webview) => this.contextSync.sendCurrentTargetContext(webview),
       updateSettings: (settings, target) => this.updateSettings(settings, target),
       updateScopedSetting: (key, value, target) => this.updateScopedSetting(key, value, target),
       resetScopedSettingOverride: (key) => this.resetScopedSettingOverride(key),
       handlePostSettingsMutation: (webview, shouldPromptReanalysis) =>
-        this.handlePostSettingsMutation(webview, shouldPromptReanalysis),
+        this.contextSync.handlePostSettingsMutation(webview, shouldPromptReanalysis),
     });
   }
 
@@ -170,7 +182,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       return;
     }
 
-    await this.updateRepositorySelection(repositoryIds, this.panel.webview);
+    await this.contextSync.updateRepositorySelection(repositoryIds, this.panel.webview);
   }
 
   public async addRepository(): Promise<void> {
@@ -185,7 +197,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
 
     const currentSelection = await this.analysisTargetService.resolveSelection();
     const selection = await this.analysisTargetService.resolveSelection(currentSelection.selectedRepositoryIds);
-    await this.sendCurrentTargetContext(this.panel.webview, selection);
+    await this.contextSync.sendCurrentTargetContext(this.panel.webview, selection);
     await this.analysisService.sendStalenessStatus(this.panel.webview, selection.selectedTarget);
 
     if (!currentSelection.selectedTarget && selection.selectedTarget) {
@@ -201,9 +213,9 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
         return;
       }
 
-      await this.sendCurrentTargetContext(panel.webview);
+      await this.contextSync.sendCurrentTargetContext(panel.webview);
       await this.runAnalysis(panel.webview);
-      await this.sendCurrentTargetContext(panel.webview);
+      await this.contextSync.sendCurrentTargetContext(panel.webview);
     } catch (error) {
       console.error('[RepoStats] Failed to initialize dashboard panel:', error);
 
@@ -219,7 +231,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       });
 
       try {
-        await this.sendCurrentTargetContext(panel.webview);
+        await this.contextSync.sendCurrentTargetContext(panel.webview);
       } catch (contextError) {
         console.error('[RepoStats] Failed to recover target context after initialization error:', contextError);
       }
@@ -237,7 +249,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       console.error('[RepoStats] Failed to handle webview message:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       vscode.window.showErrorMessage(`Repo Stats error: ${errorMessage}`);
-      await this.sendCurrentTargetContext(webview);
+      await this.contextSync.sendCurrentTargetContext(webview);
       await this.analysisService.sendStalenessStatus(
         webview,
         await this.analysisTargetService.getSelectedTarget()
@@ -248,7 +260,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
   private async runAnalysis(webview: vscode.Webview): Promise<void> {
     const selection = await this.analysisTargetService.resolveSelection(undefined, { persist: false });
     if (!selection.selectedTarget && selection.repositoryDiscoveryWarnings.length > 0) {
-      await this.sendCurrentTargetContext(webview, selection);
+      await this.contextSync.sendCurrentTargetContext(webview, selection);
       this.sendMessage(webview, {
         type: 'analysisError',
         error: this.createRepositoryDiscoveryMessage(selection.repositoryDiscoveryWarnings),
@@ -257,39 +269,6 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     }
 
     await this.analysisService.runAnalysis(webview, selection.selectedTarget);
-  }
-
-  private async updateRepositorySelection(
-    repositoryIds: string[],
-    webview: vscode.Webview
-  ): Promise<void> {
-    const selection = await this.analysisTargetService.resolveSelection(repositoryIds);
-    await this.sendCurrentTargetContext(webview, selection);
-    await this.analysisService.sendStalenessStatus(webview, selection.selectedTarget);
-    await this.analysisService.runAnalysis(webview, selection.selectedTarget);
-  }
-
-  private async sendCurrentTargetContext(
-    webview: vscode.Webview,
-    selection?: AnalysisTargetSelection
-  ): Promise<AnalysisTargetSelection> {
-    const resolved = selection ?? await this.analysisTargetService.resolveSelection();
-
-    this.sendMessage(webview, {
-      type: 'repositorySelectionLoaded',
-      repositories: resolved.repositories.map((repository) => repository.option),
-      selectedRepositoryIds: resolved.selectedRepositoryIds,
-      selectedTarget: resolved.selectedTargetOption,
-    });
-
-    this.sendMessage(webview, {
-      type: 'settingsLoaded',
-      settings: this.settingsService.getSettings(resolved.selectedTarget?.settingsRepository),
-      scopedSettings: this.settingsService.getRepoScopedSettings(resolved.selectedTarget?.settingsRepository),
-      repoScopeAvailable: this.settingsService.canUseRepoScope(resolved.selectedTarget?.settingsRepository),
-    });
-
-    return resolved;
   }
 
   private async updateSettings(
@@ -336,19 +315,6 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
 
     if (action === 'Re-analyze now') {
       await this.runAnalysis(webview);
-    }
-  }
-
-  private async handlePostSettingsMutation(
-    webview: vscode.Webview,
-    shouldPromptReanalysis: boolean
-  ): Promise<void> {
-    const selectedTarget = await this.analysisTargetService.getSelectedTarget();
-    await this.sendCurrentTargetContext(webview);
-    await this.analysisService.sendStalenessStatus(webview, selectedTarget);
-
-    if (shouldPromptReanalysis) {
-      await this.promptReanalysisForFileScopeSetting(webview);
     }
   }
 
