@@ -1,9 +1,10 @@
-import * as path from 'path';
 import * as vscode from 'vscode';
 import simpleGit from 'simple-git';
+import * as path from 'path';
 import {
   buildRepositoryOption,
 } from './repositorySelection.js';
+import { getConfiguredBookmarkedRepositories } from './bookmarkedRepositoryConfig.js';
 import type {
   GitExtensionExports,
   RepositoryDiscoveryWarning,
@@ -97,7 +98,7 @@ export class RepositoryService {
   private async listBookmarkedRepositories(
     seenPaths: Set<string>
   ): Promise<RepositoryDiscoveryResult> {
-    const bookmarkedPaths = this.getBookmarkedRepositoryPaths();
+    const bookmarkedPaths = getConfiguredBookmarkedRepositories();
     const repositories: RepositoryContext[] = [];
     const warnings: RepositoryDiscoveryWarning[] = [];
 
@@ -138,20 +139,6 @@ export class RepositoryService {
       repositories,
       warnings,
     };
-  }
-
-  private getBookmarkedRepositoryPaths(): string[] {
-    const configuredPaths = vscode.workspace
-      .getConfiguration('repoStats')
-      .get<unknown>('bookmarkedRepositories');
-
-    if (!Array.isArray(configuredPaths)) {
-      return [];
-    }
-
-    return configuredPaths
-      .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
-      .map((value) => path.resolve(value.trim()));
   }
 
   private async resolveRepositoryRootUri(

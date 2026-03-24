@@ -1,6 +1,6 @@
-import * as path from 'path';
 import * as vscode from 'vscode';
 import simpleGit, { type SimpleGit } from 'simple-git';
+import { getConfiguredBookmarkedRepositories } from './bookmarkedRepositoryConfig.js';
 
 type GitFactory = (repoPath: string) => SimpleGit;
 
@@ -8,17 +8,7 @@ export class BookmarkedRepositoryManager {
   constructor(private readonly createGit: GitFactory = simpleGit) {}
 
   getConfiguredBookmarkedRepositories(): string[] {
-    const configured = vscode.workspace
-      .getConfiguration('repoStats')
-      .get<unknown>('bookmarkedRepositories');
-
-    if (!Array.isArray(configured)) {
-      return [];
-    }
-
-    return configured
-      .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
-      .map((value) => path.resolve(value.trim()));
+    return getConfiguredBookmarkedRepositories();
   }
 
   async promptAndAddRepository(): Promise<string | null> {
