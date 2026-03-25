@@ -239,7 +239,7 @@ describe('TargetAnalysisCoordinator', () => {
     });
   });
 
-  it('skips staged callbacks for multi-member targets and returns the final aggregate', async () => {
+  it('emits aggregate staged callbacks for multi-member targets as members finish', async () => {
     const target = createTarget(2);
     const coreResults: AnalysisResult[] = [];
     const blameUpdates: BlameMetrics[] = [];
@@ -260,8 +260,21 @@ describe('TargetAnalysisCoordinator', () => {
       onBlameUpdate: (value) => blameUpdates.push(value),
     });
 
-    expect(coreResults).toEqual([]);
+    expect(coreResults).toHaveLength(2);
     expect(blameUpdates).toEqual([]);
+    expect(coreResults[0]).toMatchObject({
+      target: expect.objectContaining({ memberCount: 2 }),
+      repositories: [expect.objectContaining({ id: 'repo-1' })],
+      blameMetrics: expect.objectContaining({ totals: expect.objectContaining({ totalBlamedLines: 5 }) }),
+    });
+    expect(coreResults[1]).toMatchObject({
+      target: expect.objectContaining({ memberCount: 2 }),
+      repositories: [
+        expect.objectContaining({ id: 'repo-1' }),
+        expect.objectContaining({ id: 'repo-2' }),
+      ],
+      blameMetrics: expect.objectContaining({ totals: expect.objectContaining({ totalBlamedLines: 12 }) }),
+    });
     expect(result.repositories).toHaveLength(2);
     expect(result.target.memberCount).toBe(2);
     expect(result.blameMetrics.totals.totalBlamedLines).toBe(12);

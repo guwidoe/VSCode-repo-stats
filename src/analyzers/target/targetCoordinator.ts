@@ -83,6 +83,8 @@ export class TargetAnalysisCoordinator {
 
       this.latestBlameFileCaches[member.id] = coordinator.getLatestBlameFileCache();
       memberResults.push(this.decorateMemberResult(memberResult, member));
+
+      callbacks.onCoreReady?.(this.aggregateMemberResults(memberResults));
     }
 
     throwIfCancelled(signal);

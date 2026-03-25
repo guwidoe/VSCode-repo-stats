@@ -18,7 +18,7 @@ const mockEvolutionCacheManagerState = {
 
 const mockCoordinatorState = {
   revisions: [{ repositoryId: 'repo-1', branch: 'main', headSha: 'head-1' }],
-  latestBlameFileCaches: { 'repo-1': {} as Record<string, unknown> },
+  latestBlameFileCaches: { 'repo-1': {} as Record<string, unknown> } as Record<string, Record<string, unknown>>,
   analyze: vi.fn(async (callbacks?: {
     onProgress?: (phase: string, progress: number) => void;
     onCoreReady?: (result: AnalysisResult) => void;
@@ -361,13 +361,118 @@ describe('RepoAnalysisService', () => {
     ]);
     expect(messages[2]).toMatchObject({
       type: 'analysisComplete',
+      resultState: { completeness: 'preliminary' },
       data: expect.objectContaining({ target: expect.objectContaining({ label: 'core-result' }) }),
     });
     expect(messages[3]).toMatchObject({
       type: 'incrementalUpdate',
+      resultState: { completeness: 'preliminary' },
       data: { blameMetrics: expect.objectContaining({ totals: expect.objectContaining({ totalBlamedLines: 5 }) }) },
     });
     expect(mockCacheManagerState.save).toHaveBeenCalledTimes(1);
+  });
+
+  it('forwards multiple preliminary aggregate core results before the final multi-repo completion', async () => {
+    const { service, webview } = createService();
+    mockCoordinatorState.revisions = [
+      { repositoryId: 'repo-1', branch: 'main', headSha: 'head-1' },
+      { repositoryId: 'repo-2', branch: 'main', headSha: 'head-2' },
+    ];
+    mockCoordinatorState.latestBlameFileCaches = { 'repo-1': {}, 'repo-2': {} };
+    gitHeads.set('/repos/repo-2', { branch: 'main', headSha: 'head-2' });
+
+    mockCoordinatorState.analyze.mockImplementationOnce(async (callbacks) => {
+      callbacks?.onProgress?.('Repo 1: done', 50);
+      callbacks?.onCoreReady?.({
+        ...createAnalysisResult('workspace-partial-1', 5),
+        target: {
+          id: 'target-1',
+          kind: 'workspace',
+          label: 'Workspace',
+          memberCount: 2,
+        },
+      });
+      callbacks?.onProgress?.('Repo 2: done', 90);
+      callbacks?.onCoreReady?.({
+        ...createAnalysisResult('workspace-partial-2', 12),
+        target: {
+          id: 'target-1',
+          kind: 'workspace',
+          label: 'Workspace',
+          memberCount: 2,
+        },
+        repositories: [
+          createAnalysisResult('workspace-partial-1', 5).repositories[0]!,
+          {
+            ...createAnalysisResult('workspace-partial-2', 12).repositories[0]!,
+            id: 'repo-2',
+            path: '/repos/repo-2',
+            name: 'repo-2',
+          },
+        ],
+      });
+      return {
+        ...createAnalysisResult('workspace-final', 12),
+        target: {
+          id: 'target-1',
+          kind: 'workspace',
+          label: 'Workspace',
+          memberCount: 2,
+        },
+        repositories: [
+          createAnalysisResult('workspace-partial-1', 5).repositories[0]!,
+          {
+            ...createAnalysisResult('workspace-final', 12).repositories[0]!,
+            id: 'repo-2',
+            path: '/repos/repo-2',
+            name: 'repo-2',
+          },
+        ],
+      };
+    });
+
+    await service.runAnalysis(webview as never, {
+      ...createTargetContext(),
+      option: {
+        id: 'target-1',
+        kind: 'workspace',
+        label: 'Workspace',
+        memberCount: 2,
+        settingsScope: 'workspace',
+      },
+      target: {
+        id: 'target-1',
+        kind: 'workspace',
+        label: 'Workspace',
+        settingsScope: 'workspace',
+        members: [
+          {
+            id: 'repo-1',
+            role: 'workspaceRepo',
+            repoPath: '/repos/repo-1',
+            displayName: 'Repo 1',
+            logicalRoot: 'repo-1',
+            pathPrefix: 'repo-1',
+          },
+          {
+            id: 'repo-2',
+            role: 'workspaceRepo',
+            repoPath: '/repos/repo-2',
+            displayName: 'Repo 2',
+            logicalRoot: 'repo-2',
+            pathPrefix: 'repo-2',
+          },
+        ],
+      },
+    } as AnalysisTargetContext);
+
+    const preliminaryMessages = webview.postMessage.mock.calls
+      .map(([message]) => message)
+      .filter((message) => message.type === 'analysisComplete' && message.resultState?.completeness === 'preliminary');
+
+    expect(preliminaryMessages).toHaveLength(2);
+    expect(preliminaryMessages.map((message) => message.data.repositories.length)).toEqual([1, 2]);
+    expect(preliminaryMessages.map((message) => message.data.blameMetrics.totals.totalBlamedLines)).toEqual([5, 12]);
   });
 
   it('serves latest cached evolution data, marks it stale, and skips autorun when disabled', async () => {

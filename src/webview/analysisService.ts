@@ -108,12 +108,14 @@ export class RepoAnalysisService {
           this.sendMessageIfCurrent(run, webview, {
             type: 'analysisComplete',
             data: coreResult,
+            resultState: { completeness: 'preliminary' },
           });
         },
         onBlameUpdate: (blameMetrics) => {
           this.sendMessageIfCurrent(run, webview, {
             type: 'incrementalUpdate',
             data: { blameMetrics },
+            resultState: { completeness: 'preliminary' },
           });
         },
       });
