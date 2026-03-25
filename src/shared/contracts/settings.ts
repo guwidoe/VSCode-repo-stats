@@ -17,7 +17,6 @@ export interface EvolutionSettings {
   autoRun: boolean;
   samplingMode: EvolutionSamplingMode;
   snapshotIntervalDays: number;
-  snapshotIntervalCommits: number;
   showInactivePeriods: boolean;
   maxSnapshots: number;
   maxSeries: number;
@@ -56,7 +55,6 @@ export interface RepoScopableSettingValueMap {
   maxCommitsToAnalyze: number;
   'evolution.samplingMode': EvolutionSamplingMode;
   'evolution.snapshotIntervalDays': number;
-  'evolution.snapshotIntervalCommits': number;
   'evolution.showInactivePeriods': boolean;
   'evolution.maxSnapshots': number;
   'evolution.maxSeries': number;
@@ -71,7 +69,6 @@ export const REPO_SCOPABLE_SETTING_KEYS = [
   'maxCommitsToAnalyze',
   'evolution.samplingMode',
   'evolution.snapshotIntervalDays',
-  'evolution.snapshotIntervalCommits',
   'evolution.showInactivePeriods',
   'evolution.maxSnapshots',
   'evolution.maxSeries',

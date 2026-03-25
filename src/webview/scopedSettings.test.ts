@@ -66,16 +66,12 @@ describe('getScopedSettingDisplayValue', () => {
       globalValue: 14,
       source: 'global',
     },
-    'evolution.snapshotIntervalCommits': {
-      defaultValue: 100,
-      source: 'default',
-    },
     'evolution.showInactivePeriods': {
       defaultValue: false,
       source: 'default',
     },
     'evolution.maxSnapshots': {
-      defaultValue: 80,
+      defaultValue: 20,
       source: 'default',
     },
     'evolution.maxSeries': {
@@ -103,6 +99,6 @@ describe('getScopedSettingDisplayValue', () => {
       '**/generated/**',
     ]);
     expect(getScopedSettingDisplayValue(scopedSettings, 'maxCommitsToAnalyze', 'global')).toBe(2000);
-    expect(getScopedSettingDisplayValue(scopedSettings, 'evolution.maxSnapshots', 'global')).toBe(80);
+    expect(getScopedSettingDisplayValue(scopedSettings, 'evolution.maxSnapshots', 'global')).toBe(20);
   });
 });

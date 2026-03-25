@@ -104,13 +104,6 @@ const scopedSettingAppliers: {
       snapshotIntervalDays: value,
     },
   }),
-  'evolution.snapshotIntervalCommits': (settings, value) => ({
-    ...settings,
-    evolution: {
-      ...settings.evolution,
-      snapshotIntervalCommits: value,
-    },
-  }),
   'evolution.showInactivePeriods': (settings, value) => ({
     ...settings,
     evolution: {
@@ -266,7 +259,6 @@ export function createEvolutionAnalysisSettingsSnapshot(settings: ExtensionSetti
     evolution: {
       samplingMode: settings.evolution.samplingMode,
       snapshotIntervalDays: settings.evolution.snapshotIntervalDays,
-      snapshotIntervalCommits: settings.evolution.snapshotIntervalCommits,
       maxSnapshots: settings.evolution.maxSnapshots,
       cohortFormat: settings.evolution.cohortFormat,
     },
@@ -334,7 +326,6 @@ export function flattenSettingsUpdate(settings: Partial<ExtensionSettings>): Set
     updates.push({ key: 'evolution.autoRun', value: settings.evolution.autoRun });
     updates.push({ key: 'evolution.samplingMode', value: settings.evolution.samplingMode });
     updates.push({ key: 'evolution.snapshotIntervalDays', value: settings.evolution.snapshotIntervalDays });
-    updates.push({ key: 'evolution.snapshotIntervalCommits', value: settings.evolution.snapshotIntervalCommits });
     updates.push({ key: 'evolution.showInactivePeriods', value: settings.evolution.showInactivePeriods });
     updates.push({ key: 'evolution.maxSnapshots', value: settings.evolution.maxSnapshots });
     updates.push({ key: 'evolution.maxSeries', value: settings.evolution.maxSeries });

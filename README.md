@@ -156,7 +156,7 @@ This extension uses [scc](https://github.com/boyter/scc) for accurate lines-of-c
 | `repoStats.tooltipSettings` | See `package.json` | Configure which metrics appear in treemap tooltips |
 | `repoStats.evolution.autoRun` | `false` | Auto-run evolution analysis when data is stale or missing |
 | `repoStats.evolution.snapshotIntervalDays` | `30` | Days between sampled evolution snapshots |
-| `repoStats.evolution.maxSnapshots` | `80` | Maximum historical snapshots analyzed in Evolution |
+| `repoStats.evolution.maxSnapshots` | `20` | Target number of historical snapshots analyzed in Evolution |
 | `repoStats.evolution.maxSeries` | `20` | Default maximum visible series in Evolution charts |
 | `repoStats.evolution.cohortFormat` | `"%Y"` | Cohort grouping format (`%Y`, `%Y-%m`, `%Y-W%W`) |
 

@@ -129,7 +129,7 @@ function buildTimelineExplanation(
 
   switch (mode) {
     case 'commit':
-      return `Snapshots were selected by commit interval rather than uniform calendar time. ${axisCopy} ${gapCopy}`;
+      return `Snapshots were distributed evenly across commit history rather than uniform calendar time. ${axisCopy} ${gapCopy}`;
     case 'auto':
       return `Snapshots are auto-distributed across repository history, so spacing is intentionally non-linear. ${axisCopy} ${gapCopy}`;
     case 'time':

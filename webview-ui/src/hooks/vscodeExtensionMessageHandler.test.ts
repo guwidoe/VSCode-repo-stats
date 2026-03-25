@@ -37,7 +37,6 @@ function createSettings(): ExtensionSettings {
       autoRun: false,
       samplingMode: 'time',
       snapshotIntervalDays: 7,
-      snapshotIntervalCommits: 10,
       showInactivePeriods: false,
       maxSnapshots: 20,
       maxSeries: 20,

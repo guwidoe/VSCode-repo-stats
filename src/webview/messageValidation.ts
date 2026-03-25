@@ -80,7 +80,6 @@ function isEvolutionSettings(value: unknown): value is ExtensionSettings['evolut
   return isBoolean(value.autoRun)
     && isEnumValue(value.samplingMode, EVOLUTION_SAMPLING_MODES)
     && isNumber(value.snapshotIntervalDays)
-    && isNumber(value.snapshotIntervalCommits)
     && isBoolean(value.showInactivePeriods)
     && isNumber(value.maxSnapshots)
     && isNumber(value.maxSeries)
@@ -119,7 +118,6 @@ function isScopedSettingValue<K extends RepoScopableSettingKey>(
       return isStringArray(value);
     case 'maxCommitsToAnalyze':
     case 'evolution.snapshotIntervalDays':
-    case 'evolution.snapshotIntervalCommits':
     case 'evolution.maxSnapshots':
     case 'evolution.maxSeries':
       return isNumber(value);

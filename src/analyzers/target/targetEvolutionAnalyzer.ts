@@ -270,7 +270,6 @@ export class TargetEvolutionAnalyzer {
     return sampleHistoryEntries(allEvents, {
       samplingMode: this.settings.evolution.samplingMode,
       maxSnapshots: this.settings.evolution.maxSnapshots,
-      commitInterval: this.settings.evolution.snapshotIntervalCommits,
       intervalDays: this.settings.evolution.snapshotIntervalDays,
       mark: (event, samplingMode) => ({
         ...event,

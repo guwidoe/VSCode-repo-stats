@@ -36,16 +36,12 @@ function createScopedSettings(): RepoScopedSettings {
       defaultValue: 30,
       source: 'default',
     },
-    'evolution.snapshotIntervalCommits': {
-      defaultValue: 100,
-      source: 'default',
-    },
     'evolution.showInactivePeriods': {
       defaultValue: false,
       source: 'default',
     },
     'evolution.maxSnapshots': {
-      defaultValue: 80,
+      defaultValue: 20,
       source: 'default',
     },
     'evolution.maxSeries': {

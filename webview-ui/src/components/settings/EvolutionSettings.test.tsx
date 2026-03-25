@@ -36,9 +36,8 @@ function createSettings(overrides?: Partial<ExtensionSettings['evolution']>): Ex
       autoRun: false,
       samplingMode: 'time',
       snapshotIntervalDays: 30,
-      snapshotIntervalCommits: 100,
       showInactivePeriods: false,
-      maxSnapshots: 80,
+      maxSnapshots: 20,
       maxSeries: 20,
       cohortFormat: '%Y',
       ...overrides,
@@ -64,17 +63,12 @@ function createScopedSettings(overrides?: Partial<RepoScopedSettings>): RepoScop
       repoValue: 30,
       source: 'repo',
     },
-    'evolution.snapshotIntervalCommits': {
-      defaultValue: 100,
-      repoValue: 100,
-      source: 'repo',
-    },
     'evolution.showInactivePeriods': {
       defaultValue: false,
       repoValue: false,
       source: 'repo',
     },
-    'evolution.maxSnapshots': { defaultValue: 80, source: 'default' },
+    'evolution.maxSnapshots': { defaultValue: 20, source: 'default' },
     'evolution.maxSeries': { defaultValue: 20, source: 'default' },
     'evolution.cohortFormat': { defaultValue: '%Y', source: 'default' },
     ...overrides,
@@ -142,9 +136,7 @@ describe('EvolutionSettings', () => {
     expect(screen.getByText('Custom Snapshot Interval (Days)')).toBeInTheDocument();
   });
 
-  it('switches to commit mode and updates commit interval in scoped settings', () => {
-    const updateScopedSetting = vi.fn();
-
+  it('shows snapshot count messaging for commit mode', () => {
     render(
       <EvolutionSettings
         settings={createSettings({ samplingMode: 'commit' })}
@@ -156,12 +148,13 @@ describe('EvolutionSettings', () => {
           },
         })}
         updateSettings={vi.fn()}
-        updateScopedSetting={updateScopedSetting}
+        updateScopedSetting={vi.fn()}
         resetScopedSetting={vi.fn()}
       />
     );
 
-    expect(screen.getByText('Commit Snapshot Interval')).toBeInTheDocument();
+    expect(screen.getByText('Commit Snapshot Distribution')).toBeInTheDocument();
+    expect(screen.getByText('Number of Snapshots')).toBeInTheDocument();
   });
 
   it('can switch evolution sampling controls to global scope', () => {

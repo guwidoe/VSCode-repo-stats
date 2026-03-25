@@ -40,7 +40,6 @@ const TIME_GRANULARITY_OPTIONS = [
 type EvolutionScopedKey =
   | 'evolution.samplingMode'
   | 'evolution.snapshotIntervalDays'
-  | 'evolution.snapshotIntervalCommits'
   | 'evolution.showInactivePeriods'
   | 'evolution.maxSnapshots'
   | 'evolution.maxSeries'
@@ -58,8 +57,6 @@ function getInitialTargets(
       scopedSettings['evolution.samplingMode'].source === 'repo' ? 'repo' : 'global',
     'evolution.snapshotIntervalDays':
       scopedSettings['evolution.snapshotIntervalDays'].source === 'repo' ? 'repo' : 'global',
-    'evolution.snapshotIntervalCommits':
-      scopedSettings['evolution.snapshotIntervalCommits'].source === 'repo' ? 'repo' : 'global',
     'evolution.showInactivePeriods':
       scopedSettings['evolution.showInactivePeriods'].source === 'repo' ? 'repo' : 'global',
     'evolution.maxSnapshots':
@@ -98,11 +95,6 @@ export function EvolutionSettings({
     scopedSettings,
     'evolution.snapshotIntervalDays',
     resolvedTargets['evolution.snapshotIntervalDays']
-  );
-  const snapshotIntervalCommits = getScopedSettingDisplayValue(
-    scopedSettings,
-    'evolution.snapshotIntervalCommits',
-    resolvedTargets['evolution.snapshotIntervalCommits']
   );
   const showInactivePeriods = getScopedSettingDisplayValue(
     scopedSettings,
@@ -172,7 +164,7 @@ export function EvolutionSettings({
 
       <SelectSetting
         title="Sampling Mode"
-        description="Choose whether Evolution samples history by elapsed time, by commit interval, or auto-distributes snapshots across the repository history."
+        description="Choose whether Evolution samples history by elapsed time, by evenly spaced commit snapshots, or by auto-distributing snapshots across the repository history."
         value={samplingMode}
         options={[
           { value: 'time', label: 'Time' },
@@ -241,22 +233,16 @@ export function EvolutionSettings({
       )}
 
       {samplingMode === 'commit' && (
-        <NumberSetting
-          title="Commit Snapshot Interval"
-          description="Analyze every Nth commit when Evolution sampling mode is commit-based."
-          value={snapshotIntervalCommits}
-          onChange={(value) =>
-            updateScopedSetting(
-              'evolution.snapshotIntervalCommits',
-              value,
-              resolvedTargets['evolution.snapshotIntervalCommits']
-            )
-          }
-          min={1}
-          max={10000}
-          step={1}
-          headerContent={renderScopedHeader('evolution.snapshotIntervalCommits')}
-        />
+        <div className="setting-section">
+          <div className="setting-header">
+            <div className="setting-header-main">
+              <h3 className="setting-title">Commit Snapshot Distribution</h3>
+              <p className="setting-description">
+                Commit mode spreads the selected number of snapshots evenly across commit history, so chart resolution tracks snapshot count instead of a raw every-N-commits interval.
+              </p>
+            </div>
+          </div>
+        </div>
       )}
 
       {samplingMode === 'auto' && (
@@ -265,7 +251,7 @@ export function EvolutionSettings({
             <div className="setting-header-main">
               <h3 className="setting-title">Auto Snapshot Distribution</h3>
               <p className="setting-description">
-                Auto mode distributes snapshots across the full repository history using the Maximum Snapshots setting as its target density.
+                Auto mode distributes snapshots across the full repository history using the Number of Snapshots setting as its target density.
               </p>
             </div>
           </div>
@@ -291,8 +277,10 @@ export function EvolutionSettings({
       />
 
       <NumberSetting
-        title="Maximum Snapshots"
-        description="Hard cap for the number of snapshots analyzed. Auto mode also uses this as its target snapshot count."
+        title="Number of Snapshots"
+        description={samplingMode === 'time'
+          ? 'Target cap for analyzed snapshots in time mode. Lower values reduce runtime; higher values preserve more history detail.'
+          : 'Target number of snapshots to analyze. Commit and auto modes spread snapshots across the full history to match this resolution.'}
         value={maxSnapshots}
         onChange={(value) =>
           updateScopedSetting('evolution.maxSnapshots', value, resolvedTargets['evolution.maxSnapshots'])

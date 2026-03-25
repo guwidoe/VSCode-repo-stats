@@ -299,7 +299,7 @@
             "auto"
           ],
           "default": "auto",
-          "description": "How Evolution selects snapshots: by elapsed time, by commit interval, or auto-distributed across history"
+          "description": "How Evolution selects snapshots: by elapsed time, by evenly spaced commit snapshots, or auto-distributed across history"
         },
         "repoStats.evolution.snapshotIntervalDays": {
           "type": "number",
@@ -308,14 +308,6 @@
           "minimum": 1,
           "maximum": 365,
           "description": "Minimum days between sampled snapshots when Evolution sampling mode is time-based"
-        },
-        "repoStats.evolution.snapshotIntervalCommits": {
-          "type": "number",
-          "scope": "resource",
-          "default": 100,
-          "minimum": 1,
-          "maximum": 10000,
-          "description": "Commits between sampled snapshots when Evolution sampling mode is commit-based"
         },
         "repoStats.evolution.showInactivePeriods": {
           "type": "boolean",
@@ -326,10 +318,10 @@
         "repoStats.evolution.maxSnapshots": {
           "type": "number",
           "scope": "resource",
-          "default": 80,
+          "default": 20,
           "minimum": 2,
           "maximum": 500,
-          "description": "Maximum number of historical snapshots analyzed in Evolution mode"
+          "description": "Target number of historical snapshots analyzed in Evolution. Commit and auto modes distribute snapshots across history to match this target; time mode uses it as a cap."
         },
         "repoStats.evolution.maxSeries": {
           "type": "number",

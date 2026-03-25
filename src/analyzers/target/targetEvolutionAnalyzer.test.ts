@@ -115,7 +115,6 @@ function createSettings(overrides: Partial<ExtensionSettings['evolution']> = {})
       autoRun: false,
       samplingMode: 'time',
       snapshotIntervalDays: 7,
-      snapshotIntervalCommits: 1,
       showInactivePeriods: false,
       maxSnapshots: 20,
       maxSeries: 20,
@@ -237,7 +236,7 @@ describe('TargetEvolutionAnalyzer', () => {
     expect(result.authors.snapshots?.map((snapshot) => snapshot.commitIndex)).toEqual([0, 1, 2]);
   });
 
-  it('supports commit-based sampling for single-member targets', async () => {
+  it('supports commit-based snapshot distribution for single-member targets', async () => {
     const repoPath = mkdtempSync(path.join(tmpdir(), 'repo-stats-target-evo-commit-'));
     repos.push(repoPath);
     initializeRepo(repoPath);
@@ -258,12 +257,12 @@ describe('TargetEvolutionAnalyzer', () => {
       createTarget([{ repoPath, displayName: 'commit-repo' }], 'repo:commit', 'repository'),
       createSettings({
         samplingMode: 'commit',
-        snapshotIntervalCommits: 3,
+        maxSnapshots: 4,
       })
     ).analyze();
 
     expect(result.historyMode).toBe('singleBranch');
-    expect(result.authors.snapshots?.map((snapshot) => snapshot.commitIndex)).toEqual([0, 3, 6, 7]);
+    expect(result.authors.snapshots?.map((snapshot) => snapshot.commitIndex)).toEqual([0, 2, 5, 7]);
     expect(result.authors.snapshots?.every((snapshot) => snapshot.samplingMode === 'commit')).toBe(true);
   });
 });

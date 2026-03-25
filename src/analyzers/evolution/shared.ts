@@ -25,7 +25,6 @@ interface TimestampedHistoryEntry {
 interface SampleHistoryOptions<TIn extends TimestampedHistoryEntry, TOut extends TimestampedHistoryEntry> {
   samplingMode: EvolutionSamplingMode;
   maxSnapshots: number;
-  commitInterval: number;
   intervalDays: number;
   mark: (entry: TIn, samplingMode: EvolutionSamplingMode) => TOut;
   getEntryKey?: (entry: TOut) => string;
@@ -66,21 +65,11 @@ export function sampleHistoryEntries<
   }
 
   if (options.samplingMode === 'commit') {
-    const commitInterval = Math.max(1, options.commitInterval);
-    const sampled: TOut[] = [];
-
-    for (let index = 0; index < entries.length; index += commitInterval) {
-      sampled.push(options.mark(entries[index], 'commit'));
-    }
-
-    const lastEntry = options.mark(entries[entries.length - 1], 'commit');
-    if (getEntryKey(sampled[sampled.length - 1]) !== getEntryKey(lastEntry)) {
-      sampled.push(lastEntry);
-    }
-
-    return sampled.length <= maxSnapshots
-      ? sampled
-      : downsampleHistoryEntries(sampled, maxSnapshots, getEntryKey);
+    return downsampleHistoryEntries(
+      entries.map((entry) => options.mark(entry, 'commit')),
+      maxSnapshots,
+      getEntryKey
+    );
   }
 
   const intervalSeconds = Math.max(1, options.intervalDays) * 24 * 60 * 60;

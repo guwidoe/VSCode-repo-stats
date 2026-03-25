@@ -37,7 +37,6 @@ function getInitialTargets(scopedSettings: RepoScopedSettings): Record<RepoScopa
     maxCommitsToAnalyze: scopedSettings.maxCommitsToAnalyze.source === 'repo' ? 'repo' : 'global',
     'evolution.samplingMode': scopedSettings['evolution.samplingMode'].source === 'repo' ? 'repo' : 'global',
     'evolution.snapshotIntervalDays': scopedSettings['evolution.snapshotIntervalDays'].source === 'repo' ? 'repo' : 'global',
-    'evolution.snapshotIntervalCommits': scopedSettings['evolution.snapshotIntervalCommits'].source === 'repo' ? 'repo' : 'global',
     'evolution.showInactivePeriods': scopedSettings['evolution.showInactivePeriods'].source === 'repo' ? 'repo' : 'global',
     'evolution.maxSnapshots': scopedSettings['evolution.maxSnapshots'].source === 'repo' ? 'repo' : 'global',
     'evolution.maxSeries': scopedSettings['evolution.maxSeries'].source === 'repo' ? 'repo' : 'global',
