@@ -16,9 +16,16 @@ import {
 } from './targetRevisionState.js';
 import { computeStalenessStatus } from './stalenessStatus.js';
 import { WorkspaceStateStorage } from './workspaceStateStorage.js';
+import {
+  AnalysisRunLifecycle,
+  type AnalysisRunScope,
+  type AnalysisRunToken,
+} from './analysisRunLifecycle.js';
 
 export class RepoAnalysisService {
   private readonly stateRegistry = new AnalysisStateRegistry();
+
+  private readonly runLifecycle = new AnalysisRunLifecycle();
 
   constructor(
     private readonly workspaceState: vscode.Memento,
@@ -43,6 +50,8 @@ export class RepoAnalysisService {
       return;
     }
 
+    const run = this.runLifecycle.start('core');
+
     try {
       const settings = this.settingsService.getSettings(target.settingsRepository);
       const settingsHash = createCoreSettingsHash(settings);
@@ -60,45 +69,57 @@ export class RepoAnalysisService {
       const cached = cacheManager.getIfValid(revisionHash, settingsHash);
 
       if (cached) {
+        if (!this.isRunCurrent(run)) {
+          return;
+        }
+
         this.stateRegistry.setCoreState(target.target.id, {
           revisionHash,
           settingsHash,
         });
-        this.sendMessage(webview, {
+        this.sendMessageIfCurrent(run, webview, {
           type: 'analysisComplete',
           data: cached,
         });
-        await this.sendStalenessStatus(webview, target);
+        await this.sendStalenessStatus(webview, target, run);
         return;
       }
 
-      this.sendMessage(webview, { type: 'analysisStarted' });
+      this.sendMessageIfCurrent(run, webview, { type: 'analysisStarted' });
 
       const result = await coordinator.analyze({
         onProgress: (phase, progress) => {
-          this.sendMessage(webview, {
+          this.sendMessageIfCurrent(run, webview, {
             type: 'analysisProgress',
             phase,
             progress,
           });
         },
         onCoreReady: (coreResult) => {
+          if (!this.isRunCurrent(run)) {
+            return;
+          }
+
           this.stateRegistry.setCoreState(target.target.id, {
             revisionHash,
             settingsHash,
           });
-          this.sendMessage(webview, {
+          this.sendMessageIfCurrent(run, webview, {
             type: 'analysisComplete',
             data: coreResult,
           });
         },
         onBlameUpdate: (blameMetrics) => {
-          this.sendMessage(webview, {
+          this.sendMessageIfCurrent(run, webview, {
             type: 'incrementalUpdate',
             data: { blameMetrics },
           });
         },
       });
+
+      if (!this.isRunCurrent(run)) {
+        return;
+      }
 
       await cacheManager.save(
         result,
@@ -111,16 +132,22 @@ export class RepoAnalysisService {
         revisionHash,
         settingsHash,
       });
-      this.sendMessage(webview, {
+      this.sendMessageIfCurrent(run, webview, {
         type: 'analysisComplete',
         data: result,
       });
-      await this.sendStalenessStatus(webview, target);
+      await this.sendStalenessStatus(webview, target, run);
     } catch (error) {
-      this.sendMessage(webview, {
+      if (!this.isRunCurrent(run)) {
+        return;
+      }
+
+      this.sendMessageIfCurrent(run, webview, {
         type: 'analysisError',
         error: this.formatErrorMessage(error, target.target.label, 'analysis'),
       });
+    } finally {
+      this.runLifecycle.finish(run);
     }
   }
 
@@ -137,6 +164,8 @@ export class RepoAnalysisService {
       return;
     }
 
+    const run = this.runLifecycle.start('evolution');
+
     try {
       const settings = this.settingsService.getSettings(target.settingsRepository);
       const storage = new WorkspaceStateStorage(this.workspaceState);
@@ -149,26 +178,34 @@ export class RepoAnalysisService {
       );
 
       if (validCached && !forceRefresh) {
+        if (!this.isRunCurrent(run)) {
+          return;
+        }
+
         this.stateRegistry.setEvolutionState(target.target.id, {
           revisionHash: validCached.revisionHash,
           settingsHash: validCached.settingsHash,
         });
-        this.sendMessage(webview, {
+        this.sendMessageIfCurrent(run, webview, {
           type: 'evolutionComplete',
           data: validCached,
         });
-        await this.sendStalenessStatus(webview, target);
+        await this.sendStalenessStatus(webview, target, run);
         return;
       }
 
       if (!forceRefresh) {
         const latestCached = evolutionCacheManager.getLatest();
         if (latestCached) {
+          if (!this.isRunCurrent(run)) {
+            return;
+          }
+
           this.stateRegistry.setEvolutionState(target.target.id, {
             revisionHash: latestCached.revisionHash,
             settingsHash: latestCached.settingsHash,
           });
-          this.sendMessage(webview, {
+          this.sendMessageIfCurrent(run, webview, {
             type: 'evolutionComplete',
             data: latestCached,
           });
@@ -177,13 +214,13 @@ export class RepoAnalysisService {
             latestCached.revisionHash !== hashes.evolutionRevisionHash ||
             latestCached.settingsHash !== hashes.evolutionSettingsHash
           ) {
-            this.sendMessage(webview, {
+            this.sendMessageIfCurrent(run, webview, {
               type: 'evolutionStale',
               reason: 'Target revision or Evolution settings changed since the last run.',
             });
           }
 
-          await this.sendStalenessStatus(webview, target);
+          await this.sendStalenessStatus(webview, target, run);
 
           if (!settings.evolution.autoRun) {
             return;
@@ -193,15 +230,19 @@ export class RepoAnalysisService {
         }
       }
 
-      this.sendMessage(webview, { type: 'evolutionStarted' });
+      this.sendMessageIfCurrent(run, webview, { type: 'evolutionStarted' });
 
       const analyzer = createTargetEvolutionAnalyzer(target.target, settings);
       const result = await analyzer.analyze((update) => {
-        this.sendMessage(webview, {
+        this.sendMessageIfCurrent(run, webview, {
           type: 'evolutionProgress',
           ...update,
         });
       });
+
+      if (!this.isRunCurrent(run)) {
+        return;
+      }
 
       await evolutionCacheManager.save(result);
 
@@ -209,25 +250,36 @@ export class RepoAnalysisService {
         revisionHash: result.revisionHash,
         settingsHash: result.settingsHash,
       });
-      this.sendMessage(webview, {
+      this.sendMessageIfCurrent(run, webview, {
         type: 'evolutionComplete',
         data: result,
       });
-      await this.sendStalenessStatus(webview, target);
+      await this.sendStalenessStatus(webview, target, run);
     } catch (error) {
-      this.sendMessage(webview, {
+      if (!this.isRunCurrent(run)) {
+        return;
+      }
+
+      this.sendMessageIfCurrent(run, webview, {
         type: 'evolutionError',
         error: this.formatErrorMessage(error, target.target.label, 'evolution analysis'),
       });
+    } finally {
+      this.runLifecycle.finish(run);
     }
   }
 
   async sendStalenessStatus(
     webview: vscode.Webview,
-    target: AnalysisTargetContext | null
+    target: AnalysisTargetContext | null,
+    run?: AnalysisRunToken
   ): Promise<void> {
+    if (run && !this.isRunCurrent(run)) {
+      return;
+    }
+
     if (!target) {
-      this.sendMessage(webview, {
+      this.sendMessageIfCurrent(run, webview, {
         type: 'stalenessStatus',
         coreStale: false,
         evolutionStale: false,
@@ -247,22 +299,42 @@ export class RepoAnalysisService {
         lastEvolutionState,
       });
 
-      this.sendMessage(webview, {
+      this.sendMessageIfCurrent(run, webview, {
         type: 'stalenessStatus',
         coreStale: status.coreStale,
         evolutionStale: status.evolutionStale,
       });
     } catch (error) {
       console.error('[RepoStats] Failed to compute staleness status:', error);
-      this.sendMessage(webview, {
+      this.sendMessageIfCurrent(run, webview, {
         type: 'analysisError',
         error: this.formatErrorMessage(error, target.target.label, 'staleness check'),
       });
     }
   }
 
+  cancelRun(scope: AnalysisRunScope): boolean {
+    return this.runLifecycle.cancel(scope, 'user');
+  }
+
   private sendMessage(webview: vscode.Webview, message: ExtensionMessage): void {
     webview.postMessage(message);
+  }
+
+  private sendMessageIfCurrent(
+    run: AnalysisRunToken | undefined,
+    webview: vscode.Webview,
+    message: ExtensionMessage
+  ): void {
+    if (run && !this.isRunCurrent(run)) {
+      return;
+    }
+
+    this.sendMessage(webview, message);
+  }
+
+  private isRunCurrent(run: AnalysisRunToken): boolean {
+    return this.runLifecycle.isCurrent(run);
   }
 
   private formatErrorMessage(

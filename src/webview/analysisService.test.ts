@@ -111,6 +111,17 @@ vi.mock('simple-git', () => ({
 
 import { RepoAnalysisService } from './analysisService';
 
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (error?: unknown) => void;
+  const promise = new Promise<T>((innerResolve, innerReject) => {
+    resolve = innerResolve;
+    reject = innerReject;
+  });
+
+  return { promise, resolve, reject };
+}
+
 function createSettings(): ExtensionSettings {
   return {
     excludePatterns: [],
@@ -391,5 +402,79 @@ describe('RepoAnalysisService', () => {
       type: 'analysisError',
       error: 'git unavailable',
     });
+  });
+
+  it('suppresses stale core results after a newer run starts', async () => {
+    const { service, webview } = createService();
+    const firstRun = createDeferred<AnalysisResult>();
+    let firstRunCallbacks: Parameters<typeof mockCoordinatorState.analyze>[0] | undefined;
+
+    mockCoordinatorState.analyze
+      .mockImplementationOnce(async (callbacks) => {
+        firstRunCallbacks = callbacks;
+        return firstRun.promise;
+      })
+      .mockImplementationOnce(async (callbacks) => {
+        callbacks?.onProgress?.('Loading second run', 50);
+        callbacks?.onCoreReady?.(createAnalysisResult('second-core', 0));
+        callbacks?.onBlameUpdate?.(createAnalysisResult('second-final', 8).blameMetrics);
+        return createAnalysisResult('second-final', 8);
+      });
+
+    const target = createTargetContext();
+    const firstPromise = service.runAnalysis(webview as never, target);
+    await Promise.resolve();
+
+    const secondPromise = service.runAnalysis(webview as never, target);
+
+    firstRunCallbacks?.onProgress?.('Loading first run', 25);
+    firstRunCallbacks?.onCoreReady?.(createAnalysisResult('first-core', 0));
+    firstRunCallbacks?.onBlameUpdate?.(createAnalysisResult('first-final', 3).blameMetrics);
+    firstRun.resolve(createAnalysisResult('first-final', 3));
+
+    await Promise.all([firstPromise, secondPromise]);
+
+    const analysisCompleteLabels = webview.postMessage.mock.calls
+      .map(([message]) => message)
+      .filter((message) => message.type === 'analysisComplete')
+      .map((message) => message.data.target.label);
+
+    expect(analysisCompleteLabels).toEqual(['second-core', 'second-final']);
+    expect(mockCacheManagerState.save).toHaveBeenCalledTimes(1);
+  });
+
+  it('suppresses stale evolution results after a newer run starts', async () => {
+    const { service, webview } = createService();
+    const firstRun = createDeferred<EvolutionResult>();
+    let firstProgress: ((update: Record<string, unknown>) => void) | undefined;
+
+    mockEvolutionAnalyzerState.analyze
+      .mockImplementationOnce(async (onProgress) => {
+        firstProgress = onProgress;
+        return firstRun.promise;
+      })
+      .mockImplementationOnce(async (onProgress) => {
+        onProgress?.({ phase: 'Second run', progress: 50, stage: 'analyzing' });
+        return createEvolutionResult('second-revision', 'settings-hash');
+      });
+
+    const target = createTargetContext();
+    const firstPromise = service.runEvolutionAnalysis(webview as never, target, true);
+    await Promise.resolve();
+
+    const secondPromise = service.runEvolutionAnalysis(webview as never, target, true);
+
+    firstProgress?.({ phase: 'First run', progress: 25, stage: 'sampling' });
+    firstRun.resolve(createEvolutionResult('first-revision', 'settings-hash'));
+
+    await Promise.all([firstPromise, secondPromise]);
+
+    const completionHashes = webview.postMessage.mock.calls
+      .map(([message]) => message)
+      .filter((message) => message.type === 'evolutionComplete')
+      .map((message) => message.data.revisionHash);
+
+    expect(completionHashes).toEqual(['second-revision']);
+    expect(mockEvolutionCacheManagerState.save).toHaveBeenCalledTimes(1);
   });
 });
