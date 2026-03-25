@@ -22,6 +22,11 @@ import { EmptyState } from './components/common/EmptyState';
 import { LimitWarning } from './components/common/LimitWarning';
 import './App.css';
 
+type CoreBannerCopy = {
+  badge: string;
+  description: string;
+};
+
 function formatRepositoryOption(option: RepositoryOption): string {
   if (option.workspaceFolderName) {
     if (option.relativePath && option.relativePath !== '.') {
@@ -75,6 +80,20 @@ function formatRepositorySelectionSummary(
   return `${selectedRepositories.length} of ${repositories.length} repositories`;
 }
 
+function getCoreBannerCopy(isPreliminary: boolean): CoreBannerCopy {
+  if (isPreliminary) {
+    return {
+      badge: 'Preliminary results',
+      description: 'Showing partial results from the current refresh. Totals may change until the scan finishes.',
+    };
+  }
+
+  return {
+    badge: 'Refresh in progress',
+    description: 'Showing the last completed results while the new refresh is still running.',
+  };
+}
+
 export function App() {
   const {
     activeView,
@@ -84,11 +103,23 @@ export function App() {
     settings,
     coreStale,
     evolutionStale,
+    analysisPresentation,
     availableRepositories,
     selectedRepositoryIds,
     selectedTarget,
   } = useStore();
   const { requestRefresh, cancelAnalysis, updateRepositorySelection } = useVsCodeApi();
+
+  const isCoreView = activeView !== 'settings' && activeView !== 'about' && activeView !== 'evolution';
+  const hasRenderableCoreData = Boolean(settings && data);
+  const showFirstRunLoading = Boolean(settings && !data && loading.isLoading);
+  const showCoreStatusBar = isCoreView
+    && hasRenderableCoreData
+    && analysisPresentation.activeRunState === 'running';
+  const coreBannerCopy = getCoreBannerCopy(
+    analysisPresentation.displayedResultKind === 'preliminary'
+      && analysisPresentation.displayedResultSource === 'activeRun'
+  );
 
   const selectedRepositories = useMemo(() => {
     const selectedIds = new Set(selectedRepositoryIds);
@@ -242,15 +273,37 @@ export function App() {
           <>
             {error && !loading.isLoading && <ErrorState message={error} onRetry={requestRefresh} />}
             {!error && !settings && <LoadingState phase="Loading settings..." progress={0} />}
-            {settings && !error && !data && loading.isLoading && (
+            {showFirstRunLoading && !error && (
               <LoadingState phase={loading.phase} progress={loading.progress} />
             )}
-            {settings && !error && data && (
+            {hasRenderableCoreData && !error && (
               <>
-                {loading.isLoading && (
+                {showCoreStatusBar && (
                   <div className="live-update-banner" role="status" aria-live="polite">
-                    <div className="live-update-banner-text">{loading.phase}</div>
-                    <div className="live-update-banner-track">
+                    <div className="live-update-banner-header">
+                      <div>
+                        <div className="live-update-banner-badge">{coreBannerCopy.badge}</div>
+                        <div className="live-update-banner-text">{loading.phase || 'Refreshing repository statistics...'}</div>
+                        <div className="live-update-banner-copy">{coreBannerCopy.description}</div>
+                      </div>
+                      <div className="live-update-banner-actions">
+                        <button
+                          className="live-update-banner-button live-update-banner-button-secondary"
+                          type="button"
+                          onClick={cancelAnalysis}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          className="live-update-banner-button"
+                          type="button"
+                          onClick={requestRefresh}
+                        >
+                          Restart Scan
+                        </button>
+                      </div>
+                    </div>
+                    <div className="live-update-banner-track" aria-hidden="true">
                       <div
                         className="live-update-banner-fill"
                         style={{ width: `${Math.max(0, Math.min(100, loading.progress))}%` }}
