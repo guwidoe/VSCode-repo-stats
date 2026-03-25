@@ -1,4 +1,5 @@
 import type {
+  RunResultCompleteness,
   AnalysisResult,
   AnalysisTargetOption,
   ColorMode,
@@ -17,15 +18,27 @@ import type {
 } from '../types';
 import type { SizeDisplayMode } from '../components/treemap/types';
 
+export type DisplayedResultKind = 'none' | RunResultCompleteness;
+export type DisplayedResultSource = 'none' | 'lastCompletedRun' | 'activeRun';
+export type ActiveRunState = 'idle' | 'running' | 'cancelled';
+
+export interface ResultPresentationState {
+  displayedResultKind: DisplayedResultKind;
+  displayedResultSource: DisplayedResultSource;
+  activeRunState: ActiveRunState;
+}
+
 export interface AnalysisSlice {
   data: AnalysisResult | null;
   error: string | null;
   loading: LoadingState;
   coreStale: boolean;
-  setData: (data: AnalysisResult) => void;
-  mergeData: (partial: Partial<AnalysisResult>) => void;
+  analysisPresentation: ResultPresentationState;
+  setData: (data: AnalysisResult, options?: { completeness?: RunResultCompleteness }) => void;
+  mergeData: (partial: Partial<AnalysisResult>, options?: { completeness?: RunResultCompleteness }) => void;
   setError: (error: string | null) => void;
   setLoading: (loading: Partial<LoadingState>) => void;
+  setAnalysisPresentation: (presentation: Partial<ResultPresentationState>) => void;
   setStaleness: (status: { coreStale: boolean; evolutionStale: boolean }) => void;
   resetAnalysisState: () => void;
 }
@@ -36,10 +49,12 @@ export interface EvolutionSlice {
   evolutionError: string | null;
   evolutionLoading: LoadingState;
   evolutionStale: boolean;
-  setEvolutionData: (data: EvolutionResult) => void;
+  evolutionPresentation: ResultPresentationState;
+  setEvolutionData: (data: EvolutionResult, options?: { completeness?: RunResultCompleteness }) => void;
   setEvolutionError: (error: string | null) => void;
   setEvolutionLoading: (loading: Partial<LoadingState>) => void;
   setEvolutionStatus: (status: EvolutionStatus) => void;
+  setEvolutionPresentation: (presentation: Partial<ResultPresentationState>) => void;
 }
 
 export interface SettingsSlice {
@@ -108,6 +123,12 @@ export type RepoStatsState = AnalysisSlice &
   TreemapSlice &
   StoreLifecycleActions;
 
+export const emptyResultPresentationState = {
+  displayedResultKind: 'none',
+  displayedResultSource: 'none',
+  activeRunState: 'idle',
+} satisfies ResultPresentationState;
+
 export const analysisInitialState = {
   data: null as AnalysisResult | null,
   error: null as string | null,
@@ -117,6 +138,7 @@ export const analysisInitialState = {
     progress: 0,
   } satisfies LoadingState,
   coreStale: false,
+  analysisPresentation: { ...emptyResultPresentationState },
 };
 
 export const evolutionInitialState = {
@@ -129,6 +151,7 @@ export const evolutionInitialState = {
     progress: 0,
   } satisfies LoadingState,
   evolutionStale: false,
+  evolutionPresentation: { ...emptyResultPresentationState },
 };
 
 export const settingsInitialState = {

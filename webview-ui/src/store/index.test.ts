@@ -122,6 +122,19 @@ describe('useStore', () => {
     it('should default to overview view', () => {
       expect(useStore.getState().activeView).toBe('overview');
     });
+
+    it('starts with no displayed result metadata for core and evolution', () => {
+      expect(useStore.getState().analysisPresentation).toEqual({
+        displayedResultKind: 'none',
+        displayedResultSource: 'none',
+        activeRunState: 'idle',
+      });
+      expect(useStore.getState().evolutionPresentation).toEqual({
+        displayedResultKind: 'none',
+        displayedResultSource: 'none',
+        activeRunState: 'idle',
+      });
+    });
   });
 
   describe('setData', () => {
@@ -138,6 +151,19 @@ describe('useStore', () => {
       useStore.getState().setData(mockAnalysisResult);
 
       expect(useStore.getState().currentTreemapNode).toEqual(mockAnalysisResult.fileTree);
+    });
+
+    it('should preserve loading state for preliminary core results', () => {
+      useStore.getState().setLoading({ isLoading: true, phase: 'Refreshing...', progress: 25 });
+
+      useStore.getState().setData(mockAnalysisResult, { completeness: 'preliminary' });
+
+      expect(useStore.getState().loading.isLoading).toBe(true);
+      expect(useStore.getState().analysisPresentation).toEqual({
+        displayedResultKind: 'preliminary',
+        displayedResultSource: 'activeRun',
+        activeRunState: 'running',
+      });
     });
   });
 
@@ -496,6 +522,33 @@ describe('evolution state', () => {
 
     expect(useStore.getState().evolutionStatus).toBe('ready');
     expect(useStore.getState().evolutionData?.headSha).toBe('abc123');
+  });
+
+  it('should preserve loading state for preliminary evolution results', () => {
+    useStore.getState().setEvolutionLoading({
+      isLoading: true,
+      phase: 'Analyzing...',
+      progress: 30,
+    });
+
+    useStore.getState().setEvolutionData({
+      generatedAt: '2026-03-05T00:00:00.000Z',
+      headSha: 'abc123',
+      branch: 'main',
+      settingsHash: 'hash1',
+      cohorts: { ts: ['2026-01-01T00:00:00.000Z'], labels: ['2026'], y: [[1]] },
+      authors: { ts: ['2026-01-01T00:00:00.000Z'], labels: ['Alice'], y: [[1]] },
+      exts: { ts: ['2026-01-01T00:00:00.000Z'], labels: ['.ts'], y: [[1]] },
+      dirs: { ts: ['2026-01-01T00:00:00.000Z'], labels: ['src/'], y: [[1]] },
+      domains: { ts: ['2026-01-01T00:00:00.000Z'], labels: ['example.com'], y: [[1]] },
+    }, { completeness: 'preliminary' });
+
+    expect(useStore.getState().evolutionLoading.isLoading).toBe(true);
+    expect(useStore.getState().evolutionPresentation).toEqual({
+      displayedResultKind: 'preliminary',
+      displayedResultSource: 'activeRun',
+      activeRunState: 'running',
+    });
   });
 });
 

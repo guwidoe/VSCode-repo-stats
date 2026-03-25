@@ -1,5 +1,22 @@
 import type { StateCreator } from 'zustand';
-import type { RepoStatsState } from '../types';
+import type { RepoStatsState, ResultPresentationState } from '../types';
+import type { RunResultCompleteness } from '../../types';
+
+function resultPresentationForCompleteness(completeness: RunResultCompleteness): ResultPresentationState {
+  if (completeness === 'preliminary') {
+    return {
+      displayedResultKind: 'preliminary',
+      displayedResultSource: 'activeRun',
+      activeRunState: 'running',
+    };
+  }
+
+  return {
+    displayedResultKind: 'final',
+    displayedResultSource: 'lastCompletedRun',
+    activeRunState: 'idle',
+  };
+}
 
 export const createEvolutionSlice: StateCreator<
   RepoStatsState,
@@ -7,7 +24,7 @@ export const createEvolutionSlice: StateCreator<
   [],
   Pick<
     RepoStatsState,
-    'evolutionData' | 'evolutionStatus' | 'evolutionError' | 'evolutionLoading' | 'evolutionStale' | 'setEvolutionData' | 'setEvolutionError' | 'setEvolutionLoading' | 'setEvolutionStatus'
+    'evolutionData' | 'evolutionStatus' | 'evolutionError' | 'evolutionLoading' | 'evolutionStale' | 'evolutionPresentation' | 'setEvolutionData' | 'setEvolutionError' | 'setEvolutionLoading' | 'setEvolutionStatus' | 'setEvolutionPresentation'
   >
 > = (set) => ({
   evolutionData: null,
@@ -15,22 +32,44 @@ export const createEvolutionSlice: StateCreator<
   evolutionError: null,
   evolutionLoading: { isLoading: false, phase: '', progress: 0 },
   evolutionStale: false,
+  evolutionPresentation: {
+    displayedResultKind: 'none',
+    displayedResultSource: 'none',
+    activeRunState: 'idle',
+  },
 
-  setEvolutionData: (data) => {
-    set({
+  setEvolutionData: (data, options) => {
+    const completeness = options?.completeness ?? 'final';
+
+    set((state) => ({
       evolutionData: data,
-      evolutionStatus: 'ready',
+      evolutionStatus: completeness === 'final' ? 'ready' : state.evolutionStatus,
       evolutionError: null,
       evolutionStale: false,
-      evolutionLoading: { isLoading: false, phase: '', progress: 100 },
-    });
+      evolutionLoading: completeness === 'final'
+        ? { isLoading: false, phase: '', progress: 100 }
+        : state.evolutionLoading,
+      evolutionPresentation: resultPresentationForCompleteness(completeness),
+    }));
   },
 
   setEvolutionError: (error) => {
-    set({
-      evolutionError: error,
-      evolutionStatus: error ? 'error' : 'idle',
-      evolutionLoading: { isLoading: false, phase: '', progress: 0 },
+    set((state) => {
+      if (!error) {
+        return {
+          evolutionError: null,
+        };
+      }
+
+      return {
+        evolutionError: error,
+        evolutionStatus: 'error',
+        evolutionLoading: { isLoading: false, phase: '', progress: 0 },
+        evolutionPresentation: {
+          ...state.evolutionPresentation,
+          activeRunState: 'idle',
+        },
+      };
     });
   },
 
@@ -43,5 +82,14 @@ export const createEvolutionSlice: StateCreator<
 
   setEvolutionStatus: (status) => {
     set({ evolutionStatus: status, evolutionStale: status === 'stale' });
+  },
+
+  setEvolutionPresentation: (presentation) => {
+    set((state) => ({
+      evolutionPresentation: {
+        ...state.evolutionPresentation,
+        ...presentation,
+      },
+    }));
   },
 });

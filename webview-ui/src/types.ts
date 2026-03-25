@@ -36,6 +36,8 @@ export type {
   RepoScopedSettings,
   RepositoryInfo,
   RepositoryOption,
+  RunResultCompleteness,
+  RunResultMetadata,
   SccInfo,
   ScopedSettingSource,
   ScopedSettingValue,

@@ -15,11 +15,17 @@ import type {
   SettingWriteTarget,
 } from './settings.js';
 
+export type RunResultCompleteness = 'preliminary' | 'final';
+
+export interface RunResultMetadata {
+  completeness: RunResultCompleteness;
+}
+
 export type ExtensionMessage =
   | { type: 'analysisStarted' }
   | { type: 'analysisCancelled' }
   | { type: 'analysisProgress'; phase: string; progress: number }
-  | { type: 'analysisComplete'; data: AnalysisResult }
+  | { type: 'analysisComplete'; data: AnalysisResult; resultState?: RunResultMetadata }
   | { type: 'analysisError'; error: string }
   | {
       type: 'repositorySelectionLoaded';
@@ -27,7 +33,7 @@ export type ExtensionMessage =
       selectedRepositoryIds: string[];
       selectedTarget: AnalysisTargetOption | null;
     }
-  | { type: 'incrementalUpdate'; data: Partial<AnalysisResult> }
+  | { type: 'incrementalUpdate'; data: Partial<AnalysisResult>; resultState?: RunResultMetadata }
   | { type: 'evolutionStarted' }
   | { type: 'evolutionCancelled' }
   | {
@@ -42,7 +48,7 @@ export type ExtensionMessage =
       totalSnapshots?: number;
       etaSeconds?: number;
     }
-  | { type: 'evolutionComplete'; data: EvolutionResult }
+  | { type: 'evolutionComplete'; data: EvolutionResult; resultState?: RunResultMetadata }
   | { type: 'evolutionError'; error: string }
   | { type: 'evolutionStale'; reason: string }
   | { type: 'stalenessStatus'; coreStale: boolean; evolutionStale: boolean }

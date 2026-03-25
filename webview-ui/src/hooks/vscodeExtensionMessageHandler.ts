@@ -16,11 +16,13 @@ export function applyExtensionMessage(message: ExtensionMessage): void {
   switch (message.type) {
     case 'analysisStarted':
       state.setLoading({ isLoading: true, phase: 'Starting analysis...', progress: 0 });
+      state.setAnalysisPresentation({ activeRunState: 'running' });
       return;
 
     case 'analysisCancelled':
       state.setLoading({ isLoading: false, phase: '', progress: 0 });
       state.setError(null);
+      state.setAnalysisPresentation({ activeRunState: 'cancelled' });
       return;
 
     case 'analysisProgress':
@@ -29,10 +31,13 @@ export function applyExtensionMessage(message: ExtensionMessage): void {
         phase: message.phase,
         progress: message.progress,
       });
+      state.setAnalysisPresentation({ activeRunState: 'running' });
       return;
 
     case 'analysisComplete':
-      state.setData(message.data);
+      state.setData(message.data, {
+        completeness: message.resultState?.completeness ?? 'final',
+      });
       return;
 
     case 'analysisError':
@@ -65,6 +70,7 @@ export function applyExtensionMessage(message: ExtensionMessage): void {
       });
       state.setEvolutionStatus('loading');
       state.setEvolutionError(null);
+      state.setEvolutionPresentation({ activeRunState: 'running' });
       return;
 
     case 'evolutionCancelled':
@@ -82,6 +88,7 @@ export function applyExtensionMessage(message: ExtensionMessage): void {
       });
       state.setEvolutionError(null);
       state.setEvolutionStatus(state.evolutionStale ? 'stale' : state.evolutionData ? 'ready' : 'idle');
+      state.setEvolutionPresentation({ activeRunState: 'cancelled' });
       return;
 
     case 'evolutionProgress':
@@ -98,10 +105,13 @@ export function applyExtensionMessage(message: ExtensionMessage): void {
         etaSeconds: message.etaSeconds,
       });
       state.setEvolutionStatus('loading');
+      state.setEvolutionPresentation({ activeRunState: 'running' });
       return;
 
     case 'evolutionComplete':
-      state.setEvolutionData(normalizeEvolutionResult(message.data));
+      state.setEvolutionData(normalizeEvolutionResult(message.data), {
+        completeness: message.resultState?.completeness ?? 'final',
+      });
       return;
 
     case 'evolutionError':
@@ -121,7 +131,9 @@ export function applyExtensionMessage(message: ExtensionMessage): void {
 
     case 'incrementalUpdate':
       if (message.data) {
-        state.mergeData(message.data);
+        state.mergeData(message.data, {
+          completeness: message.resultState?.completeness ?? 'preliminary',
+        });
       }
       return;
 

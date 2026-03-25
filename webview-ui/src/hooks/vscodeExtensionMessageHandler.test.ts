@@ -161,13 +161,49 @@ describe('applyExtensionMessage', () => {
     expect(useStore.getState().selectedRepositoryIds).toEqual(['repo-2']);
   });
 
+  it('tracks a refresh as running while preserving prior final core results', () => {
+    useStore.getState().setData(createAnalysisResult());
+
+    applyExtensionMessage({ type: 'analysisStarted' });
+
+    expect(useStore.getState().analysisPresentation).toEqual({
+      displayedResultKind: 'final',
+      displayedResultSource: 'lastCompletedRun',
+      activeRunState: 'running',
+    });
+  });
+
+  it('stores preliminary core results from the active run without ending loading state', () => {
+    applyExtensionMessage({ type: 'analysisStarted' });
+
+    applyExtensionMessage({
+      type: 'analysisComplete',
+      data: createAnalysisResult(),
+      resultState: { completeness: 'preliminary' },
+    });
+
+    expect(useStore.getState().loading.isLoading).toBe(true);
+    expect(useStore.getState().analysisPresentation).toEqual({
+      displayedResultKind: 'preliminary',
+      displayedResultSource: 'activeRun',
+      activeRunState: 'running',
+    });
+  });
+
   it('clears loading state when analysis is canceled', () => {
+    useStore.getState().setData(createAnalysisResult());
     useStore.getState().setLoading({ isLoading: true, phase: 'Running', progress: 50 });
+    useStore.getState().setAnalysisPresentation({ activeRunState: 'running' });
 
     applyExtensionMessage({ type: 'analysisCancelled' });
 
     expect(useStore.getState().loading.isLoading).toBe(false);
     expect(useStore.getState().error).toBeNull();
+    expect(useStore.getState().analysisPresentation).toEqual({
+      displayedResultKind: 'final',
+      displayedResultSource: 'lastCompletedRun',
+      activeRunState: 'cancelled',
+    });
   });
 
   it('restores the previous evolution-ready state when evolution is canceled', () => {
@@ -192,6 +228,42 @@ describe('applyExtensionMessage', () => {
 
     expect(useStore.getState().evolutionLoading.isLoading).toBe(false);
     expect(useStore.getState().evolutionStatus).toBe('ready');
+    expect(useStore.getState().evolutionPresentation).toEqual({
+      displayedResultKind: 'final',
+      displayedResultSource: 'lastCompletedRun',
+      activeRunState: 'cancelled',
+    });
+  });
+
+  it('stores preliminary evolution results from the active run', () => {
+    applyExtensionMessage({ type: 'evolutionStarted' });
+
+    applyExtensionMessage({
+      type: 'evolutionComplete',
+      resultState: { completeness: 'preliminary' },
+      data: {
+        generatedAt: new Date('2026-03-24T00:00:00Z').toISOString(),
+        targetId: 'repo:one',
+        historyMode: 'singleBranch',
+        revisionHash: 'rev-1',
+        settingsHash: 'settings-1',
+        memberHeads: [],
+        cohorts: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
+        authors: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
+        extensions: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
+        directories: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
+        exts: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
+        dirs: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
+        domains: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
+      },
+    });
+
+    expect(useStore.getState().evolutionLoading.isLoading).toBe(true);
+    expect(useStore.getState().evolutionPresentation).toEqual({
+      displayedResultKind: 'preliminary',
+      displayedResultSource: 'activeRun',
+      activeRunState: 'running',
+    });
   });
 });
 
