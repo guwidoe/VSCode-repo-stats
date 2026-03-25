@@ -36,12 +36,53 @@ function formatEtaLabel(etaSeconds?: number): string | undefined {
   return `~${minutes}m ${seconds.toString().padStart(2, '0')}s remaining`;
 }
 
+function getEvolutionProgressDetails(loading: {
+  currentRepositoryLabel?: string;
+  totalRepositories?: number;
+  currentRepositoryIndex?: number;
+  totalSnapshots?: number;
+  currentSnapshotIndex?: number;
+  etaSeconds?: number;
+  stage?: EvolutionProgressStage;
+}) {
+  const repositoryLabel = loading.currentRepositoryLabel && loading.totalRepositories
+    ? `${loading.currentRepositoryIndex ?? '?'} / ${loading.totalRepositories} — ${loading.currentRepositoryLabel}`
+    : undefined;
+  const snapshotLabel = loading.totalSnapshots !== undefined
+    ? loading.currentSnapshotIndex !== undefined
+      ? `${loading.currentSnapshotIndex} / ${loading.totalSnapshots}`
+      : `${loading.totalSnapshots} selected`
+    : undefined;
+
+  return {
+    repositoryLabel,
+    snapshotLabel,
+    etaLabel: formatEtaLabel(loading.etaSeconds),
+    stageLabel: formatStageLabel(loading.stage),
+  };
+}
+
+function getProvisionalCopy(isPreliminary: boolean): { badge: string; description: string } {
+  if (isPreliminary) {
+    return {
+      badge: 'Preliminary charts',
+      description: 'Showing partial evolution data from the current recompute. Final series may still change.',
+    };
+  }
+
+  return {
+    badge: 'Recompute in progress',
+    description: 'Showing the last completed evolution charts while the new recompute is still running.',
+  };
+}
+
 export function EvolutionPanel() {
   const {
     evolutionData,
     evolutionStatus,
     evolutionError,
     evolutionLoading,
+    evolutionPresentation,
     settings,
     data,
     dimension,
@@ -63,15 +104,14 @@ export function EvolutionPanel() {
     return null;
   }
 
-  if (evolutionStatus === 'loading') {
-    const repositoryLabel = evolutionLoading.currentRepositoryLabel && evolutionLoading.totalRepositories
-      ? `${evolutionLoading.currentRepositoryIndex ?? '?'} / ${evolutionLoading.totalRepositories} — ${evolutionLoading.currentRepositoryLabel}`
-      : undefined;
-    const snapshotLabel = evolutionLoading.totalSnapshots !== undefined
-      ? evolutionLoading.currentSnapshotIndex !== undefined
-        ? `${evolutionLoading.currentSnapshotIndex} / ${evolutionLoading.totalSnapshots}`
-        : `${evolutionLoading.totalSnapshots} selected`
-      : undefined;
+  const progressDetails = getEvolutionProgressDetails(evolutionLoading);
+  const showProvisionalBanner = evolutionLoading.isLoading && Boolean(evolutionData && processed && timeline);
+  const provisionalCopy = getProvisionalCopy(
+    evolutionPresentation.displayedResultKind === 'preliminary'
+      && evolutionPresentation.displayedResultSource === 'activeRun'
+  );
+
+  if (evolutionStatus === 'loading' && !evolutionData) {
 
     return (
       <div className="evolution-panel">
@@ -85,10 +125,10 @@ export function EvolutionPanel() {
           onAction={cancelEvolutionAnalysis}
           loading
           progress={evolutionLoading.progress}
-          stageLabel={formatStageLabel(evolutionLoading.stage)}
-          repositoryLabel={repositoryLabel}
-          snapshotLabel={snapshotLabel}
-          etaLabel={formatEtaLabel(evolutionLoading.etaSeconds)}
+          stageLabel={progressDetails.stageLabel}
+          repositoryLabel={progressDetails.repositoryLabel}
+          snapshotLabel={progressDetails.snapshotLabel}
+          etaLabel={progressDetails.etaLabel}
         />
       </div>
     );
@@ -151,6 +191,72 @@ export function EvolutionPanel() {
         <div className="evolution-stale-banner">
           Evolution data is stale (repository or settings changed).
           <button onClick={requestEvolutionRefresh}>Recompute</button>
+        </div>
+      )}
+
+      {showProvisionalBanner && (
+        <div className="evolution-progress-banner" role="status" aria-live="polite">
+          <div className="evolution-progress-banner-header">
+            <div>
+              <div className="evolution-progress-banner-badge">{provisionalCopy.badge}</div>
+              <div className="evolution-progress-banner-title">
+                {evolutionLoading.phase || 'Recomputing evolution charts...'}
+              </div>
+              <div className="evolution-progress-banner-copy">{provisionalCopy.description}</div>
+            </div>
+            <div className="evolution-progress-banner-actions">
+              <button
+                className="evolution-run-button evolution-run-button-secondary"
+                type="button"
+                onClick={cancelEvolutionAnalysis}
+              >
+                Cancel
+              </button>
+              <button
+                className="evolution-run-button"
+                type="button"
+                onClick={requestEvolutionRefresh}
+              >
+                Restart Evolution Analysis
+              </button>
+            </div>
+          </div>
+
+          {(progressDetails.stageLabel || progressDetails.repositoryLabel || progressDetails.snapshotLabel || progressDetails.etaLabel) && (
+            <dl className="evolution-progress-details evolution-progress-banner-details">
+              {progressDetails.stageLabel && (
+                <div className="evolution-progress-detail-row">
+                  <dt>Stage</dt>
+                  <dd>{progressDetails.stageLabel}</dd>
+                </div>
+              )}
+              {progressDetails.repositoryLabel && (
+                <div className="evolution-progress-detail-row">
+                  <dt>Repository</dt>
+                  <dd>{progressDetails.repositoryLabel}</dd>
+                </div>
+              )}
+              {progressDetails.snapshotLabel && (
+                <div className="evolution-progress-detail-row">
+                  <dt>Snapshots</dt>
+                  <dd>{progressDetails.snapshotLabel}</dd>
+                </div>
+              )}
+              {progressDetails.etaLabel && (
+                <div className="evolution-progress-detail-row">
+                  <dt>ETA</dt>
+                  <dd>{progressDetails.etaLabel}</dd>
+                </div>
+              )}
+            </dl>
+          )}
+
+          <div className="evolution-progress-track" aria-hidden="true">
+            <div
+              className="evolution-progress-fill"
+              style={{ width: `${Math.max(0, Math.min(100, evolutionLoading.progress))}%` }}
+            />
+          </div>
         </div>
       )}
 

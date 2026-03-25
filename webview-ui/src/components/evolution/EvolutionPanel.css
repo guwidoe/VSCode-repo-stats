@@ -79,6 +79,16 @@
   background: var(--vscode-button-hoverBackground);
 }
 
+.evolution-run-button-secondary {
+  border: 1px solid var(--vscode-button-border, var(--vscode-panel-border));
+  background: var(--vscode-button-secondaryBackground, var(--vscode-input-background));
+  color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+}
+
+.evolution-run-button-secondary:hover {
+  background: var(--vscode-button-secondaryHoverBackground, var(--vscode-list-hoverBackground));
+}
+
 .evolution-stale-banner {
   display: flex;
   justify-content: space-between;
@@ -106,6 +116,58 @@
   border: 1px solid var(--vscode-panel-border);
   color: var(--vscode-descriptionForeground);
   background: color-mix(in srgb, var(--vscode-editor-background) 90%, black 10%);
+}
+
+.evolution-progress-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--vscode-panel-border);
+  background: color-mix(in srgb, var(--vscode-progressBar-background) 8%, transparent 92%);
+}
+
+.evolution-progress-banner-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.evolution-progress-banner-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--vscode-progressBar-background) 18%, transparent 82%);
+  color: var(--vscode-progressBar-background);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.evolution-progress-banner-title {
+  font-size: 13px;
+  color: var(--vscode-foreground);
+}
+
+.evolution-progress-banner-copy {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.evolution-progress-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.evolution-progress-banner-details {
+  margin-top: 0;
 }
 
 .evolution-timeline-note {
@@ -245,6 +307,7 @@
     grid-template-columns: 1fr;
   }
 
+  .evolution-progress-banner-header,
   .evolution-stale-banner {
     flex-direction: column;
     align-items: flex-start;

@@ -7,6 +7,11 @@ type MockState = {
   evolutionStatus: 'idle' | 'loading' | 'ready' | 'error' | 'stale';
   evolutionError: string | null;
   evolutionLoading: { isLoading: boolean; phase: string; progress: number };
+  evolutionPresentation: {
+    displayedResultKind: 'none' | 'preliminary' | 'final';
+    displayedResultSource: 'none' | 'lastCompletedRun' | 'activeRun';
+    activeRunState: 'idle' | 'running' | 'cancelled';
+  };
   settings: ExtensionSettings | null;
   data: AnalysisResult | null;
 };
@@ -35,6 +40,7 @@ vi.mock('../../hooks/useVsCodeApi', () => ({
   useVsCodeApi: () => ({
     requestEvolutionAnalysis: vi.fn(),
     requestEvolutionRefresh: vi.fn(),
+    cancelEvolutionAnalysis: vi.fn(),
   }),
 }));
 
@@ -108,14 +114,135 @@ function createEvolutionResult(): EvolutionResult {
 
   return {
     generatedAt: '2026-03-05T00:00:00.000Z',
-    headSha: 'abc123',
-    branch: 'main',
+    targetId: 'workspace',
+    historyMode: 'mergedMembers',
+    revisionHash: 'rev-1',
     settingsHash: 'hash1',
-    cohorts: { snapshots: [snapshot], ts: ['2026-01-01T00:00:00.000Z'], labels: ['2026'], y: [[1]] },
-    authors: { snapshots: [snapshot], ts: ['2026-01-01T00:00:00.000Z'], labels: ['Alice'], y: [[1]] },
-    exts: { snapshots: [snapshot], ts: ['2026-01-01T00:00:00.000Z'], labels: ['.ts'], y: [[1]] },
-    dirs: { snapshots: [snapshot], ts: ['2026-01-01T00:00:00.000Z'], labels: ['src/'], y: [[1]] },
-    domains: { snapshots: [snapshot], ts: ['2026-01-01T00:00:00.000Z'], labels: ['example.com'], y: [[1]] },
+    memberHeads: [
+      {
+        repositoryId: 'repo-1',
+        repositoryName: 'repo',
+        branch: 'main',
+        headSha: 'abc123',
+      },
+    ],
+    cohorts: {
+      snapshots: [snapshot],
+      timestamps: ['2026-01-01T00:00:00.000Z'],
+      labels: ['2026'],
+      seriesValues: [[1]],
+      ts: ['2026-01-01T00:00:00.000Z'],
+      y: [[1]],
+    },
+    authors: {
+      snapshots: [snapshot],
+      timestamps: ['2026-01-01T00:00:00.000Z'],
+      labels: ['Alice'],
+      seriesValues: [[1]],
+      ts: ['2026-01-01T00:00:00.000Z'],
+      y: [[1]],
+    },
+    extensions: {
+      snapshots: [snapshot],
+      timestamps: ['2026-01-01T00:00:00.000Z'],
+      labels: ['.ts'],
+      seriesValues: [[1]],
+      ts: ['2026-01-01T00:00:00.000Z'],
+      y: [[1]],
+    },
+    directories: {
+      snapshots: [snapshot],
+      timestamps: ['2026-01-01T00:00:00.000Z'],
+      labels: ['src/'],
+      seriesValues: [[1]],
+      ts: ['2026-01-01T00:00:00.000Z'],
+      y: [[1]],
+    },
+    exts: {
+      snapshots: [snapshot],
+      timestamps: ['2026-01-01T00:00:00.000Z'],
+      labels: ['.ts'],
+      seriesValues: [[1]],
+      ts: ['2026-01-01T00:00:00.000Z'],
+      y: [[1]],
+    },
+    dirs: {
+      snapshots: [snapshot],
+      timestamps: ['2026-01-01T00:00:00.000Z'],
+      labels: ['src/'],
+      seriesValues: [[1]],
+      ts: ['2026-01-01T00:00:00.000Z'],
+      y: [[1]],
+    },
+    domains: {
+      snapshots: [snapshot],
+      timestamps: ['2026-01-01T00:00:00.000Z'],
+      labels: ['example.com'],
+      seriesValues: [[1]],
+      ts: ['2026-01-01T00:00:00.000Z'],
+      y: [[1]],
+    },
+  };
+}
+
+function createAnalysisResult(): AnalysisResult {
+  return {
+    target: {
+      id: 'workspace',
+      kind: 'workspace',
+      label: 'Workspace',
+      memberCount: 1,
+    },
+    repositories: [
+      {
+        id: 'repo-1',
+        role: 'workspaceRepo',
+        logicalRoot: 'repo',
+        pathPrefix: 'repo',
+        name: 'repo',
+        path: '/tmp/repo',
+        branch: 'main',
+        commitCount: 10,
+        headSha: 'abc123',
+      },
+    ],
+    contributors: [],
+    codeFrequency: [],
+    commitAnalytics: {
+      authorDirectory: { idByEmail: {}, namesById: [], emailsById: [] },
+      records: [],
+      summary: {
+        totalCommits: 0,
+        totalAdditions: 0,
+        totalDeletions: 0,
+        totalChangedLines: 0,
+        averageChangedLines: 0,
+        medianChangedLines: 0,
+        averageFilesChanged: 0,
+      },
+      contributorSummaries: [],
+      changedLineBuckets: [],
+      fileChangeBuckets: [],
+      indexes: { byTimestampAsc: [], byAdditionsDesc: [], byDeletionsDesc: [], byChangedLinesDesc: [], byFilesChangedDesc: [] },
+    },
+    fileTree: {
+      name: 'repo',
+      path: '',
+      type: 'directory',
+      children: [],
+    },
+    analyzedAt: '2026-03-05T00:00:00.000Z',
+    analyzedCommitCount: 10,
+    maxCommitsLimit: 1000,
+    limitReached: false,
+    sccInfo: { version: '1.0.0', source: 'system' },
+    blameMetrics: {
+      analyzedAt: '2026-03-05T00:00:00.000Z',
+      maxAgeDays: 14,
+      ageByDay: [10, 5],
+      ownershipByAuthor: [],
+      totals: { totalBlamedLines: 15, filesAnalyzed: 1, filesSkipped: 0, cacheHits: 0 },
+    },
   };
 }
 
@@ -126,6 +253,11 @@ describe('EvolutionPanel', () => {
       evolutionStatus: 'idle',
       evolutionError: null,
       evolutionLoading: { isLoading: false, phase: '', progress: 0 },
+      evolutionPresentation: {
+        displayedResultKind: 'none',
+        displayedResultSource: 'none',
+        activeRunState: 'idle',
+      },
       settings: createSettings(),
       data: null,
     };
@@ -165,55 +297,40 @@ describe('EvolutionPanel', () => {
     expect(screen.getByText('~1m 35s remaining')).toBeInTheDocument();
   });
 
+  it('keeps charts visible during recompute when prior evolution data exists', () => {
+    mockStoreState.current!.evolutionStatus = 'loading';
+    mockStoreState.current!.evolutionData = createEvolutionResult();
+    mockStoreState.current!.evolutionPresentation = {
+      displayedResultKind: 'final',
+      displayedResultSource: 'lastCompletedRun',
+      activeRunState: 'running',
+    };
+    mockStoreState.current!.evolutionLoading = {
+      isLoading: true,
+      phase: 'Recomputing evolution for repo-a',
+      progress: 20,
+      stage: 'analyzing',
+      currentRepositoryLabel: 'repo-a',
+      currentRepositoryIndex: 2,
+      totalRepositories: 5,
+      currentSnapshotIndex: 11,
+      totalSnapshots: 42,
+      etaSeconds: 95,
+    };
+    mockStoreState.current!.data = createAnalysisResult();
+
+    render(<EvolutionPanel />);
+
+    expect(screen.getByText('Recompute in progress')).toBeInTheDocument();
+    expect(screen.getByText(/Showing the last completed evolution charts/i)).toBeInTheDocument();
+    expect(screen.getByText('Stacked Ownership Over Time')).toBeInTheDocument();
+    expect(screen.queryByText('Analyzing repository evolution')).not.toBeInTheDocument();
+  });
+
   it('renders stale banner when evolution data is stale', () => {
     mockStoreState.current!.evolutionStatus = 'stale';
     mockStoreState.current!.evolutionData = createEvolutionResult();
-    mockStoreState.current!.data = {
-      repository: {
-        name: 'repo',
-        path: '/tmp/repo',
-        branch: 'main',
-        commitCount: 10,
-        headSha: 'abc123',
-      },
-      contributors: [],
-      codeFrequency: [],
-      commitAnalytics: {
-        authorDirectory: { idByEmail: {}, namesById: [], emailsById: [] },
-        records: [],
-        summary: {
-          totalCommits: 0,
-          totalAdditions: 0,
-          totalDeletions: 0,
-          totalChangedLines: 0,
-          averageChangedLines: 0,
-          medianChangedLines: 0,
-          averageFilesChanged: 0,
-        },
-        contributorSummaries: [],
-        changedLineBuckets: [],
-        fileChangeBuckets: [],
-        indexes: { byTimestampAsc: [], byAdditionsDesc: [], byDeletionsDesc: [], byChangedLinesDesc: [], byFilesChangedDesc: [] },
-      },
-      fileTree: {
-        name: 'repo',
-        path: '',
-        type: 'directory',
-        children: [],
-      },
-      analyzedAt: '2026-03-05T00:00:00.000Z',
-      analyzedCommitCount: 10,
-      maxCommitsLimit: 1000,
-      limitReached: false,
-      sccInfo: { version: '1.0.0', source: 'system' },
-      blameMetrics: {
-        analyzedAt: '2026-03-05T00:00:00.000Z',
-        maxAgeDays: 14,
-        ageByDay: [10, 5],
-        ownershipByAuthor: [],
-        totals: { totalBlamedLines: 15, filesAnalyzed: 1, filesSkipped: 0, cacheHits: 0 },
-      },
-    };
+    mockStoreState.current!.data = createAnalysisResult();
 
     render(<EvolutionPanel />);
 

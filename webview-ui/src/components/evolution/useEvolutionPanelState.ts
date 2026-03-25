@@ -9,6 +9,7 @@ export function useEvolutionPanelState() {
   const evolutionStatus = useStore((state) => state.evolutionStatus);
   const evolutionError = useStore((state) => state.evolutionError);
   const evolutionLoading = useStore((state) => state.evolutionLoading);
+  const evolutionPresentation = useStore((state) => state.evolutionPresentation);
   const settings = useStore((state) => state.settings);
   const data = useStore((state) => state.data);
   const {
@@ -80,6 +81,7 @@ export function useEvolutionPanelState() {
     evolutionStatus,
     evolutionError,
     evolutionLoading,
+    evolutionPresentation,
     settings,
     data,
     dimension,
