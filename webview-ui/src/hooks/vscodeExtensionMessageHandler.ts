@@ -18,6 +18,11 @@ export function applyExtensionMessage(message: ExtensionMessage): void {
       state.setLoading({ isLoading: true, phase: 'Starting analysis...', progress: 0 });
       return;
 
+    case 'analysisCancelled':
+      state.setLoading({ isLoading: false, phase: '', progress: 0 });
+      state.setError(null);
+      return;
+
     case 'analysisProgress':
       state.setLoading({
         isLoading: true,
@@ -60,6 +65,23 @@ export function applyExtensionMessage(message: ExtensionMessage): void {
       });
       state.setEvolutionStatus('loading');
       state.setEvolutionError(null);
+      return;
+
+    case 'evolutionCancelled':
+      state.setEvolutionLoading({
+        isLoading: false,
+        phase: '',
+        progress: 0,
+        stage: undefined,
+        currentRepositoryLabel: undefined,
+        currentRepositoryIndex: undefined,
+        totalRepositories: undefined,
+        currentSnapshotIndex: undefined,
+        totalSnapshots: undefined,
+        etaSeconds: undefined,
+      });
+      state.setEvolutionError(null);
+      state.setEvolutionStatus(state.evolutionStale ? 'stale' : state.evolutionData ? 'ready' : 'idle');
       return;
 
     case 'evolutionProgress':

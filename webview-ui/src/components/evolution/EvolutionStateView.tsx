@@ -3,6 +3,8 @@ interface Props {
   message: string;
   actionLabel?: string;
   onAction?: () => void;
+  secondaryActionLabel?: string;
+  onSecondaryAction?: () => void;
   loading?: boolean;
   progress?: number;
   stageLabel?: string;
@@ -16,6 +18,8 @@ export function EvolutionStateView({
   message,
   actionLabel,
   onAction,
+  secondaryActionLabel,
+  onSecondaryAction,
   loading,
   progress,
   stageLabel,
@@ -49,11 +53,20 @@ export function EvolutionStateView({
           <div className="evolution-progress-fill" style={{ width: `${Math.max(0, Math.min(100, progress))}%` }} />
         </div>
       )}
-      {actionLabel && onAction && (
-        <button className="evolution-run-button" onClick={onAction}>
-          {actionLabel}
-        </button>
-      )}
+      {(actionLabel && onAction) || (secondaryActionLabel && onSecondaryAction) ? (
+        <div className="evolution-state-actions">
+          {actionLabel && onAction && (
+            <button className="evolution-run-button" onClick={onAction}>
+              {actionLabel}
+            </button>
+          )}
+          {secondaryActionLabel && onSecondaryAction && (
+            <button className="evolution-run-button" onClick={onSecondaryAction}>
+              {secondaryActionLabel}
+            </button>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }

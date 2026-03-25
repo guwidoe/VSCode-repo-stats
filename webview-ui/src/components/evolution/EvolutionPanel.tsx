@@ -56,6 +56,7 @@ export function EvolutionPanel() {
     timeline,
     runLabel,
     requestEvolutionRefresh,
+    cancelEvolutionAnalysis,
   } = useEvolutionPanelState();
 
   if (!settings) {
@@ -80,6 +81,8 @@ export function EvolutionPanel() {
         <EvolutionStateView
           title="Analyzing repository evolution"
           message={evolutionLoading.phase}
+          actionLabel="Cancel Evolution Analysis"
+          onAction={cancelEvolutionAnalysis}
           loading
           progress={evolutionLoading.progress}
           stageLabel={formatStageLabel(evolutionLoading.stage)}

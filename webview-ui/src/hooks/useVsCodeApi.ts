@@ -47,12 +47,20 @@ export function useVsCodeApi() {
     postVsCodeMessage({ type: 'requestRefresh' });
   }, []);
 
+  const cancelAnalysis = useCallback(() => {
+    postVsCodeMessage({ type: 'cancelAnalysis' });
+  }, []);
+
   const requestEvolutionAnalysis = useCallback(() => {
     postVsCodeMessage({ type: 'requestEvolutionAnalysis' });
   }, []);
 
   const requestEvolutionRefresh = useCallback(() => {
     postVsCodeMessage({ type: 'requestEvolutionRefresh' });
+  }, []);
+
+  const cancelEvolutionAnalysis = useCallback(() => {
+    postVsCodeMessage({ type: 'cancelEvolutionAnalysis' });
   }, []);
 
   const openFile = useCallback((path: string, repositoryId?: string) => {
@@ -101,8 +109,10 @@ export function useVsCodeApi() {
   return {
     requestAnalysis,
     requestRefresh,
+    cancelAnalysis,
     requestEvolutionAnalysis,
     requestEvolutionRefresh,
+    cancelEvolutionAnalysis,
     openFile,
     revealInExplorer,
     copyPath,

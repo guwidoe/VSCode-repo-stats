@@ -11,7 +11,11 @@ export function useEvolutionPanelState() {
   const evolutionLoading = useStore((state) => state.evolutionLoading);
   const settings = useStore((state) => state.settings);
   const data = useStore((state) => state.data);
-  const { requestEvolutionAnalysis, requestEvolutionRefresh } = useVsCodeApi();
+  const {
+    requestEvolutionAnalysis,
+    requestEvolutionRefresh,
+    cancelEvolutionAnalysis,
+  } = useVsCodeApi();
 
   const [dimension, setDimension] = useState<EvolutionDimension>('cohort');
   const [axisMode, setAxisMode] = useState<EvolutionAxisMode>('time');
@@ -90,6 +94,7 @@ export function useEvolutionPanelState() {
     timeline,
     runLabel: evolutionStatus === 'stale' ? 'Recompute Evolution' : 'Run Evolution Analysis',
     requestEvolutionRefresh,
+    cancelEvolutionAnalysis,
   };
 }
 

@@ -60,7 +60,9 @@ function createProvider() {
 
   providerAny.analysisService = {
     runAnalysis: vi.fn(async () => {}),
+    cancelAnalysis: vi.fn(() => true),
     runEvolutionAnalysis: vi.fn(async () => {}),
+    cancelEvolutionAnalysis: vi.fn(() => true),
     sendStalenessStatus: vi.fn(async () => {}),
   };
   providerAny.analysisTargetService = {
@@ -109,6 +111,16 @@ describe('RepoStatsProvider message routing', () => {
     await providerAny.handleWebviewMessage({ type: 'requestAnalysis' }, webview);
 
     expect(providerAny.runAnalysis).toHaveBeenCalledWith(webview);
+  });
+
+  it('routes cancel requests through analysis service cancellation helpers', async () => {
+    const { providerAny, webview } = createProvider();
+
+    await providerAny.handleWebviewMessage({ type: 'cancelAnalysis' }, webview);
+    await providerAny.handleWebviewMessage({ type: 'cancelEvolutionAnalysis' }, webview);
+
+    expect(providerAny.analysisService.cancelAnalysis).toHaveBeenCalledWith(webview);
+    expect(providerAny.analysisService.cancelEvolutionAnalysis).toHaveBeenCalledWith(webview);
   });
 
   it('routes file actions with repository identity', async () => {

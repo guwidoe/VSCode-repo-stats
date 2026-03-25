@@ -160,6 +160,39 @@ describe('applyExtensionMessage', () => {
     expect(useStore.getState().data).toBeNull();
     expect(useStore.getState().selectedRepositoryIds).toEqual(['repo-2']);
   });
+
+  it('clears loading state when analysis is canceled', () => {
+    useStore.getState().setLoading({ isLoading: true, phase: 'Running', progress: 50 });
+
+    applyExtensionMessage({ type: 'analysisCancelled' });
+
+    expect(useStore.getState().loading.isLoading).toBe(false);
+    expect(useStore.getState().error).toBeNull();
+  });
+
+  it('restores the previous evolution-ready state when evolution is canceled', () => {
+    useStore.getState().setEvolutionData({
+      generatedAt: new Date('2026-03-24T00:00:00Z').toISOString(),
+      targetId: 'repo:one',
+      historyMode: 'singleBranch',
+      revisionHash: 'rev-1',
+      settingsHash: 'settings-1',
+      memberHeads: [],
+      cohorts: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
+      authors: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
+      extensions: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
+      directories: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
+      exts: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
+      dirs: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
+      domains: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
+    });
+    useStore.getState().setEvolutionLoading({ isLoading: true, phase: 'Running', progress: 50 });
+
+    applyExtensionMessage({ type: 'evolutionCancelled' });
+
+    expect(useStore.getState().evolutionLoading.isLoading).toBe(false);
+    expect(useStore.getState().evolutionStatus).toBe('ready');
+  });
 });
 
 describe('applyOptimisticSettingsUpdate', () => {

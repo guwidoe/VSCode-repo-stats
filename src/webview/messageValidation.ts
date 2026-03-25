@@ -184,8 +184,10 @@ export function parseWebviewMessage(message: unknown): WebviewMessage {
   switch (message.type) {
     case 'requestAnalysis':
     case 'requestRefresh':
+    case 'cancelAnalysis':
     case 'requestEvolutionAnalysis':
     case 'requestEvolutionRefresh':
+    case 'cancelEvolutionAnalysis':
     case 'checkStaleness':
     case 'getSettings':
       return { type: message.type };

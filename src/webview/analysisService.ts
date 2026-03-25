@@ -314,6 +314,22 @@ export class RepoAnalysisService {
     }
   }
 
+  cancelAnalysis(webview: vscode.Webview): boolean {
+    const canceled = this.runLifecycle.cancel('core', 'user');
+    if (canceled) {
+      this.sendMessage(webview, { type: 'analysisCancelled' });
+    }
+    return canceled;
+  }
+
+  cancelEvolutionAnalysis(webview: vscode.Webview): boolean {
+    const canceled = this.runLifecycle.cancel('evolution', 'user');
+    if (canceled) {
+      this.sendMessage(webview, { type: 'evolutionCancelled' });
+    }
+    return canceled;
+  }
+
   cancelRun(scope: AnalysisRunScope): boolean {
     return this.runLifecycle.cancel(scope, 'user');
   }

@@ -63,8 +63,14 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     this.messageRouter = new ProviderMessageRouter({
       runAnalysis: (webview) => this.runAnalysis(webview),
       refresh: () => this.refresh(),
+      cancelAnalysis: (webview) => {
+        this.analysisService.cancelAnalysis(webview);
+      },
       runEvolutionAnalysis: (webview, target, forceRefresh) =>
         this.analysisService.runEvolutionAnalysis(webview, target, forceRefresh),
+      cancelEvolutionAnalysis: (webview) => {
+        this.analysisService.cancelEvolutionAnalysis(webview);
+      },
       sendStalenessStatus: (webview, target) => this.analysisService.sendStalenessStatus(webview, target),
       getSelectedTarget: () => this.analysisTargetService.getSelectedTarget(),
       updateRepositorySelection: (repositoryIds, webview) => this.contextSync.updateRepositorySelection(repositoryIds, webview),

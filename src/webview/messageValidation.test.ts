@@ -15,6 +15,11 @@ describe('parseWebviewMessage', () => {
     });
   });
 
+  it('accepts cancel messages', () => {
+    expect(parseWebviewMessage({ type: 'cancelAnalysis' })).toEqual({ type: 'cancelAnalysis' });
+    expect(parseWebviewMessage({ type: 'cancelEvolutionAnalysis' })).toEqual({ type: 'cancelEvolutionAnalysis' });
+  });
+
   it('rejects invalid repository selections', () => {
     expect(() => parseWebviewMessage({ type: 'updateRepositorySelection', repositoryIds: ['a', 1] })).toThrow(
       'Expected repositoryIds to be an array of strings.'

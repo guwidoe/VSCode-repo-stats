@@ -11,11 +11,13 @@ import type { AnalysisTargetContext } from './context.js';
 interface ProviderMessageRouterDependencies {
   runAnalysis: (webview: vscode.Webview) => Promise<void>;
   refresh: () => Promise<void>;
+  cancelAnalysis: (webview: vscode.Webview) => void;
   runEvolutionAnalysis: (
     webview: vscode.Webview,
     target: AnalysisTargetContext | null,
     forceRefresh: boolean
   ) => Promise<void>;
+  cancelEvolutionAnalysis: (webview: vscode.Webview) => void;
   sendStalenessStatus: (
     webview: vscode.Webview,
     target: AnalysisTargetContext | null
@@ -50,12 +52,20 @@ export class ProviderMessageRouter {
         await this.deps.refresh();
         return;
 
+      case 'cancelAnalysis':
+        this.deps.cancelAnalysis(webview);
+        return;
+
       case 'requestEvolutionAnalysis':
         await this.deps.runEvolutionAnalysis(webview, await this.deps.getSelectedTarget(), false);
         return;
 
       case 'requestEvolutionRefresh':
         await this.deps.runEvolutionAnalysis(webview, await this.deps.getSelectedTarget(), true);
+        return;
+
+      case 'cancelEvolutionAnalysis':
+        this.deps.cancelEvolutionAnalysis(webview);
         return;
 
       case 'checkStaleness':

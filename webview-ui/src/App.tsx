@@ -88,7 +88,7 @@ export function App() {
     selectedRepositoryIds,
     selectedTarget,
   } = useStore();
-  const { requestRefresh, updateRepositorySelection } = useVsCodeApi();
+  const { requestRefresh, cancelAnalysis, updateRepositorySelection } = useVsCodeApi();
 
   const selectedRepositories = useMemo(() => {
     const selectedIds = new Set(selectedRepositoryIds);
@@ -198,13 +198,21 @@ export function App() {
               Stale: {coreStale && 'Core'}{coreStale && evolutionStale && ' + '}{evolutionStale && 'Evolution'}
             </span>
           )}
-          <button
-            className="refresh-button"
-            onClick={requestRefresh}
-            disabled={loading.isLoading}
-          >
-            Refresh
-          </button>
+          {loading.isLoading ? (
+            <button
+              className="refresh-button"
+              onClick={cancelAnalysis}
+            >
+              Cancel Refresh
+            </button>
+          ) : (
+            <button
+              className="refresh-button"
+              onClick={requestRefresh}
+            >
+              Refresh
+            </button>
+          )}
         </div>
       </header>
 
