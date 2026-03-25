@@ -327,6 +327,23 @@ describe('EvolutionPanel', () => {
     expect(screen.queryByText('Analyzing repository evolution')).not.toBeInTheDocument();
   });
 
+  it('hides the provisional evolution banner once recompute has finished', () => {
+    mockStoreState.current!.evolutionStatus = 'ready';
+    mockStoreState.current!.evolutionData = createEvolutionResult();
+    mockStoreState.current!.evolutionPresentation = {
+      displayedResultKind: 'final',
+      displayedResultSource: 'lastCompletedRun',
+      activeRunState: 'idle',
+    };
+    mockStoreState.current!.data = createAnalysisResult();
+
+    render(<EvolutionPanel />);
+
+    expect(screen.getByText('Stacked Ownership Over Time')).toBeInTheDocument();
+    expect(screen.queryByText('Recompute in progress')).not.toBeInTheDocument();
+    expect(screen.queryByText('Preliminary charts')).not.toBeInTheDocument();
+  });
+
   it('renders stale banner when evolution data is stale', () => {
     mockStoreState.current!.evolutionStatus = 'stale';
     mockStoreState.current!.evolutionData = createEvolutionResult();

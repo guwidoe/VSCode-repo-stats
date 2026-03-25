@@ -272,6 +272,25 @@ describe('App', () => {
     expect(screen.getByText(/Showing partial results from the current refresh/i)).toBeInTheDocument();
   });
 
+  it('hides the core refresh banner once the run settles', () => {
+    mockStoreState.current = {
+      ...mockStoreState.current!,
+      data: createAnalysisResult(),
+      loading: { isLoading: false, phase: '', progress: 100 },
+      analysisPresentation: {
+        displayedResultKind: 'final',
+        displayedResultSource: 'lastCompletedRun',
+        activeRunState: 'idle',
+      },
+    };
+
+    const { container } = render(<App />);
+
+    expect(container.querySelector('mock-overview-panel')).toBeTruthy();
+    expect(screen.queryByText('Refresh in progress')).not.toBeInTheDocument();
+    expect(screen.queryByText('Preliminary results')).not.toBeInTheDocument();
+  });
+
   it('shows the blocking first-run loading state when no core data exists yet', () => {
     mockStoreState.current = {
       ...mockStoreState.current!,

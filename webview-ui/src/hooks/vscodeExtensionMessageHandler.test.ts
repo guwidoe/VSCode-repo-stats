@@ -190,6 +190,28 @@ describe('applyExtensionMessage', () => {
     });
   });
 
+  it('transitions core presentation metadata back to final after a run completes', () => {
+    applyExtensionMessage({ type: 'analysisStarted' });
+    applyExtensionMessage({
+      type: 'analysisComplete',
+      data: createAnalysisResult(),
+      resultState: { completeness: 'preliminary' },
+    });
+
+    applyExtensionMessage({
+      type: 'analysisComplete',
+      data: createAnalysisResult(),
+      resultState: { completeness: 'final' },
+    });
+
+    expect(useStore.getState().loading.isLoading).toBe(false);
+    expect(useStore.getState().analysisPresentation).toEqual({
+      displayedResultKind: 'final',
+      displayedResultSource: 'lastCompletedRun',
+      activeRunState: 'idle',
+    });
+  });
+
   it('clears loading state when analysis is canceled', () => {
     useStore.getState().setData(createAnalysisResult());
     useStore.getState().setLoading({ isLoading: true, phase: 'Running', progress: 50 });
