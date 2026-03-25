@@ -17,6 +17,7 @@ import {
   type DimensionCounts,
   type EvolutionFileHistogram,
 } from '../evolution/shared.js';
+import { throwIfCancelled } from '../cancellation.js';
 import {
   MemberEvolutionRuntime,
   type MemberCommit,
@@ -37,6 +38,17 @@ export interface EvolutionProgressUpdate {
 
 export type EvolutionProgressCallback = (update: EvolutionProgressUpdate) => void;
 
+interface EvolutionRuntimeLike {
+  readonly member: AnalysisTarget['members'][number];
+  readonly expectedBlameMisses: number;
+  getHeadInfo(): Promise<MemberHeadInfo>;
+  getCommitHistory(branch: string): Promise<MemberCommit[]>;
+  analyzeCommits(
+    commits: MemberCommit[],
+    onProgress?: (progress: { completedSnapshots: number; totalSnapshots: number }) => void
+  ): Promise<Map<string, EvolutionFileHistogram>>;
+}
+
 interface TargetSnapshotEvent {
   repositoryId: string;
   repositoryName: string;
@@ -51,18 +63,30 @@ interface TargetSnapshotEvent {
 export class TargetEvolutionAnalyzer {
   constructor(
     private readonly target: AnalysisTarget,
-    private readonly settings: ExtensionSettings
+    private readonly settings: ExtensionSettings,
+    private readonly signal?: AbortSignal,
+    private readonly runtimeFactory: (
+      member: AnalysisTarget['members'][number],
+      settings: ExtensionSettings,
+      signal?: AbortSignal
+    ) => EvolutionRuntimeLike = (member, settings, signal) => new MemberEvolutionRuntime(member, settings, signal)
   ) {}
 
   async analyze(onProgress?: EvolutionProgressCallback): Promise<EvolutionResult> {
     const startedAt = Date.now();
     const totalRepositories = this.target.members.length;
     const emitProgress = (update: Omit<EvolutionProgressUpdate, 'etaSeconds'>) => {
+      if (this.signal?.aborted) {
+        return;
+      }
+
       onProgress?.({
         ...update,
         etaSeconds: estimateEtaSeconds(startedAt, update.progress),
       });
     };
+
+    throwIfCancelled(this.signal);
 
     emitProgress({
       phase: 'Preparing evolution analysis',
@@ -71,11 +95,13 @@ export class TargetEvolutionAnalyzer {
       totalRepositories,
     });
 
-    const runtimes = this.target.members.map((member) => new MemberEvolutionRuntime(member, this.settings));
+    const runtimes = this.target.members.map((member) => this.runtimeFactory(member, this.settings, this.signal));
     const memberHeads = await Promise.all(runtimes.map((runtime) => runtime.getHeadInfo()));
     const commitHistories = await Promise.all(
       runtimes.map(async (runtime, index) => runtime.getCommitHistory(memberHeads[index].branch))
     );
+
+    throwIfCancelled(this.signal);
 
     emitProgress({
       phase: `Loaded history for ${totalRepositories} ${totalRepositories === 1 ? 'repository' : 'repositories'}`,
@@ -86,6 +112,8 @@ export class TargetEvolutionAnalyzer {
 
     const mergedEvents = this.mergeEvents(memberHeads, commitHistories);
     const sampledEvents = this.sampleEvents(mergedEvents, emitProgress, totalRepositories);
+    throwIfCancelled(this.signal);
+
     emitProgress({
       phase: `Selected ${sampledEvents.length} snapshots across ${mergedEvents.length} history events`,
       progress: 8,
@@ -116,6 +144,8 @@ export class TargetEvolutionAnalyzer {
     const memberTotalsBySnapshot: EvolutionFileHistogram[][] = [];
 
     for (let index = 0; index < memberSelections.length; index += 1) {
+      throwIfCancelled(this.signal);
+
       const selection = memberSelections[index];
       const { runtime, selectedCommits, uniqueCommits } = selection;
 
@@ -149,6 +179,8 @@ export class TargetEvolutionAnalyzer {
         });
       });
 
+      throwIfCancelled(this.signal);
+
       completedSnapshotWork += uniqueCommits.length;
       memberTotalsBySnapshot.push(
         sampledEvents.map((_, snapshotIndex) => {
@@ -160,6 +192,8 @@ export class TargetEvolutionAnalyzer {
         })
       );
     }
+
+    throwIfCancelled(this.signal);
 
     const snapshotTotals = {
       cohort: [] as DimensionCounts[],
@@ -203,6 +237,8 @@ export class TargetEvolutionAnalyzer {
       totalRepositories,
       totalSnapshots: sampledEvents.length,
     });
+
+    throwIfCancelled(this.signal);
 
     return normalizeEvolutionResult({
       generatedAt: new Date().toISOString(),
@@ -335,7 +371,8 @@ function estimateEtaSeconds(startedAt: number, progress: number): number | undef
 
 export function createTargetEvolutionAnalyzer(
   target: AnalysisTarget,
-  settings: ExtensionSettings
+  settings: ExtensionSettings,
+  signal?: AbortSignal
 ): TargetEvolutionAnalyzer {
-  return new TargetEvolutionAnalyzer(target, settings);
+  return new TargetEvolutionAnalyzer(target, settings, signal);
 }

@@ -13,6 +13,7 @@ import {
   parseHistoryLog,
   type EvolutionFileHistogram,
 } from '../evolution/shared.js';
+import { throwIfCancelled } from '../cancellation.js';
 import { normalizeExtensionForFilter } from '../locCounter.js';
 import { createPathPatternMatcher } from '../pathMatching.js';
 
@@ -63,7 +64,8 @@ export class MemberEvolutionRuntime {
 
   constructor(
     readonly member: AnalysisTarget['members'][number],
-    readonly settings: ExtensionSettings
+    readonly settings: ExtensionSettings,
+    private readonly signal?: AbortSignal
   ) {
     this.git = simpleGit(member.repoPath);
     this.shouldExcludePath = createPathPatternMatcher([
@@ -79,10 +81,14 @@ export class MemberEvolutionRuntime {
   }
 
   async getHeadInfo(): Promise<MemberHeadInfo> {
+    throwIfCancelled(this.signal);
+
     const [branchRaw, headShaRaw] = await Promise.all([
       this.git.revparse(['--abbrev-ref', 'HEAD']),
       this.git.revparse(['HEAD']),
     ]);
+
+    throwIfCancelled(this.signal);
 
     return {
       repositoryId: this.member.id,
@@ -93,6 +99,8 @@ export class MemberEvolutionRuntime {
   }
 
   async getCommitHistory(branch: string): Promise<MemberCommit[]> {
+    throwIfCancelled(this.signal);
+
     const rawLog = await this.git.raw([
       'log',
       '--first-parent',
@@ -100,6 +108,8 @@ export class MemberEvolutionRuntime {
       '--format=%H|%ct',
       branch,
     ]);
+
+    throwIfCancelled(this.signal);
 
     const parsedCommits = parseHistoryLog(rawLog);
     const totalCommitCount = parsedCommits.length;
@@ -117,6 +127,8 @@ export class MemberEvolutionRuntime {
     commits: MemberCommit[],
     onProgress?: (progress: MemberEvolutionProgress) => void
   ): Promise<Map<string, EvolutionFileHistogram>> {
+    throwIfCancelled(this.signal);
+
     const totalsBySha = new Map<string, EvolutionFileHistogram>();
     if (commits.length === 0) {
       return totalsBySha;
@@ -127,6 +139,8 @@ export class MemberEvolutionRuntime {
     const runningTotals = createEmptyHistogram();
 
     for (let commitIndex = 0; commitIndex < commits.length; commitIndex += 1) {
+      throwIfCancelled(this.signal);
+
       const commit = commits[commitIndex];
       const changedPaths: string[] = [];
 
@@ -167,6 +181,8 @@ export class MemberEvolutionRuntime {
         commit.sha,
         commit.timestamp
       );
+
+      throwIfCancelled(this.signal);
 
       for (const [filePath, histogram] of updatedHistograms) {
         const existing = fileHistograms.get(filePath);
@@ -257,12 +273,16 @@ export class MemberEvolutionRuntime {
     commitSha: string,
     defaultTimestamp: number
   ): Promise<Map<string, EvolutionFileHistogram>> {
+    throwIfCancelled(this.signal);
+
     const result = new Map<string, EvolutionFileHistogram>();
     const concurrency = Math.max(2, Math.min(12, os.cpus().length));
     let index = 0;
 
     const workers = Array.from({ length: Math.min(concurrency, paths.length) }, async () => {
       while (index < paths.length) {
+        throwIfCancelled(this.signal);
+
         const currentIndex = index;
         index += 1;
 
@@ -281,6 +301,8 @@ export class MemberEvolutionRuntime {
     commitSha: string,
     defaultTimestamp: number
   ): Promise<EvolutionFileHistogram> {
+    throwIfCancelled(this.signal);
+
     const histogram = createEmptyHistogram();
 
     let blameOutput = '';
@@ -292,6 +314,7 @@ export class MemberEvolutionRuntime {
         '--',
         filePath,
       ]);
+      throwIfCancelled(this.signal);
     } catch (error) {
       if (isExpectedBlameMiss(error)) {
         this.expectedBlameMisses += 1;

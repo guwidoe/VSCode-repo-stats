@@ -503,4 +503,30 @@ describe('RepoAnalysisService', () => {
     expect(messageTypes).toEqual(['analysisStarted']);
     expect(mockCacheManagerState.save).not.toHaveBeenCalled();
   });
+
+  it('drops evolution completion callbacks after a run is canceled', async () => {
+    const { service, webview } = createService();
+    const deferred = createDeferred<EvolutionResult>();
+    let onProgress: ((update: Record<string, unknown>) => void) | undefined;
+
+    mockEvolutionAnalyzerState.analyze.mockImplementationOnce(async (nextOnProgress) => {
+      onProgress = nextOnProgress;
+      return deferred.promise;
+    });
+
+    const promise = service.runEvolutionAnalysis(webview as never, createTargetContext(), true);
+    await vi.waitFor(() => {
+      expect(mockEvolutionAnalyzerState.analyze).toHaveBeenCalledTimes(1);
+    });
+
+    service.cancelRun('evolution');
+    onProgress?.({ phase: 'Canceled run progress', progress: 40, stage: 'analyzing' });
+    deferred.resolve(createEvolutionResult('canceled-revision', 'settings-hash'));
+
+    await promise;
+
+    const messageTypes = webview.postMessage.mock.calls.map(([message]) => message.type);
+    expect(messageTypes).toEqual(['evolutionStarted']);
+    expect(mockEvolutionCacheManagerState.save).not.toHaveBeenCalled();
+  });
 });

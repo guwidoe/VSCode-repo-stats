@@ -4,7 +4,10 @@ import { tmpdir } from 'os';
 import path from 'path';
 import { execFileSync } from 'child_process';
 import type { AnalysisTarget, ExtensionSettings } from '../../types';
-import { createTargetEvolutionAnalyzer } from './targetEvolutionAnalyzer';
+import { AnalysisCancelledError } from '../cancellation';
+import { createEmptyHistogram } from '../evolution/shared';
+import { createTargetEvolutionAnalyzer, TargetEvolutionAnalyzer } from './targetEvolutionAnalyzer';
+import type { MemberCommit, MemberHeadInfo } from './memberEvolutionRuntime';
 
 function runGit(args: string[], cwd: string, env: NodeJS.ProcessEnv = {}): string {
   return execFileSync('git', args, {
@@ -122,6 +125,17 @@ function createSettings(overrides: Partial<ExtensionSettings['evolution']> = {})
       ...overrides,
     },
   };
+}
+
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (error?: unknown) => void;
+  const promise = new Promise<T>((innerResolve, innerReject) => {
+    resolve = innerResolve;
+    reject = innerReject;
+  });
+
+  return { promise, resolve, reject };
 }
 
 describe('TargetEvolutionAnalyzer', () => {
@@ -264,5 +278,51 @@ describe('TargetEvolutionAnalyzer', () => {
     expect(result.historyMode).toBe('singleBranch');
     expect(result.authors.snapshots?.map((snapshot) => snapshot.commitIndex)).toEqual([0, 2, 5, 7]);
     expect(result.authors.snapshots?.every((snapshot) => snapshot.samplingMode === 'commit')).toBe(true);
+  });
+
+  it('cancels during snapshot analysis without producing a final result', async () => {
+    const target = createTarget([{ repoPath: '/repos/cancelled', displayName: 'cancelled-repo' }], 'repo:cancelled', 'repository');
+    const abortController = new AbortController();
+    const analyzeStarted = createDeferred<void>();
+    const analyzeResult = createDeferred<Map<string, ReturnType<typeof createEmptyHistogram>>>();
+
+    const commit: MemberCommit = {
+      sha: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      timestamp: 1710000000,
+      commitIndex: 0,
+      totalCommitCount: 1,
+      branch: 'main',
+      globalIndex: 0,
+    };
+    const headInfo: MemberHeadInfo = {
+      repositoryId: '/repos/cancelled',
+      repositoryName: 'cancelled-repo',
+      branch: 'main',
+      headSha: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+    };
+
+    const analyzer = new TargetEvolutionAnalyzer(
+      target,
+      createSettings(),
+      abortController.signal,
+      (member) => ({
+        member,
+        expectedBlameMisses: 0,
+        getHeadInfo: async () => headInfo,
+        getCommitHistory: async () => [commit],
+        analyzeCommits: async () => {
+          analyzeStarted.resolve();
+          return analyzeResult.promise;
+        },
+      })
+    );
+
+    const analysisPromise = analyzer.analyze();
+    await analyzeStarted.promise;
+
+    abortController.abort('user');
+    analyzeResult.resolve(new Map([[commit.sha, createEmptyHistogram()]]));
+
+    await expect(analysisPromise).rejects.toBeInstanceOf(AnalysisCancelledError);
   });
 });
