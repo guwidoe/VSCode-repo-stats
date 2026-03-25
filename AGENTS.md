@@ -12,6 +12,7 @@ VSCode extension for repo statistics: contributors, code frequency, and treemap 
 ## Project Rules
 
 - Run `npm run validate` before finishing any feature (required for publishing)
+- On every version bump, update `changelog.md` to record the released changes.
 - Use LOCCounter wrapper for scc (never call scc directly)
 - Handle missing scc binary gracefully
 - Zustand for webview state (not Redux/Context)
