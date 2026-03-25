@@ -8,6 +8,7 @@ import {
   buildCodeFrequencyFromCommitAnalytics,
   mergeCommitAnalytics,
 } from '../commitAnalytics.js';
+import { throwIfCancelled } from '../cancellation.js';
 import type {
   AnalysisResult,
   AnalysisTarget,
@@ -20,6 +21,7 @@ export interface TargetAnalysisCoordinatorOptions {
   target: AnalysisTarget;
   settings: ExtensionSettings;
   sccStoragePath: string;
+  signal?: AbortSignal;
   previousBlameFileCaches?: Record<string, Record<string, BlameFileCacheEntry>>;
   coordinatorFactory?: (
     member: AnalysisTarget['members'][number],
@@ -43,11 +45,14 @@ export class TargetAnalysisCoordinator {
   async analyze(callbacks: AnalysisCallbacks = {}): Promise<AnalysisResult> {
     const memberResults: AnalysisResult[] = [];
     const totalMembers = this.options.target.members.length;
+    const signal = callbacks.signal ?? this.options.signal;
 
     if (totalMembers === 1) {
+      throwIfCancelled(signal);
       const member = this.options.target.members[0];
       const coordinator = this.createCoordinator(member);
       const memberResult = await coordinator.analyze({
+        signal,
         onProgress: (phase, progress) => {
           callbacks.onProgress?.(`${member.displayName}: ${phase}`, progress);
         },
@@ -62,11 +67,13 @@ export class TargetAnalysisCoordinator {
     }
 
     for (let index = 0; index < totalMembers; index += 1) {
+      throwIfCancelled(signal);
       const member = this.options.target.members[index];
       const coordinator = this.createCoordinator(member);
       this.coordinators.set(member.id, coordinator);
 
       const memberResult = await coordinator.analyze({
+        signal,
         onProgress: (phase, progress) => {
           const memberWeight = 100 / totalMembers;
           const overallProgress = Math.round((index * memberWeight) + (progress / totalMembers));
@@ -78,6 +85,7 @@ export class TargetAnalysisCoordinator {
       memberResults.push(this.decorateMemberResult(memberResult, member));
     }
 
+    throwIfCancelled(signal);
     const aggregated = this.aggregateMemberResults(memberResults);
     callbacks.onProgress?.('Analysis complete', 100);
     return aggregated;
@@ -91,6 +99,7 @@ export class TargetAnalysisCoordinator {
     const revisions: Array<{ repositoryId: string; branch: string; headSha: string }> = [];
 
     for (const member of this.options.target.members) {
+      throwIfCancelled(this.options.signal);
       const coordinator = this.coordinators.get(member.id) ?? createAnalysisCoordinator(
         member.repoPath,
         this.options.settings,

@@ -477,4 +477,30 @@ describe('RepoAnalysisService', () => {
     expect(completionHashes).toEqual(['second-revision']);
     expect(mockEvolutionCacheManagerState.save).toHaveBeenCalledTimes(1);
   });
+
+  it('drops core completion callbacks after a run is canceled', async () => {
+    const { service, webview } = createService();
+    const deferred = createDeferred<AnalysisResult>();
+    let callbacks: Parameters<typeof mockCoordinatorState.analyze>[0] | undefined;
+
+    mockCoordinatorState.analyze.mockImplementationOnce(async (nextCallbacks) => {
+      callbacks = nextCallbacks;
+      return deferred.promise;
+    });
+
+    const promise = service.runAnalysis(webview as never, createTargetContext());
+    await Promise.resolve();
+
+    service.cancelRun('core');
+    callbacks?.onProgress?.('Canceled run progress', 50);
+    callbacks?.onCoreReady?.(createAnalysisResult('canceled-core', 0));
+    callbacks?.onBlameUpdate?.(createAnalysisResult('canceled-final', 4).blameMetrics);
+    deferred.resolve(createAnalysisResult('canceled-final', 4));
+
+    await promise;
+
+    const messageTypes = webview.postMessage.mock.calls.map(([message]) => message.type);
+    expect(messageTypes).toEqual(['analysisStarted']);
+    expect(mockCacheManagerState.save).not.toHaveBeenCalled();
+  });
 });

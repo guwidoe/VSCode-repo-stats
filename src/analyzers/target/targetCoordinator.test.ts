@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { AnalysisCallbacks } from '../coordinator';
 import { createEmptyBlameMetrics } from '../blameMetrics';
+import { AnalysisCancelledError } from '../cancellation';
 import { TargetAnalysisCoordinator } from './targetCoordinator';
 import type {
   AnalysisResult,
@@ -159,6 +160,17 @@ function createResult(memberId: string, repoPath: string, blameMetrics: BlameMet
   };
 }
 
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (error?: unknown) => void;
+  const promise = new Promise<T>((innerResolve, innerReject) => {
+    resolve = innerResolve;
+    reject = innerReject;
+  });
+
+  return { promise, resolve, reject };
+}
+
 class FakeCoordinator {
   constructor(
     private readonly repoPath: string,
@@ -253,5 +265,40 @@ describe('TargetAnalysisCoordinator', () => {
     expect(result.repositories).toHaveLength(2);
     expect(result.target.memberCount).toBe(2);
     expect(result.blameMetrics.totals.totalBlamedLines).toBe(12);
+  });
+
+  it('stops before later members run when a multi-member analysis is canceled', async () => {
+    const target = createTarget(2);
+    const abortController = new AbortController();
+    const firstResult = createDeferred<AnalysisResult>();
+    const startedMembers: string[] = [];
+
+    const coordinator = new TargetAnalysisCoordinator({
+      target,
+      settings: createSettings(),
+      sccStoragePath: '/tmp/scc',
+      signal: abortController.signal,
+      coordinatorFactory: (member) => ({
+        analyze: async () => {
+          startedMembers.push(member.id);
+          if (member.id === 'repo-1') {
+            return firstResult.promise;
+          }
+
+          return createResult(member.displayName, member.repoPath, createBlameMetrics(7));
+        },
+        getLatestBlameFileCache: () => ({}),
+        getRepositoryInfo: async () => ({ branch: 'main', headSha: `${member.id}-head` }),
+      }),
+    });
+
+    const analyzePromise = coordinator.analyze();
+    await Promise.resolve();
+
+    abortController.abort('user');
+    firstResult.resolve(createResult('Repo 1', '/repos/repo-1', createBlameMetrics(5)));
+
+    await expect(analyzePromise).rejects.toBeInstanceOf(AnalysisCancelledError);
+    expect(startedMembers).toEqual(['repo-1']);
   });
 });

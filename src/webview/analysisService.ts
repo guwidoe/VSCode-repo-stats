@@ -62,6 +62,7 @@ export class RepoAnalysisService {
         target: target.target,
         settings,
         sccStoragePath: path.join(this.globalStoragePath, 'scc'),
+        signal: run.signal,
         previousBlameFileCaches,
       });
       const revisions = await coordinator.getTargetRevision();

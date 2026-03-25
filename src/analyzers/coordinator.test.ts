@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AnalysisCoordinator } from './coordinator';
+import { AnalysisCancelledError } from './cancellation';
 import type { GitClient } from './gitAnalyzer';
 import type { LOCClient } from './locCounter';
 import type {
@@ -61,6 +62,34 @@ function createEmptyTree(): TreemapNode {
     lines: 0,
     children: [],
   };
+}
+
+function createTreeWithFile(filePath = 'src/app.ts'): TreemapNode {
+  return {
+    name: 'repo',
+    path: '',
+    type: 'directory',
+    lines: 1,
+    children: [
+      {
+        name: 'app.ts',
+        path: filePath,
+        type: 'file',
+        lines: 1,
+      },
+    ],
+  };
+}
+
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (error?: unknown) => void;
+  const promise = new Promise<T>((innerResolve, innerReject) => {
+    resolve = innerResolve;
+    reject = innerReject;
+  });
+
+  return { promise, resolve, reject };
 }
 
 function createGitClient(overrides: Partial<GitClient> = {}): GitClient {
@@ -150,5 +179,37 @@ describe('AnalysisCoordinator', () => {
     const result = await coordinator.analyze();
 
     expect(result.fileTree.children).toEqual([]);
+  });
+
+  it('aborts before publishing final results when canceled during blame analysis', async () => {
+    const blameStarted = createDeferred<void>();
+    const blameResult = createDeferred<string>();
+    const abortController = new AbortController();
+    const coordinator = new AnalysisCoordinator(
+      '/tmp/repo',
+      createSettings(),
+      '/tmp/scc',
+      createGitClient({
+        getFileModificationDates: async () => new Map([['src/app.ts', '2024-01-01T00:00:00Z']]),
+        getTrackedFiles: async () => ['src/app.ts'],
+        getHeadBlobShas: async () => new Map([['src/app.ts', 'blob-1']]),
+        raw: async () => {
+          blameStarted.resolve();
+          return blameResult.promise;
+        },
+      }),
+      createLocClient({
+        countLines: async () => createTreeWithFile(),
+      }),
+      {} as Record<string, BlameFileCacheEntry>
+    );
+
+    const analyzePromise = coordinator.analyze({ signal: abortController.signal });
+    await blameStarted.promise;
+
+    abortController.abort('user');
+    blameResult.resolve('');
+
+    await expect(analyzePromise).rejects.toBeInstanceOf(AnalysisCancelledError);
   });
 });

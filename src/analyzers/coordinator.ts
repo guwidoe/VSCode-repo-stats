@@ -22,6 +22,7 @@ import {
   shouldExcludeFileByExtension,
 } from './locCounter.js';
 import { createPathPatternMatcher } from './pathMatching.js';
+import { throwIfCancelled } from './cancellation.js';
 
 // ============================================================================
 // Progress Callback Type
@@ -30,6 +31,7 @@ import { createPathPatternMatcher } from './pathMatching.js';
 export type ProgressCallback = (phase: string, progress: number) => void;
 
 export interface AnalysisCallbacks {
+  signal?: AbortSignal;
   onProgress?: ProgressCallback;
   /**
    * Fired when core analysis data is ready before blame finishes.
@@ -74,16 +76,21 @@ export class AnalysisCoordinator {
   }
 
   async analyze(callbacks: AnalysisCallbacks = {}): Promise<AnalysisResult> {
-    const { onProgress, onCoreReady, onBlameUpdate } = callbacks;
+    const { signal, onProgress, onCoreReady, onBlameUpdate } = callbacks;
 
     // Phase 1: Repository info
+    throwIfCancelled(signal);
     onProgress?.('Checking repository', 0);
     const repository = await this.gitClient.getRepoInfo();
     onProgress?.('Repository info loaded', 5);
 
     // Phase 2: Ensure scc is available (may download)
+    throwIfCancelled(signal);
     onProgress?.('Checking scc binary', 7);
     await this.locClient.ensureSccAvailable((downloadPercent) => {
+      if (signal?.aborted) {
+        return;
+      }
       const phase = `Downloading scc (${Math.round(downloadPercent)}%)`;
       // Download progress maps to 7-12% of total progress
       onProgress?.(phase, 7 + (downloadPercent * 0.05));
@@ -92,6 +99,7 @@ export class AnalysisCoordinator {
     onProgress?.('scc ready', 12);
 
     // Phase 3: Commit analytics backbone (shared by contributors/frequency/commit views)
+    throwIfCancelled(signal);
     onProgress?.('Analyzing commit history', 15);
     const commitAnalytics = await this.gitClient.getCommitAnalytics(
       this.settings.maxCommitsToAnalyze,
@@ -100,6 +108,7 @@ export class AnalysisCoordinator {
     onProgress?.('Commit history analyzed', 28);
 
     // Phase 4: Contributor stats
+    throwIfCancelled(signal);
     onProgress?.('Analyzing contributors', 30);
     const contributors = await this.gitClient.getContributorStats(
       this.settings.maxCommitsToAnalyze,
@@ -108,6 +117,7 @@ export class AnalysisCoordinator {
     onProgress?.('Contributors analyzed', 45);
 
     // Phase 5: Code frequency
+    throwIfCancelled(signal);
     onProgress?.('Calculating code frequency', 48);
     const codeFrequency = await this.gitClient.getCodeFrequency(
       this.settings.maxCommitsToAnalyze,
@@ -116,6 +126,7 @@ export class AnalysisCoordinator {
     onProgress?.('Code frequency calculated', 60);
 
     // Phase 5: File tree with LOC
+    throwIfCancelled(signal);
     onProgress?.('Counting lines of code', 65);
     const fileTree = await this.locClient.countLines(
       this.settings.excludePatterns,
@@ -124,11 +135,13 @@ export class AnalysisCoordinator {
     onProgress?.('Lines of code counted', 80);
 
     // Phase 6: Get git file modification dates
+    throwIfCancelled(signal);
     onProgress?.('Getting file history', 82);
     const fileModDates = await this.gitClient.getFileModificationDates();
     onProgress?.('File history loaded', 88);
 
     // Phase 7: Get all tracked files and add binary files to tree
+    throwIfCancelled(signal);
     onProgress?.('Scanning for binary files', 90);
     const shouldExcludePath = createPathPatternMatcher(this.settings.excludePatterns);
     const trackedFiles = (await this.gitClient.getTrackedFiles()).filter(
@@ -147,13 +160,15 @@ export class AnalysisCoordinator {
       codeFilePaths,
       fileModDates,
       locExcludedExtensionSet,
-      binaryExtensionSet
+      binaryExtensionSet,
+      signal
     );
     onProgress?.('Binary files added', 93);
 
     // Phase 8: Enrich tree with modification dates and file sizes
+    throwIfCancelled(signal);
     onProgress?.('Enriching file data', 95);
-    await this.enrichTreeWithMetadata(fileTree, fileModDates);
+    await this.enrichTreeWithMetadata(fileTree, fileModDates, signal);
     onProgress?.('File data enriched', 97);
 
     // Calculate actual commits analyzed (sum across all contributors)
@@ -193,9 +208,12 @@ export class AnalysisCoordinator {
       sccInfo,
       blameMetrics: createEmptyBlameMetrics(),
     };
-    onCoreReady?.(coreResult);
+    if (!signal?.aborted) {
+      onCoreReady?.(coreResult);
+    }
 
     // Phase 9: HEAD-only blame metrics (line ownership + line age)
+    throwIfCancelled(signal);
     onProgress?.('Analyzing line ownership and age', 98);
     const blameTargets = this.collectBlameTargets(fileTree);
     const headBlobShas = await this.gitClient.getHeadBlobShas(
@@ -210,7 +228,11 @@ export class AnalysisCoordinator {
       headBlobShas,
       previousFileCache: this.previousBlameFileCache,
       runGitRaw: (args) => this.gitClient.raw(args),
+      signal,
       onProgress: (processed, total) => {
+        if (signal?.aborted) {
+          return;
+        }
         const now = Date.now();
         const shouldEmit =
           processed === total ||
@@ -231,9 +253,13 @@ export class AnalysisCoordinator {
         );
       },
       onPartial: (partialBlameMetrics) => {
-        onBlameUpdate?.(partialBlameMetrics);
+        if (!signal?.aborted) {
+          onBlameUpdate?.(partialBlameMetrics);
+        }
       },
     });
+
+    throwIfCancelled(signal);
 
     const result: AnalysisResult = {
       ...coreResult,
@@ -244,6 +270,7 @@ export class AnalysisCoordinator {
     this.latestBlameFileCache = blameAnalysis.fileCache;
 
     // Complete
+    throwIfCancelled(signal);
     onProgress?.('Analysis complete', 100);
 
     return result;
@@ -254,8 +281,11 @@ export class AnalysisCoordinator {
    */
   private async enrichTreeWithMetadata(
     node: TreemapNode,
-    fileModDates: Map<string, string>
+    fileModDates: Map<string, string>,
+    signal?: AbortSignal
   ): Promise<number> {
+    throwIfCancelled(signal);
+
     if (node.type === 'file') {
       // Apply git modification date
       const modDate = fileModDates.get(node.path);
@@ -286,7 +316,7 @@ export class AnalysisCoordinator {
       for (let i = 0; i < node.children.length; i += BATCH_SIZE) {
         const batch = node.children.slice(i, i + BATCH_SIZE);
         const results = await Promise.all(
-          batch.map(child => this.enrichTreeWithMetadata(child, fileModDates))
+          batch.map(child => this.enrichTreeWithMetadata(child, fileModDates, signal))
         );
         totalBytes += results.reduce((sum, bytes) => sum + bytes, 0);
       }
@@ -384,12 +414,15 @@ export class AnalysisCoordinator {
     codeFilePaths: Set<string>,
     fileModDates: Map<string, string>,
     locExcludedExtensions: Set<string>,
-    binaryExtensions: Set<string>
+    binaryExtensions: Set<string>,
+    signal?: AbortSignal
   ): Promise<void> {
     // Find binary files (tracked but not in scc output)
     const binaryFiles = allTrackedFiles.filter(f => !codeFilePaths.has(f));
 
     for (const filePath of binaryFiles) {
+      throwIfCancelled(signal);
+
       const isLocExcluded = shouldExcludeFileByExtension(
         filePath,
         locExcludedExtensions

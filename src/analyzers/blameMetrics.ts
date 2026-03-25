@@ -10,6 +10,7 @@ import type {
   BlameOwnershipEntry,
   TreemapNode,
 } from '../types/index.js';
+import { throwIfCancelled } from './cancellation.js';
 
 const UNKNOWN_AUTHOR = 'Unknown';
 const UNKNOWN_EMAIL = 'unknown@unknown.local';
@@ -56,6 +57,7 @@ export interface AnalyzeHeadBlameOptions {
   headBlobShas?: Map<string, string>;
   previousFileCache?: Record<string, BlameFileCacheEntry>;
   runGitRaw: (args: string[]) => Promise<string>;
+  signal?: AbortSignal;
   onProgress?: (processed: number, total: number) => void;
   onPartial?: (metrics: BlameMetrics) => void;
 }
@@ -304,9 +306,12 @@ export async function analyzeHeadBlameMetrics(
     headBlobShas,
     previousFileCache,
     runGitRaw,
+    signal,
     onProgress,
     onPartial,
   } = options;
+
+  throwIfCancelled(signal);
 
   if (fileTargets.length === 0) {
     return {
@@ -356,6 +361,8 @@ export async function analyzeHeadBlameMetrics(
 
   const workers = Array.from({ length: concurrency }, async () => {
     while (index < fileTargets.length) {
+      throwIfCancelled(signal);
+
       const currentIndex = index;
       index += 1;
       const target = fileTargets[currentIndex];
@@ -383,6 +390,8 @@ export async function analyzeHeadBlameMetrics(
           '--',
           target.path,
         ]);
+
+        throwIfCancelled(signal);
 
         const stats = parseBlamePorcelain(incremental, nowUnixSeconds);
 
