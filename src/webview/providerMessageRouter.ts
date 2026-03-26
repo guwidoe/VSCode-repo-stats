@@ -24,9 +24,9 @@ interface ProviderMessageRouterDependencies {
   ) => Promise<void>;
   getSelectedTarget: () => Promise<AnalysisTargetContext | null>;
   updateRepositorySelection: (repositoryIds: string[], webview: vscode.Webview) => Promise<void>;
-  openRepositoryFile: (path: string, repositoryId?: string) => Promise<void>;
-  revealRepositoryFile: (path: string, repositoryId?: string) => Promise<void>;
-  copyRepositoryPath: (path: string, repositoryId?: string) => Promise<void>;
+  openRepositoryFile: (path: string, repositoryId?: string) => Promise<{ ok: boolean }>;
+  revealRepositoryFile: (path: string, repositoryId?: string) => Promise<{ ok: boolean }>;
+  copyRepositoryPath: (path: string, repositoryId?: string) => Promise<{ ok: boolean }>;
   showPathCopiedMessage: () => void;
   sendCurrentTargetContext: (webview: vscode.Webview) => Promise<unknown>;
   updateSettings: (settings: Partial<ExtensionSettings>, target: SettingWriteTarget) => Promise<boolean>;
@@ -85,8 +85,9 @@ export class ProviderMessageRouter {
         return;
 
       case 'copyPath':
-        await this.deps.copyRepositoryPath(message.path, message.repositoryId);
-        this.deps.showPathCopiedMessage();
+        if ((await this.deps.copyRepositoryPath(message.path, message.repositoryId)).ok) {
+          this.deps.showPathCopiedMessage();
+        }
         return;
 
       case 'getSettings':

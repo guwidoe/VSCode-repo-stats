@@ -86,9 +86,9 @@ function createProvider() {
     handlePostSettingsMutation: vi.fn(async () => {}),
   };
   providerAny.fileActions = {
-    openRepositoryFile: vi.fn(async () => {}),
-    revealRepositoryFile: vi.fn(async () => {}),
-    copyRepositoryPath: vi.fn(async () => {}),
+    openRepositoryFile: vi.fn(async () => ({ ok: true })),
+    revealRepositoryFile: vi.fn(async () => ({ ok: true })),
+    copyRepositoryPath: vi.fn(async () => ({ ok: true })),
   };
 
   return {
@@ -125,9 +125,9 @@ describe('RepoStatsProvider message routing', () => {
 
   it('routes file actions with repository identity', async () => {
     const { providerAny, webview } = createProvider();
-    providerAny.fileActions.openRepositoryFile = vi.fn(async () => {});
-    providerAny.fileActions.revealRepositoryFile = vi.fn(async () => {});
-    providerAny.fileActions.copyRepositoryPath = vi.fn(async () => {});
+    providerAny.fileActions.openRepositoryFile = vi.fn(async () => ({ ok: true }));
+    providerAny.fileActions.revealRepositoryFile = vi.fn(async () => ({ ok: true }));
+    providerAny.fileActions.copyRepositoryPath = vi.fn(async () => ({ ok: true }));
 
     await providerAny.handleWebviewMessage({ type: 'openFile', path: 'src/app.ts', repositoryId: 'repo-1' }, webview);
     await providerAny.handleWebviewMessage({ type: 'revealInExplorer', path: 'src', repositoryId: 'repo-2' }, webview);
@@ -137,6 +137,16 @@ describe('RepoStatsProvider message routing', () => {
     expect(providerAny.fileActions.revealRepositoryFile).toHaveBeenCalledWith('src', 'repo-2');
     expect(providerAny.fileActions.copyRepositoryPath).toHaveBeenCalledWith('README.md', 'repo-3');
     expect(vscodeMocks.showInformationMessage).toHaveBeenCalledWith('Path copied to clipboard');
+  });
+
+  it('does not show copy success when a file action reports no-op', async () => {
+    const { providerAny, webview } = createProvider();
+    providerAny.fileActions.copyRepositoryPath = vi.fn(async () => ({ ok: false }));
+
+    await providerAny.handleWebviewMessage({ type: 'copyPath', path: 'README.md', repositoryId: 'repo-3' }, webview);
+
+    expect(providerAny.fileActions.copyRepositoryPath).toHaveBeenCalledWith('README.md', 'repo-3');
+    expect(vscodeMocks.showInformationMessage).not.toHaveBeenCalled();
   });
 
   it('routes settings mutations through the shared post-mutation flow', async () => {

@@ -91,12 +91,26 @@ describe('ProviderFileActions', () => {
       getSelectedTarget: vi.fn(async () => createTargetContext()),
     });
 
-    await actions.openRepositoryFile('nested/repo-b/src/app.ts');
-    await actions.revealRepositoryFile('nested/repo-b/src/app.ts');
-    await actions.copyRepositoryPath('nested/repo-b/src/app.ts');
+    await expect(actions.openRepositoryFile('nested/repo-b/src/app.ts')).resolves.toEqual({ ok: true });
+    await expect(actions.revealRepositoryFile('nested/repo-b/src/app.ts')).resolves.toEqual({ ok: true });
+    await expect(actions.copyRepositoryPath('nested/repo-b/src/app.ts')).resolves.toEqual({ ok: true });
 
     expect(vscodeMocks.showTextDocument).toHaveBeenCalledWith({ fsPath: '/workspace/repo-b/src/app.ts' });
     expect(vscodeMocks.executeCommand).toHaveBeenCalledWith('revealInExplorer', { fsPath: '/workspace/repo-b/src/app.ts' });
     expect(vscodeMocks.writeText).toHaveBeenCalledWith('/workspace/repo-b/src/app.ts');
+  });
+
+  it('returns explicit failure results when a logical path cannot be resolved', async () => {
+    const actions = new ProviderFileActions({
+      getSelectedTarget: vi.fn(async () => createTargetContext()),
+    });
+
+    await expect(actions.openRepositoryFile('src/index.ts', 'missing')).resolves.toEqual({ ok: false });
+    await expect(actions.revealRepositoryFile('src/index.ts', 'missing')).resolves.toEqual({ ok: false });
+    await expect(actions.copyRepositoryPath('src/index.ts', 'missing')).resolves.toEqual({ ok: false });
+
+    expect(vscodeMocks.showTextDocument).not.toHaveBeenCalled();
+    expect(vscodeMocks.executeCommand).not.toHaveBeenCalled();
+    expect(vscodeMocks.writeText).not.toHaveBeenCalled();
   });
 });

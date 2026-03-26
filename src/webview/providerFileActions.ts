@@ -7,34 +7,41 @@ export interface ProviderFileActionDependencies {
   getSelectedTarget: () => Promise<AnalysisTargetContext | null>;
 }
 
+export interface ProviderFileActionResult {
+  ok: boolean;
+}
+
 export class ProviderFileActions {
   constructor(private readonly deps: ProviderFileActionDependencies) {}
 
-  async openRepositoryFile(logicalPath: string, repositoryId?: string): Promise<void> {
+  async openRepositoryFile(logicalPath: string, repositoryId?: string): Promise<ProviderFileActionResult> {
     const filePath = await this.resolveTargetFilePath(logicalPath, repositoryId);
     if (!filePath) {
-      return;
+      return { ok: false };
     }
 
     await vscode.window.showTextDocument(vscode.Uri.file(filePath));
+    return { ok: true };
   }
 
-  async revealRepositoryFile(logicalPath: string, repositoryId?: string): Promise<void> {
+  async revealRepositoryFile(logicalPath: string, repositoryId?: string): Promise<ProviderFileActionResult> {
     const filePath = await this.resolveTargetFilePath(logicalPath, repositoryId);
     if (!filePath) {
-      return;
+      return { ok: false };
     }
 
     await vscode.commands.executeCommand('revealInExplorer', vscode.Uri.file(filePath));
+    return { ok: true };
   }
 
-  async copyRepositoryPath(logicalPath: string, repositoryId?: string): Promise<void> {
+  async copyRepositoryPath(logicalPath: string, repositoryId?: string): Promise<ProviderFileActionResult> {
     const filePath = await this.resolveTargetFilePath(logicalPath, repositoryId);
     if (!filePath) {
-      return;
+      return { ok: false };
     }
 
     await vscode.env.clipboard.writeText(filePath);
+    return { ok: true };
   }
 
   async resolveTargetFilePath(logicalPath: string, repositoryId?: string): Promise<string | undefined> {
