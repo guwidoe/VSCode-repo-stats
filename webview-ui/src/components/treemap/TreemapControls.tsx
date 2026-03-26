@@ -4,7 +4,7 @@
  */
 
 import type { ColorMode } from '../../types';
-import type { SizeDisplayMode } from './types';
+import type { SizeDisplayMode } from '../../types';
 import { InfoTooltip } from '../common/InfoTooltip';
 import './TreemapControls.css';
 

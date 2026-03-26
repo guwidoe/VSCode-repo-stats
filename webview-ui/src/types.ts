@@ -64,6 +64,8 @@ export type FrequencyGranularity = 'weekly' | 'monthly';
 
 export type ColorMode = 'language' | 'age' | 'complexity' | 'density';
 
+export type SizeDisplayMode = 'loc' | 'bytes' | 'files' | 'complexity';
+
 export type TreemapFilterPreset = 'all' | 'hide-binary' | 'code-only' | 'custom';
 
 export interface TreemapFilterState {

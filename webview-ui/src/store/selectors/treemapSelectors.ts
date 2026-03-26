@@ -2,8 +2,8 @@ import type {
   TreemapFilterPreset,
   TreemapFilterState,
   TreemapNode,
+  SizeDisplayMode,
 } from '../../types';
-import type { SizeDisplayMode } from '../../components/treemap/types';
 import { isCodeLanguage } from '../../utils/fileTypes';
 import type { RepoStatsState } from '../types';
 

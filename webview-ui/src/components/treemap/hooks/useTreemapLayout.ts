@@ -1,7 +1,8 @@
 import { useMemo, useCallback } from 'react';
 import * as d3 from 'd3-hierarchy';
 import type { TreemapNode } from '../../../types';
-import type { TreemapConfig, LayoutNode, SizeDisplayMode } from '../types';
+import type { SizeDisplayMode } from '../../../types';
+import type { TreemapConfig, LayoutNode } from '../types';
 
 interface TreemapLayoutResult {
   layout: LayoutNode | null;

@@ -2,7 +2,8 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import type { TreemapNode, ColorMode } from '../../types';
 import type { AgeColorDomain } from '../../utils/colors';
-import type { TreemapConfig, SizeDisplayMode } from './types';
+import type { SizeDisplayMode } from '../../types';
+import type { TreemapConfig } from './types';
 import { DEFAULT_TREEMAP_CONFIG } from './types';
 import { useTreemapLayout } from './hooks/useTreemapLayout';
 import { useTreemapRender } from './hooks/useTreemapRender';

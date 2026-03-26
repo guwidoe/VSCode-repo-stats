@@ -1,6 +1,6 @@
 // webview-ui/src/components/treemap/TreemapTooltip.tsx
 import type { TreemapNode, ColorMode } from '../../types';
-import type { SizeDisplayMode } from './types';
+import type { SizeDisplayMode } from '../../types';
 import { useStore } from '../../store';
 import { formatNumber, formatRelativeTime } from '../../utils/colors';
 import { TooltipSurface } from '../common/TooltipSurface';

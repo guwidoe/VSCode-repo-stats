@@ -15,8 +15,8 @@ import type {
   TreemapFilterState,
   TreemapNode,
   ViewType,
+  SizeDisplayMode,
 } from '../types';
-import type { SizeDisplayMode } from '../components/treemap/types';
 
 export type DisplayedResultKind = 'none' | RunResultCompleteness;
 export type DisplayedResultSource = 'none' | 'lastCompletedRun' | 'activeRun';

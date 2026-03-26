@@ -1,5 +1,5 @@
 // webview-ui/src/components/treemap/types.ts
-import type { TreemapNode } from '../../types';
+import type { SizeDisplayMode, TreemapNode } from '../../types';
 
 export interface TreemapConfig {
   maxNestingDepth: number      // Default: 3
@@ -12,8 +12,6 @@ export const DEFAULT_TREEMAP_CONFIG: TreemapConfig = {
   labelMinWidth: 80,
   labelHeight: 18,
 };
-
-export type SizeDisplayMode = 'loc' | 'bytes' | 'files' | 'complexity';
 
 export interface LayoutNode {
   data: TreemapNode

@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import type { TreemapNode, ColorMode } from '../../../types';
-import type { LayoutNode, SizeDisplayMode } from '../types';
+import type { SizeDisplayMode } from '../../../types';
+import type { LayoutNode } from '../types';
 import { drawVignetteTile, type Bounds } from '../utils/vignette';
 import {
   getContrastColor,
