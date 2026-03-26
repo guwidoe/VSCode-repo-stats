@@ -9,18 +9,7 @@ export interface ProcessedSeriesData {
   timestamps: string[];
   labels: string[];
   seriesValues: Array<Array<number | null>>;
-  ts: string[];
-  y: Array<Array<number | null>>;
 }
-
-type LegacySeriesData = {
-  snapshots?: EvolutionSnapshotPoint[];
-  timestamps?: string[];
-  ts?: string[];
-  labels: string[];
-  seriesValues?: Array<Array<number | null>>;
-  y?: Array<Array<number | null>>;
-};
 
 export type EvolutionAxisMode = 'time' | 'commit';
 
@@ -43,13 +32,13 @@ export interface EvolutionTimeAxisConfig {
 }
 
 export function processEvolutionSeries(
-  data: EvolutionTimeSeriesData | LegacySeriesData,
+  data: EvolutionTimeSeriesData,
   maxSeries: number,
   normalize: boolean,
   dimension: EvolutionDimension,
   showInactivePeriods: boolean = false
 ): ProcessedSeriesData {
-  const baseTimestamps = data.timestamps ?? data.ts ?? [];
+  const baseTimestamps = data.timestamps;
   const baseSnapshots = data.snapshots ?? baseTimestamps.map((committedAt, index) => ({
     commitSha: '',
     commitIndex: index,
@@ -58,7 +47,7 @@ export function processEvolutionSeries(
     samplingMode: 'time' as const,
   }));
   const labels = [...data.labels];
-  const baseSeriesValues = (data.seriesValues ?? data.y ?? []).map((series) => [...series]);
+  const baseSeriesValues = data.seriesValues.map((series) => [...series]);
   const expanded = showInactivePeriods
     ? fillInactivePeriods(baseSnapshots, baseSeriesValues)
     : { snapshots: baseSnapshots, timestamps: baseTimestamps, seriesValues: baseSeriesValues };
@@ -130,8 +119,6 @@ export function processEvolutionSeries(
       timestamps,
       labels: outLabels,
       seriesValues: outSeriesValues,
-      ts: timestamps,
-      y: outSeriesValues,
     };
   }
 
@@ -162,20 +149,17 @@ export function processEvolutionSeries(
     timestamps,
     labels: outLabels,
     seriesValues: normalized,
-    ts: timestamps,
-    y: normalized,
   };
 }
 
 export function getEvolutionTimeAxisConfig(
   data: {
-    timestamps?: string[];
-    ts?: string[];
+    timestamps: string[];
     snapshots?: EvolutionSnapshotPoint[];
   },
   axisMode: EvolutionAxisMode = 'time'
 ): EvolutionTimeAxisConfig {
-  const timestamps = data.timestamps ?? data.ts ?? [];
+  const timestamps = data.timestamps;
   const granularity = inferEvolutionTimeGranularity(timestamps);
   const snapshots = data.snapshots ?? [];
   const hoverLabels = timestamps.map((isoDate, index) => formatSnapshotHoverLabel(snapshots[index], isoDate, granularity));

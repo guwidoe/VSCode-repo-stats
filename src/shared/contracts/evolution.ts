@@ -26,10 +26,6 @@ export interface EvolutionTimeSeriesData {
   labels: string[];
   /** Series x snapshots matrix (same shape as labels x snapshots). */
   seriesValues: number[][];
-  /** @deprecated Legacy alias kept for cache compatibility. */
-  ts: string[];
-  /** @deprecated Legacy alias kept for cache compatibility. */
-  y: number[][];
 }
 
 export interface EvolutionDiagnostics {
@@ -54,10 +50,6 @@ export interface EvolutionResult {
   authors: EvolutionTimeSeriesData;
   extensions: EvolutionTimeSeriesData;
   directories: EvolutionTimeSeriesData;
-  /** @deprecated Legacy alias kept for cache compatibility. */
-  exts: EvolutionTimeSeriesData;
-  /** @deprecated Legacy alias kept for cache compatibility. */
-  dirs: EvolutionTimeSeriesData;
   domains: EvolutionTimeSeriesData;
   diagnostics?: EvolutionDiagnostics;
 }
@@ -71,7 +63,7 @@ type EvolutionTimeSeriesShape = Pick<EvolutionTimeSeriesData, 'labels' | 'snapsh
 
 type EvolutionResultShape = Omit<
   EvolutionResult,
-  'cohorts' | 'authors' | 'extensions' | 'directories' | 'exts' | 'dirs' | 'domains'
+  'cohorts' | 'authors' | 'extensions' | 'directories' | 'domains'
 > & {
   cohorts: EvolutionTimeSeriesShape;
   authors: EvolutionTimeSeriesShape;
@@ -93,8 +85,6 @@ export function normalizeEvolutionTimeSeriesData(
     timestamps,
     labels: data.labels,
     seriesValues,
-    ts: timestamps,
-    y: seriesValues,
   };
 }
 
@@ -115,8 +105,6 @@ export function normalizeEvolutionResult(result: EvolutionResultShape): Evolutio
     authors: normalizeEvolutionTimeSeriesData(result.authors),
     extensions: normalizedExtensions,
     directories: normalizedDirectories,
-    exts: normalizedExtensions,
-    dirs: normalizedDirectories,
     domains: normalizeEvolutionTimeSeriesData(result.domains),
   };
 }

@@ -22,29 +22,29 @@ describe('EvolutionCacheManager', () => {
       },
     ],
     cohorts: {
-      ts: ['2024-01-01T00:00:00.000Z'],
+      timestamps: ['2024-01-01T00:00:00.000Z'],
       labels: ['2024'],
-      y: [[100]],
+      seriesValues: [[100]],
     },
     authors: {
-      ts: ['2024-01-01T00:00:00.000Z'],
+      timestamps: ['2024-01-01T00:00:00.000Z'],
       labels: ['Alice'],
-      y: [[100]],
+      seriesValues: [[100]],
     },
-    exts: {
-      ts: ['2024-01-01T00:00:00.000Z'],
+    extensions: {
+      timestamps: ['2024-01-01T00:00:00.000Z'],
       labels: ['.ts'],
-      y: [[100]],
+      seriesValues: [[100]],
     },
-    dirs: {
-      ts: ['2024-01-01T00:00:00.000Z'],
+    directories: {
+      timestamps: ['2024-01-01T00:00:00.000Z'],
       labels: ['src/'],
-      y: [[100]],
+      seriesValues: [[100]],
     },
     domains: {
-      ts: ['2024-01-01T00:00:00.000Z'],
+      timestamps: ['2024-01-01T00:00:00.000Z'],
       labels: ['example.com'],
-      y: [[100]],
+      seriesValues: [[100]],
     },
   });
 
@@ -104,8 +104,6 @@ describe('EvolutionCacheManager', () => {
         ...mockResult,
         extensions: undefined,
         directories: undefined,
-        exts: undefined,
-        dirs: undefined,
       },
     });
 
@@ -123,8 +121,6 @@ describe('EvolutionCacheManager', () => {
         ...mockResult,
         extensions: undefined,
         directories: undefined,
-        exts: undefined,
-        dirs: undefined,
       },
     });
 

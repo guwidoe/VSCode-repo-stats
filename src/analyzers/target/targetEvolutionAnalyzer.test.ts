@@ -189,9 +189,9 @@ describe('TargetEvolutionAnalyzer', () => {
     expect(result.historyMode).toBe('mergedMembers');
     expect(result.memberHeads).toHaveLength(2);
     expect(result.authors.labels).toEqual(expect.arrayContaining(['Alice', 'Bob']));
-    expect(result.dirs.labels).toEqual(expect.arrayContaining(['repo-a/', 'repo-b/']));
+    expect(result.directories.labels).toEqual(expect.arrayContaining(['repo-a/', 'repo-b/']));
     expect(result.authors.snapshots).toHaveLength(2);
-    expect(result.authors.y.flat().reduce((sum, value) => sum + value, 0)).toBeGreaterThan(0);
+    expect(result.authors.seriesValues.flat().reduce((sum, value) => sum + value, 0)).toBeGreaterThan(0);
     expect(phases).toEqual(expect.arrayContaining([
       expect.stringContaining('Selected 2 snapshots across 2 history events'),
       expect.stringContaining('Analyzing snapshots for repo-a'),
@@ -244,8 +244,8 @@ describe('TargetEvolutionAnalyzer', () => {
     const aliceIndex = result.authors.labels.indexOf('Alice');
     const bobIndex = result.authors.labels.indexOf('Bob');
 
-    expect(result.authors.y[aliceIndex]).toEqual([2, 2, 0]);
-    expect(result.authors.y[bobIndex]).toEqual([0, 0, 3]);
+    expect(result.authors.seriesValues[aliceIndex]).toEqual([2, 2, 0]);
+    expect(result.authors.seriesValues[bobIndex]).toEqual([0, 0, 3]);
     expect(result.authors.snapshots).toHaveLength(3);
     expect(result.authors.snapshots?.map((snapshot) => snapshot.commitIndex)).toEqual([0, 1, 2]);
   });

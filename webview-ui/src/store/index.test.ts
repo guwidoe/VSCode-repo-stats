@@ -513,11 +513,11 @@ describe('evolution state', () => {
       headSha: 'abc123',
       branch: 'main',
       settingsHash: 'hash1',
-      cohorts: { ts: ['2026-01-01T00:00:00.000Z'], labels: ['2026'], y: [[1]] },
-      authors: { ts: ['2026-01-01T00:00:00.000Z'], labels: ['Alice'], y: [[1]] },
-      exts: { ts: ['2026-01-01T00:00:00.000Z'], labels: ['.ts'], y: [[1]] },
-      dirs: { ts: ['2026-01-01T00:00:00.000Z'], labels: ['src/'], y: [[1]] },
-      domains: { ts: ['2026-01-01T00:00:00.000Z'], labels: ['example.com'], y: [[1]] },
+      cohorts: { timestamps: ['2026-01-01T00:00:00.000Z'], labels: ['2026'], seriesValues: [[1]] },
+      authors: { timestamps: ['2026-01-01T00:00:00.000Z'], labels: ['Alice'], seriesValues: [[1]] },
+      extensions: { timestamps: ['2026-01-01T00:00:00.000Z'], labels: ['.ts'], seriesValues: [[1]] },
+      directories: { timestamps: ['2026-01-01T00:00:00.000Z'], labels: ['src/'], seriesValues: [[1]] },
+      domains: { timestamps: ['2026-01-01T00:00:00.000Z'], labels: ['example.com'], seriesValues: [[1]] },
     });
 
     expect(useStore.getState().evolutionStatus).toBe('ready');
@@ -536,11 +536,11 @@ describe('evolution state', () => {
       headSha: 'abc123',
       branch: 'main',
       settingsHash: 'hash1',
-      cohorts: { ts: ['2026-01-01T00:00:00.000Z'], labels: ['2026'], y: [[1]] },
-      authors: { ts: ['2026-01-01T00:00:00.000Z'], labels: ['Alice'], y: [[1]] },
-      exts: { ts: ['2026-01-01T00:00:00.000Z'], labels: ['.ts'], y: [[1]] },
-      dirs: { ts: ['2026-01-01T00:00:00.000Z'], labels: ['src/'], y: [[1]] },
-      domains: { ts: ['2026-01-01T00:00:00.000Z'], labels: ['example.com'], y: [[1]] },
+      cohorts: { timestamps: ['2026-01-01T00:00:00.000Z'], labels: ['2026'], seriesValues: [[1]] },
+      authors: { timestamps: ['2026-01-01T00:00:00.000Z'], labels: ['Alice'], seriesValues: [[1]] },
+      extensions: { timestamps: ['2026-01-01T00:00:00.000Z'], labels: ['.ts'], seriesValues: [[1]] },
+      directories: { timestamps: ['2026-01-01T00:00:00.000Z'], labels: ['src/'], seriesValues: [[1]] },
+      domains: { timestamps: ['2026-01-01T00:00:00.000Z'], labels: ['example.com'], seriesValues: [[1]] },
     }, { completeness: 'preliminary' });
 
     expect(useStore.getState().evolutionLoading.isLoading).toBe(true);

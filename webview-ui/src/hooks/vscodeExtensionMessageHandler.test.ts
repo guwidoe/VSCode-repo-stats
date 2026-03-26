@@ -129,8 +129,8 @@ describe('applyExtensionMessage', () => {
         memberHeads: [],
         cohorts: { labels: ['2026'], ts: ['2026-03-24T00:00:00Z'], y: [[1]] },
         authors: { labels: ['Alice'], ts: ['2026-03-24T00:00:00Z'], y: [[1]] },
-        exts: { labels: ['.ts'], ts: ['2026-03-24T00:00:00Z'], y: [[1]] },
-        dirs: { labels: ['src/'], ts: ['2026-03-24T00:00:00Z'], y: [[1]] },
+        exts: { labels: ['.ts'], timestamps: ['2026-03-24T00:00:00Z'], seriesValues: [[1]] },
+        dirs: { labels: ['src/'], timestamps: ['2026-03-24T00:00:00Z'], seriesValues: [[1]] },
         domains: { labels: ['example.com'], ts: ['2026-03-24T00:00:00Z'], y: [[1]] },
       },
     } satisfies ExtensionMessage as ExtensionMessage;
@@ -236,13 +236,11 @@ describe('applyExtensionMessage', () => {
       revisionHash: 'rev-1',
       settingsHash: 'settings-1',
       memberHeads: [],
-      cohorts: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
-      authors: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
-      extensions: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
-      directories: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
-      exts: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
-      dirs: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
-      domains: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
+      cohorts: { labels: [], snapshots: [], timestamps: [], seriesValues: [] },
+      authors: { labels: [], snapshots: [], timestamps: [], seriesValues: [] },
+      extensions: { labels: [], snapshots: [], timestamps: [], seriesValues: [] },
+      directories: { labels: [], snapshots: [], timestamps: [], seriesValues: [] },
+      domains: { labels: [], snapshots: [], timestamps: [], seriesValues: [] },
     });
     useStore.getState().setEvolutionLoading({ isLoading: true, phase: 'Running', progress: 50 });
 
@@ -270,13 +268,11 @@ describe('applyExtensionMessage', () => {
         revisionHash: 'rev-1',
         settingsHash: 'settings-1',
         memberHeads: [],
-        cohorts: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
-        authors: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
-        extensions: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
-        directories: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
-        exts: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
-        dirs: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
-        domains: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
+        cohorts: { labels: [], snapshots: [], timestamps: [], seriesValues: [] },
+        authors: { labels: [], snapshots: [], timestamps: [], seriesValues: [] },
+        extensions: { labels: [], snapshots: [], timestamps: [], seriesValues: [] },
+        directories: { labels: [], snapshots: [], timestamps: [], seriesValues: [] },
+        domains: { labels: [], snapshots: [], timestamps: [], seriesValues: [] },
       },
     });
 
@@ -300,13 +296,11 @@ describe('applyOptimisticSettingsUpdate', () => {
       revisionHash: 'rev-1',
       settingsHash: 'settings-1',
       memberHeads: [],
-      cohorts: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
-      authors: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
-      extensions: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
-      directories: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
-      exts: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
-      dirs: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
-      domains: { labels: [], snapshots: [], timestamps: [], seriesValues: [], ts: [], y: [] },
+      cohorts: { labels: [], snapshots: [], timestamps: [], seriesValues: [] },
+      authors: { labels: [], snapshots: [], timestamps: [], seriesValues: [] },
+      extensions: { labels: [], snapshots: [], timestamps: [], seriesValues: [] },
+      directories: { labels: [], snapshots: [], timestamps: [], seriesValues: [] },
+      domains: { labels: [], snapshots: [], timestamps: [], seriesValues: [] },
     });
 
     applyOptimisticSettingsUpdate({

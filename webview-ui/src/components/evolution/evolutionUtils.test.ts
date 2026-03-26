@@ -24,9 +24,9 @@ describe('processEvolutionSeries', () => {
         samplingMode: 'time' as const,
       },
     ],
-    ts: ['2026-01-01T00:00:00.000Z', '2026-02-01T00:00:00.000Z'],
+    timestamps: ['2026-01-01T00:00:00.000Z', '2026-02-01T00:00:00.000Z'],
     labels: ['Alice', 'Bob', 'Carol'],
-    y: [
+    seriesValues: [
       [10, 15],
       [8, 5],
       [1, 1],
@@ -37,15 +37,15 @@ describe('processEvolutionSeries', () => {
     const processed = processEvolutionSeries(source, 2, false, 'author');
 
     expect(processed.labels).toEqual(['Alice', 'Bob', 'Other']);
-    expect(processed.y[2]).toEqual([1, 1]);
+    expect(processed.seriesValues[2]).toEqual([1, 1]);
     expect(processed.snapshots).toEqual(source.snapshots);
   });
 
   it('normalizes series to percentages', () => {
     const processed = processEvolutionSeries(source, 3, true, 'author');
 
-    const firstColumnTotal = processed.y.reduce((sum, series) => sum + (series[0] ?? 0), 0);
-    const secondColumnTotal = processed.y.reduce((sum, series) => sum + (series[1] ?? 0), 0);
+    const firstColumnTotal = processed.seriesValues.reduce((sum, series) => sum + (series[0] ?? 0), 0);
+    const secondColumnTotal = processed.seriesValues.reduce((sum, series) => sum + (series[1] ?? 0), 0);
 
     expect(Math.round(firstColumnTotal)).toBe(100);
     expect(Math.round(secondColumnTotal)).toBe(100);
@@ -77,13 +77,13 @@ describe('processEvolutionSeries', () => {
             samplingMode: 'time',
           },
         ],
-        ts: [
+        timestamps: [
           '2026-01-01T00:00:00.000Z',
           '2026-01-03T00:00:00.000Z',
           '2026-01-07T00:00:00.000Z',
         ],
         labels: ['Alice'],
-        y: [[10, 20, 30]],
+        seriesValues: [[10, 20, 30]],
       },
       1,
       false,
@@ -91,7 +91,7 @@ describe('processEvolutionSeries', () => {
       true
     );
 
-    expect(processed.ts).toEqual([
+    expect(processed.timestamps).toEqual([
       '2026-01-01T00:00:00.000Z',
       '2026-01-02T00:00:00.000Z',
       '2026-01-03T00:00:00.000Z',
@@ -100,16 +100,16 @@ describe('processEvolutionSeries', () => {
       '2026-01-06T00:00:00.000Z',
       '2026-01-07T00:00:00.000Z',
     ]);
-    expect(processed.y[0]).toEqual([10, null, 20, null, null, null, 30]);
+    expect(processed.seriesValues[0]).toEqual([10, null, 20, null, null, null, 30]);
     expect(processed.snapshots.filter((snapshot) => snapshot.synthetic)).toHaveLength(4);
   });
 
   it('orders cohort labels chronologically', () => {
     const processed = processEvolutionSeries(
       {
-        ts: ['2025-01-01T00:00:00.000Z'],
+        timestamps: ['2025-01-01T00:00:00.000Z'],
         labels: ['2026', '2022', '2023', '2025', '2024'],
-        y: [[1], [100], [80], [20], [40]],
+        seriesValues: [[1], [100], [80], [20], [40]],
       },
       5,
       false,
@@ -122,9 +122,9 @@ describe('processEvolutionSeries', () => {
   it('keeps Other as last entry for cohort dimension', () => {
     const processed = processEvolutionSeries(
       {
-        ts: ['2025-01-01T00:00:00.000Z'],
+        timestamps: ['2025-01-01T00:00:00.000Z'],
         labels: ['2022', '2023', '2024', '2025', '2026', '2027'],
-        y: [[50], [40], [30], [20], [10], [5]],
+        seriesValues: [[50], [40], [30], [20], [10], [5]],
       },
       3,
       false,
@@ -152,7 +152,7 @@ describe('evolution time axis formatting', () => {
 
   it('keeps date axes on raw timestamps and chooses a weekly tick format', () => {
     const axis = getEvolutionTimeAxisConfig({
-      ts: [
+      timestamps: [
         '2026-01-01T00:00:00.000Z',
         '2026-01-08T00:00:00.000Z',
         '2026-01-15T00:00:00.000Z',
@@ -171,7 +171,7 @@ describe('evolution time axis formatting', () => {
 
   it('can switch the x-axis to commit progression without recomputing snapshots', () => {
     const axis = getEvolutionTimeAxisConfig({
-      ts: [
+      timestamps: [
         '2026-01-01T00:00:00.000Z',
         '2026-01-08T00:00:00.000Z',
       ],
@@ -201,7 +201,7 @@ describe('evolution time axis formatting', () => {
 
   it('includes snapshot metadata in hover labels when available', () => {
     const axis = getEvolutionTimeAxisConfig({
-      ts: ['2026-01-01T00:00:00.000Z'],
+      timestamps: ['2026-01-01T00:00:00.000Z'],
       snapshots: [
         {
           commitSha: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',

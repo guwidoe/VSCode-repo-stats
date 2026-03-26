@@ -245,11 +245,11 @@ function createEvolutionResult(revisionHash: string, settingsHash: string): Evol
         headSha: 'head-1',
       },
     ],
-    cohorts: { ts: [], y: [], labels: [] },
-    authors: { ts: [], y: [], labels: [] },
-    exts: { ts: [], y: [], labels: [] },
-    dirs: { ts: [], y: [], labels: [] },
-    domains: { ts: [], y: [], labels: [] },
+    cohorts: { timestamps: [], seriesValues: [], labels: [] },
+    authors: { timestamps: [], seriesValues: [], labels: [] },
+    extensions: { timestamps: [], seriesValues: [], labels: [] },
+    directories: { timestamps: [], seriesValues: [], labels: [] },
+    domains: { timestamps: [], seriesValues: [], labels: [] },
   });
 }
 

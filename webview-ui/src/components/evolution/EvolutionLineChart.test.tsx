@@ -13,13 +13,14 @@ describe('EvolutionLineChart', () => {
     render(
       <EvolutionLineChart
         data={{
-          ts: [
+          snapshots: [],
+          timestamps: [
             '2026-01-01T00:00:00.000Z',
             '2026-01-08T00:00:00.000Z',
             '2026-01-15T00:00:00.000Z',
           ],
           labels: ['Alice'],
-          y: [[10, 12, 15]],
+          seriesValues: [[10, 12, 15]],
         }}
         normalize={false}
       />
