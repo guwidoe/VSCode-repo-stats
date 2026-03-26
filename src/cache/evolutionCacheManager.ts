@@ -76,13 +76,16 @@ export class EvolutionCacheManager {
   }
 
   private normalizeCachedResult(result: EvolutionResult): EvolutionResult | null {
+    let normalized: EvolutionResult | null = null;
+
     try {
-      return normalizeEvolutionResult(result);
+      normalized = normalizeEvolutionResult(result);
     } catch (error) {
       console.warn('Discarding malformed evolution cache entry.', error);
       void this.clear();
-      return null;
     }
+
+    return normalized;
   }
 
   private hashId(value: string): string {
