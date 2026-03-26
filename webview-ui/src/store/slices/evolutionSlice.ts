@@ -1,22 +1,6 @@
 import type { StateCreator } from 'zustand';
-import type { RepoStatsState, ResultPresentationState } from '../types';
-import type { RunResultCompleteness } from '../../types';
-
-function resultPresentationForCompleteness(completeness: RunResultCompleteness): ResultPresentationState {
-  if (completeness === 'preliminary') {
-    return {
-      displayedResultKind: 'preliminary',
-      displayedResultSource: 'activeRun',
-      activeRunState: 'running',
-    };
-  }
-
-  return {
-    displayedResultKind: 'final',
-    displayedResultSource: 'lastCompletedRun',
-    activeRunState: 'idle',
-  };
-}
+import type { RepoStatsState } from '../types';
+import { resultPresentationForCompleteness } from './resultPresentation';
 
 export const createEvolutionSlice: StateCreator<
   RepoStatsState,

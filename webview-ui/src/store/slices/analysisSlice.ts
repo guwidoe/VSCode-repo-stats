@@ -1,23 +1,7 @@
 import type { StateCreator } from 'zustand';
-import type { RepoStatsState, ResultPresentationState } from '../types';
-import type { RunResultCompleteness } from '../../types';
+import type { RepoStatsState } from '../types';
 import { computeDefaultGranularity } from '../helpers';
-
-function resultPresentationForCompleteness(completeness: RunResultCompleteness): ResultPresentationState {
-  if (completeness === 'preliminary') {
-    return {
-      displayedResultKind: 'preliminary',
-      displayedResultSource: 'activeRun',
-      activeRunState: 'running',
-    };
-  }
-
-  return {
-    displayedResultKind: 'final',
-    displayedResultSource: 'lastCompletedRun',
-    activeRunState: 'idle',
-  };
-}
+import { resultPresentationForCompleteness } from './resultPresentation';
 
 export const createAnalysisSlice: StateCreator<
   RepoStatsState,
