@@ -4,6 +4,7 @@ import type {
   ExtensionMessage,
   RepoScopableSettingKey,
   RepoScopableSettingValueMap,
+  ScopedSettingUpdateMessage,
   SettingWriteTarget,
 } from '../types';
 import { applyExtensionMessage } from './vscodeExtensionMessageHandler';
@@ -18,6 +19,19 @@ import {
 } from './vscodeOptimisticSettings';
 
 export { resetVsCodeApiForTests };
+
+function createScopedSettingUpdateMessage<K extends RepoScopableSettingKey>(
+  key: K,
+  value: RepoScopableSettingValueMap[K],
+  target: SettingWriteTarget
+): ScopedSettingUpdateMessage<K> {
+  return {
+    type: 'updateScopedSetting',
+    key,
+    value,
+    target,
+  } as ScopedSettingUpdateMessage<K>;
+}
 
 export function useVsCodeApi() {
   useEffect(() => {
@@ -91,12 +105,7 @@ export function useVsCodeApi() {
       target: SettingWriteTarget
     ) => {
       applyOptimisticScopedSettingUpdate(key, value, target);
-      postVsCodeMessage({
-        type: 'updateScopedSetting',
-        key,
-        value,
-        target,
-      });
+      postVsCodeMessage(createScopedSettingUpdateMessage(key, value, target));
     },
     []
   );
