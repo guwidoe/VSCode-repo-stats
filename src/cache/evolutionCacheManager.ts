@@ -78,7 +78,8 @@ export class EvolutionCacheManager {
   private normalizeCachedResult(result: EvolutionResult): EvolutionResult | null {
     try {
       return normalizeEvolutionResult(result);
-    } catch {
+    } catch (error) {
+      console.warn('Discarding malformed evolution cache entry.', error);
       void this.clear();
       return null;
     }
