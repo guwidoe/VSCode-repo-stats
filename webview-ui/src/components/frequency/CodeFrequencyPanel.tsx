@@ -2,56 +2,52 @@
  * Code Frequency Panel - Shows additions/deletions over time.
  */
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Plot from 'react-plotly.js';
-import { useStore, selectFilteredCodeFrequency } from '../../store';
-import { TimePeriodFilter } from '../contributors/TimePeriodFilter';
+import { useStore, selectCodeFrequencySeries } from '../../store';
 import { FrequencyGranularityToggle } from './FrequencyGranularityToggle';
 import { SummaryCard } from './SummaryCard';
-import { fillWeeklyGaps, fillMonthlyGaps } from '../../utils/fillTimeGaps';
-import { formatMonthLabel, formatWeekLabel } from '../../utils/timeSeries';
+import { CodeFrequencyRangeSlider } from './CodeFrequencyRangeSlider';
+import { prepareCodeFrequencyChartData } from './frequencyChartData';
 import './CodeFrequencyPanel.css';
 
 export function CodeFrequencyPanel() {
-  const frequency = useStore(selectFilteredCodeFrequency);
+  const frequency = useStore(selectCodeFrequencySeries);
   const { frequencyGranularity, setFrequencyGranularity } = useStore();
   const settings = useStore((state) => state.settings)!;
+  const [selectedRange, setSelectedRange] = useState<{ start: number; end: number } | null>(null);
 
   const showEmptyTimePeriods = settings.showEmptyTimePeriods;
 
-  const chartData = useMemo(() => {
-    let data = frequency;
+  const chartPoints = useMemo(() => {
+    return prepareCodeFrequencyChartData(frequency, showEmptyTimePeriods);
+  }, [frequency, showEmptyTimePeriods]);
 
-    // Check if data is monthly (YYYY-MM format) or weekly (YYYY-Www format)
-    const isMonthly = frequency.length > 0 && frequency[0].week.match(/^\d{4}-\d{2}$/) !== null;
+  const rangeResetKey = useMemo(
+    () => chartPoints.map((point) => point.period).join('|'),
+    [chartPoints]
+  );
 
-    // Fill gaps if setting is enabled
-    if (showEmptyTimePeriods && frequency.length > 0) {
-      const createEmptyEntry = (week: string) => ({
-        week,
-        additions: 0,
-        deletions: 0,
-        netChange: 0,
-      });
-
-      if (isMonthly) {
-        data = fillMonthlyGaps(frequency, createEmptyEntry);
-      } else {
-        data = fillWeeklyGaps(frequency, createEmptyEntry);
-      }
+  useEffect(() => {
+    if (chartPoints.length === 0) {
+      setSelectedRange(null);
+      return;
     }
 
-    // Format labels based on granularity
-    const formatLabel = isMonthly
-      ? formatMonthLabel
-      : (week: string) => formatWeekLabel(week) ?? week;
+    setSelectedRange({ start: 0, end: chartPoints.length - 1 });
+  }, [rangeResetKey, chartPoints.length]);
 
-    return {
-      x: data.map((f) => formatLabel(f.week)),
-      additions: data.map((f) => f.additions),
-      deletions: data.map((f) => -f.deletions), // Negative for downward bars
-    };
-  }, [frequency, showEmptyTimePeriods]);
+  const visiblePoints = useMemo(() => {
+    if (chartPoints.length === 0) {
+      return [];
+    }
+
+    if (!selectedRange) {
+      return chartPoints;
+    }
+
+    return chartPoints.slice(selectedRange.start, selectedRange.end + 1);
+  }, [chartPoints, selectedRange]);
 
   if (frequency.length === 0) {
     return (
@@ -75,7 +71,11 @@ export function CodeFrequencyPanel() {
             value={frequencyGranularity}
             onChange={setFrequencyGranularity}
           />
-          <TimePeriodFilter />
+          <CodeFrequencyRangeSlider
+            points={chartPoints}
+            resetKey={rangeResetKey}
+            onRangeChange={(start, end) => setSelectedRange({ start, end })}
+          />
         </div>
       </div>
 
@@ -85,8 +85,8 @@ export function CodeFrequencyPanel() {
             {
               type: 'bar',
               name: 'Additions',
-              x: chartData.x,
-              y: chartData.additions,
+              x: visiblePoints.map((point) => point.label),
+              y: visiblePoints.map((point) => point.additions),
               marker: {
                 color: '#3fb950', // Green for additions
               },
@@ -95,8 +95,8 @@ export function CodeFrequencyPanel() {
             {
               type: 'bar',
               name: 'Deletions',
-              x: chartData.x,
-              y: chartData.deletions,
+              x: visiblePoints.map((point) => point.label),
+              y: visiblePoints.map((point) => -point.deletions),
               marker: {
                 color: '#f85149', // Red for deletions
               },
@@ -151,19 +151,19 @@ export function CodeFrequencyPanel() {
       <div className="summary-stats">
         <SummaryCard
           label="Total Additions"
-          value={chartData.additions.reduce((a, b) => a + b, 0)}
+          value={visiblePoints.reduce((sum, point) => sum + point.additions, 0)}
           color="#3fb950"
           prefix="+"
         />
         <SummaryCard
           label="Total Deletions"
-          value={Math.abs(chartData.deletions.reduce((a, b) => a + b, 0))}
+          value={visiblePoints.reduce((sum, point) => sum + point.deletions, 0)}
           color="#f85149"
           prefix="-"
         />
         <SummaryCard
           label="Net Change"
-          value={chartData.additions.reduce((a, b) => a + b, 0) + chartData.deletions.reduce((a, b) => a + b, 0)}
+          value={visiblePoints.reduce((sum, point) => sum + point.netChange, 0)}
           color="var(--vscode-foreground)"
         />
       </div>

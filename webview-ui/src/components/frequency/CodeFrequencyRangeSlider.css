@@ -1,0 +1,18 @@
+.frequency-range-slider {
+  min-width: 340px;
+}
+
+.frequency-range-chart {
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--vscode-editor-background) 92%, #3fb950 8%) 0%,
+    var(--vscode-editor-background) 48%,
+    var(--vscode-editor-background) 52%,
+    color-mix(in srgb, var(--vscode-editor-background) 92%, #f85149 8%) 100%
+  );
+}
+
+.frequency-range-baseline {
+  stroke: var(--vscode-panel-border);
+  stroke-width: 0.3;
+}

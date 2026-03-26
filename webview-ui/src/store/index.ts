@@ -15,6 +15,7 @@ import {
 } from './types';
 export {
   selectAllWeeks,
+  selectCodeFrequencySeries,
   selectFilteredCodeFrequency,
   selectFilteredContributors,
   selectTimeRangeWeeks,

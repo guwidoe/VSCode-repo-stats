@@ -169,3 +169,17 @@ export const selectFilteredCodeFrequency = (state: RepoStatsState) => {
 
   return filtered;
 };
+
+export const selectCodeFrequencySeries = (state: RepoStatsState) => {
+  if (!state.data) {
+    return [];
+  }
+
+  const frequency = state.data.codeFrequency.filter((entry) => parseISOWeek(entry.week) !== null);
+
+  if (state.frequencyGranularity === 'monthly') {
+    return aggregateToMonthly(frequency);
+  }
+
+  return frequency;
+};
