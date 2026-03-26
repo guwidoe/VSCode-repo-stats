@@ -3,6 +3,7 @@ import type {
   EvolutionSamplingMode,
   RepoScopableSettingKey,
   RepoScopableSettingValueMap,
+  ScopedSettingUpdateMessage,
   SettingWriteTarget,
   WebviewMessage,
 } from '../types/index.js';
@@ -130,6 +131,19 @@ function isScopedSettingValue<K extends RepoScopableSettingKey>(
   }
 }
 
+function createScopedSettingUpdateMessage<K extends RepoScopableSettingKey>(
+  key: K,
+  value: RepoScopableSettingValueMap[K],
+  target: SettingWriteTarget
+): ScopedSettingUpdateMessage<K> {
+  return {
+    type: 'updateScopedSetting',
+    key,
+    value,
+    target,
+  } as ScopedSettingUpdateMessage<K>;
+}
+
 function isPathMessagePayload(record: UnknownRecord): record is UnknownRecord & { path: string; repositoryId?: string } {
   return typeof record.path === 'string'
     && (record.repositoryId === undefined || typeof record.repositoryId === 'string');
@@ -238,12 +252,7 @@ export function parseWebviewMessage(message: unknown): WebviewMessage {
       if (!isScopedSettingValue(message.key, message.value)) {
         throw new Error(`Received invalid value for scoped setting ${message.key}.`);
       }
-      return {
-        type: 'updateScopedSetting',
-        key: message.key,
-        value: message.value,
-        target: message.target,
-      };
+      return createScopedSettingUpdateMessage(message.key, message.value, message.target);
 
     case 'resetScopedSetting':
       if (!isRepoScopableSettingKey(message.key)) {

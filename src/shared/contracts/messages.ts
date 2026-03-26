@@ -59,6 +59,16 @@ export type ExtensionMessage =
       repoScopeAvailable: boolean;
     };
 
+export type ScopedSettingUpdateMessage<K extends RepoScopableSettingKey = RepoScopableSettingKey> =
+  K extends RepoScopableSettingKey
+    ? {
+        type: 'updateScopedSetting';
+        key: K;
+        value: RepoScopableSettingValueMap[K];
+        target: SettingWriteTarget;
+      }
+    : never;
+
 export type WebviewMessage =
   | { type: 'requestAnalysis' }
   | { type: 'requestRefresh' }
@@ -73,10 +83,5 @@ export type WebviewMessage =
   | { type: 'copyPath'; path: string; repositoryId?: string }
   | { type: 'getSettings' }
   | { type: 'updateSettings'; settings: Partial<ExtensionSettings>; target?: SettingWriteTarget }
-  | {
-      type: 'updateScopedSetting';
-      key: RepoScopableSettingKey;
-      value: RepoScopableSettingValueMap[RepoScopableSettingKey];
-      target: SettingWriteTarget;
-    }
+  | ScopedSettingUpdateMessage
   | { type: 'resetScopedSetting'; key: RepoScopableSettingKey };
