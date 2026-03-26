@@ -43,7 +43,7 @@ export class EvolutionCacheManager {
       return null;
     }
 
-    return normalizeEvolutionResult(cache.data);
+    return this.normalizeCachedResult(cache.data);
   }
 
   getLatest(): EvolutionResult | null {
@@ -52,7 +52,7 @@ export class EvolutionCacheManager {
       return null;
     }
 
-    return normalizeEvolutionResult(cache.data);
+    return this.normalizeCachedResult(cache.data);
   }
 
   async save(result: EvolutionResult): Promise<void> {
@@ -73,6 +73,15 @@ export class EvolutionCacheManager {
   private getCache(): EvolutionCacheStructure | null {
     const cached = this.storage.get<EvolutionCacheStructure>(this.keyPrefix);
     return cached ?? null;
+  }
+
+  private normalizeCachedResult(result: EvolutionResult): EvolutionResult | null {
+    try {
+      return normalizeEvolutionResult(result);
+    } catch {
+      void this.clear();
+      return null;
+    }
   }
 
   private hashId(value: string): string {

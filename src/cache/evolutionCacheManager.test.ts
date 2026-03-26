@@ -93,4 +93,42 @@ describe('EvolutionCacheManager', () => {
 
     expect(cacheManager.getLatest()).toBeNull();
   });
+
+  it('treats malformed cached latest data as a cache miss and clears it', async () => {
+    const keyPrefix = (cacheManager as unknown as { keyPrefix: string }).keyPrefix;
+    await storage.set(keyPrefix, {
+      version: '2.0.0',
+      targetId: mockResult.targetId,
+      lastAnalyzed: Date.now(),
+      data: {
+        ...mockResult,
+        extensions: undefined,
+        directories: undefined,
+        exts: undefined,
+        dirs: undefined,
+      },
+    });
+
+    expect(cacheManager.getLatest()).toBeNull();
+    expect(storage.get(keyPrefix)).toBeUndefined();
+  });
+
+  it('treats malformed cached valid data as a cache miss and clears it', async () => {
+    const keyPrefix = (cacheManager as unknown as { keyPrefix: string }).keyPrefix;
+    await storage.set(keyPrefix, {
+      version: '2.0.0',
+      targetId: mockResult.targetId,
+      lastAnalyzed: Date.now(),
+      data: {
+        ...mockResult,
+        extensions: undefined,
+        directories: undefined,
+        exts: undefined,
+        dirs: undefined,
+      },
+    });
+
+    expect(cacheManager.getIfValid('rev-1', 'settings-hash-1')).toBeNull();
+    expect(storage.get(keyPrefix)).toBeUndefined();
+  });
 });
