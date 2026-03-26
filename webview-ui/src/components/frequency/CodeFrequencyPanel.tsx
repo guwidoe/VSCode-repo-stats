@@ -8,31 +8,9 @@ import { useStore, selectFilteredCodeFrequency } from '../../store';
 import { TimePeriodFilter } from '../contributors/TimePeriodFilter';
 import { FrequencyGranularityToggle } from './FrequencyGranularityToggle';
 import { SummaryCard } from './SummaryCard';
-import { fillWeeklyGaps, fillMonthlyGaps, parseISOWeek } from '../../utils/fillTimeGaps';
+import { fillWeeklyGaps, fillMonthlyGaps } from '../../utils/fillTimeGaps';
+import { formatMonthLabel, formatWeekLabel } from '../../utils/timeSeries';
 import './CodeFrequencyPanel.css';
-
-/**
- * Formats an ISO week to a readable label with year.
- */
-function formatWeekLabel(isoWeek: string): string {
-  const date = parseISOWeek(isoWeek);
-  if (!date) {return isoWeek;}
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const year = date.getFullYear().toString().slice(2);
-  return `${monthNames[date.getMonth()]} ${date.getDate()} '${year}`;
-}
-
-/**
- * Formats a month key to a readable label.
- */
-function formatMonthLabel(monthKey: string): string {
-  const match = monthKey.match(/^(\d{4})-(\d{2})$/);
-  if (!match) {return monthKey;}
-  const year = parseInt(match[1], 10);
-  const month = parseInt(match[2], 10) - 1;
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return `${monthNames[month]} ${year}`;
-}
 
 export function CodeFrequencyPanel() {
   const frequency = useStore(selectFilteredCodeFrequency);
@@ -64,7 +42,9 @@ export function CodeFrequencyPanel() {
     }
 
     // Format labels based on granularity
-    const formatLabel = isMonthly ? formatMonthLabel : formatWeekLabel;
+    const formatLabel = isMonthly
+      ? formatMonthLabel
+      : (week: string) => formatWeekLabel(week) ?? week;
 
     return {
       x: data.map((f) => formatLabel(f.week)),

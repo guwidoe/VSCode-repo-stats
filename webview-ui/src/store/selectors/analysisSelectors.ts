@@ -1,14 +1,11 @@
 import type { AnalysisResult, TimePeriod } from '../../types';
 import type { RepoStatsState } from '../types';
+import { isValidISOWeek, parseISOWeek, weekToMonthKey } from '../../utils/timeSeries';
 
 let cachedAllWeeksData: AnalysisResult | null = null;
 let cachedAllWeeks: string[] = [];
 let cachedWeeklyTotalsData: AnalysisResult | null = null;
 let cachedWeeklyTotals: { week: string; commits: number }[] = [];
-
-function isValidISOWeek(value: string): boolean {
-  return /^\d{4}-W\d{2}$/.test(value);
-}
 
 function getCutoffDate(period: TimePeriod): Date | null {
   const now = new Date();
@@ -28,41 +25,16 @@ function getCutoffDate(period: TimePeriod): Date | null {
   }
 }
 
-function parseISOWeek(isoWeek: string): Date | null {
-  const match = isoWeek.match(/^(\d{4})-W(\d{2})$/);
-  if (!match) {
-    return null;
-  }
-
-  const year = parseInt(match[1], 10);
-  const week = parseInt(match[2], 10);
-  if (year < 1970 || year > 2100 || week < 1 || week > 53) {
-    return null;
-  }
-
-  const jan4 = new Date(year, 0, 4);
-  const dayOfWeek = jan4.getDay() || 7;
-  const week1Monday = new Date(jan4);
-  week1Monday.setDate(jan4.getDate() - dayOfWeek + 1);
-
-  const result = new Date(week1Monday);
-  result.setDate(week1Monday.getDate() + (week - 1) * 7);
-
-  return result;
-}
-
 function aggregateToMonthly(
   weekly: { week: string; additions: number; deletions: number; netChange: number }[]
 ) {
   const monthlyMap = new Map<string, { additions: number; deletions: number; netChange: number }>();
 
   for (const week of weekly) {
-    const date = parseISOWeek(week.week);
-    if (!date) {
+    const monthKey = weekToMonthKey(week.week);
+    if (!monthKey) {
       continue;
     }
-
-    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
     if (!monthlyMap.has(monthKey)) {
       monthlyMap.set(monthKey, { additions: 0, deletions: 0, netChange: 0 });

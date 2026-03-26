@@ -3,60 +3,11 @@ import Plot from 'react-plotly.js';
 import type { ContributorStats, FrequencyGranularity } from '../../types';
 import { useStore } from '../../store';
 import { fillWeeklyGaps, fillMonthlyGaps } from '../../utils/fillTimeGaps';
+import { formatMonthLabel, formatWeekLabel, parseISOWeek, weekToMonthKey } from '../../utils/timeSeries';
 
 interface Props {
   contributors: ContributorStats[];
   granularity: FrequencyGranularity;
-}
-
-/**
- * Parses an ISO week string to a Date.
- * Returns null for invalid weeks instead of epoch.
- */
-function parseISOWeek(isoWeek: string): Date | null {
-  const match = isoWeek.match(/^(\d{4})-W(\d{2})$/);
-  if (!match) {return null;}
-
-  const year = parseInt(match[1], 10);
-  const week = parseInt(match[2], 10);
-
-  // Validate reasonable year range (1970-2100)
-  if (year < 1970 || year > 2100 || week < 1 || week > 53) {
-    return null;
-  }
-
-  const jan4 = new Date(year, 0, 4);
-  const dayOfWeek = jan4.getDay() || 7;
-  const week1Monday = new Date(jan4);
-  week1Monday.setDate(jan4.getDate() - dayOfWeek + 1);
-  const weekStart = new Date(week1Monday);
-  weekStart.setDate(week1Monday.getDate() + (week - 1) * 7);
-
-  return weekStart;
-}
-
-/**
- * Formats an ISO week to a readable label with year.
- * Returns null if the week is invalid.
- */
-function formatWeekLabel(isoWeek: string): string | null {
-  const date = parseISOWeek(isoWeek);
-  if (!date) {return null;}
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const year = date.getFullYear().toString().slice(2);
-  return `${monthNames[date.getMonth()]} ${date.getDate()} '${year}`;
-}
-
-/**
- * Formats a month key to a readable label.
- */
-function formatMonthLabel(monthKey: string): string {
-  const match = monthKey.match(/^(\d{4})-(\d{2})$/);
-  if (!match) {return monthKey;}
-  const year = parseInt(match[1], 10);
-  const month = parseInt(match[2], 10) - 1;
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return `${monthNames[month]} ${year}`;
 }
 
 export function CommitsChart({ contributors, granularity }: Props) {
@@ -87,9 +38,8 @@ export function CommitsChart({ contributors, granularity }: Props) {
       const monthOrder: string[] = [];
 
       for (const [week, commits] of weeks) {
-        const date = parseISOWeek(week);
-        if (!date) {continue;} // Skip invalid weeks
-        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        const monthKey = weekToMonthKey(week);
+        if (!monthKey) {continue;}
         if (!monthlyMap.has(monthKey)) {
           monthlyMap.set(monthKey, 0);
           monthOrder.push(monthKey);
@@ -97,11 +47,8 @@ export function CommitsChart({ contributors, granularity }: Props) {
         monthlyMap.set(monthKey, monthlyMap.get(monthKey)! + commits);
       }
 
-      // Filter out any invalid month labels (like 1970-01)
-      const validMonths = monthOrder.filter(m => !m.startsWith('1970-'));
-
       // Convert to array format for gap filling
-      let monthlyData = validMonths.map((month) => ({
+      let monthlyData = monthOrder.map((month) => ({
         week: month,
         commits: monthlyMap.get(month) ?? 0,
       }));
