@@ -2,7 +2,7 @@
  * Code Frequency Panel - Shows additions/deletions over time.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useDeferredValue, useMemo, useState } from 'react';
 import Plot from 'react-plotly.js';
 import { useStore, selectCodeFrequencySeries } from '../../store';
 import { FrequencyGranularityToggle } from './FrequencyGranularityToggle';
@@ -23,31 +23,25 @@ export function CodeFrequencyPanel() {
     return prepareCodeFrequencyChartData(frequency, showEmptyTimePeriods);
   }, [frequency, showEmptyTimePeriods]);
 
-  const rangeResetKey = useMemo(
-    () => chartPoints.map((point) => point.period).join('|'),
-    [chartPoints]
-  );
-
-  useEffect(() => {
-    if (chartPoints.length === 0) {
-      setSelectedRange(null);
-      return;
-    }
-
-    setSelectedRange({ start: 0, end: chartPoints.length - 1 });
-  }, [rangeResetKey, chartPoints.length]);
+  const deferredChartPoints = useDeferredValue(chartPoints);
+  const deferredSelectedRange = useDeferredValue(selectedRange);
+  const deferredGranularity = useDeferredValue(frequencyGranularity);
 
   const visiblePoints = useMemo(() => {
-    if (chartPoints.length === 0) {
+    if (deferredChartPoints.length === 0) {
       return [];
     }
 
-    if (!selectedRange) {
-      return chartPoints;
+    if (!deferredSelectedRange) {
+      return deferredChartPoints;
     }
 
-    return chartPoints.slice(selectedRange.start, selectedRange.end + 1);
-  }, [chartPoints, selectedRange]);
+    return deferredChartPoints.slice(deferredSelectedRange.start, deferredSelectedRange.end + 1);
+  }, [deferredChartPoints, deferredSelectedRange]);
+
+  const isStale = chartPoints !== deferredChartPoints ||
+    selectedRange !== deferredSelectedRange ||
+    frequencyGranularity !== deferredGranularity;
 
   if (frequency.length === 0) {
     return (
@@ -63,7 +57,7 @@ export function CodeFrequencyPanel() {
   }
 
   return (
-    <div className="frequency-panel">
+    <div className={`frequency-panel ${isStale ? 'updating' : ''}`}>
       <div className="panel-header">
         <h2>Code Frequency</h2>
         <div className="controls">
@@ -73,7 +67,6 @@ export function CodeFrequencyPanel() {
           />
           <CodeFrequencyRangeSlider
             points={chartPoints}
-            resetKey={rangeResetKey}
             onRangeChange={(start, end) => setSelectedRange({ start, end })}
           />
         </div>
