@@ -38,7 +38,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     workspaceState: vscode.Memento,
     globalStoragePath: string
   ) {
-    this.repositoryService = new RepositoryService(workspaceState);
+    this.repositoryService = new RepositoryService();
     this.analysisTargetService = new AnalysisTargetService(workspaceState, this.repositoryService);
     this.settingsService = new RepositorySettingsService();
     this.analysisService = new RepoAnalysisService(

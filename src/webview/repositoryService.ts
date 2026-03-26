@@ -24,14 +24,6 @@ export class RepositoryService {
   private readonly rootResolver = new RepositoryRootResolver();
   private readonly workspaceScanner = new WorkspaceRepositoryScanner(this.rootResolver);
 
-  constructor(_workspaceState: vscode.Memento) {}
-
-  async listAvailableRepositories(): Promise<RepositoryContext[]> {
-    const result = await this.listAvailableRepositoriesDetailed();
-
-    return result.repositories;
-  }
-
   async listAvailableRepositoriesDetailed(): Promise<RepositoryDiscoveryResult> {
     const workspaceDiscovery = await this.listWorkspaceRepositories();
     const workspaceRepositories = workspaceDiscovery.repositories;
