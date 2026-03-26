@@ -13,6 +13,7 @@ import {
   parseHistoryLog,
   type EvolutionFileHistogram,
 } from '../evolution/shared.js';
+import { parseBlameStream } from '../blameStream.js';
 import { throwIfCancelled } from '../cancellation.js';
 import { normalizeExtensionForFilter } from '../locCounter.js';
 import { createPathPatternMatcher } from '../pathMatching.js';
@@ -20,14 +21,6 @@ import { createPathPatternMatcher } from '../pathMatching.js';
 interface DiffStatusEntry {
   oldPath?: string;
   newPath?: string;
-}
-
-interface BlameHunkMeta {
-  lines: number;
-  author: string;
-  email: string;
-  authorTime: number;
-  applied: boolean;
 }
 
 export interface MemberEvolutionProgress {
@@ -327,71 +320,26 @@ export class MemberEvolutionRuntime {
 
     const ext = path.extname(filePath) || EMPTY_EXT;
     const topDir = this.directoryBucketPrefix ?? getTopDirectory(filePath);
-    let current: BlameHunkMeta | null = null;
+    const hunks = parseBlameStream(blameOutput, {
+      defaultAuthor: UNKNOWN_AUTHOR,
+      defaultEmail: UNKNOWN_EMAIL,
+      defaultAuthorTime: defaultTimestamp,
+    });
 
-    const applyCurrent = () => {
-      if (!current || current.applied) {
-        return;
-      }
-
-      const author = current.author || UNKNOWN_AUTHOR;
-      const email = current.email || UNKNOWN_EMAIL;
+    for (const hunk of hunks) {
+      const author = hunk.author;
+      const email = hunk.email;
       const domain = email.includes('@') ? email.split('@').pop() || 'unknown.local' : 'unknown.local';
-      const timestamp = current.authorTime > 0 ? current.authorTime : defaultTimestamp;
+      const timestamp = hunk.authorTime;
       const cohort = formatCohort(timestamp, this.settings.evolution.cohortFormat);
-      const lines = current.lines;
+      const lines = hunk.lines;
 
       incrementCount(histogram.cohort, cohort, lines);
       incrementCount(histogram.author, author, lines);
       incrementCount(histogram.ext, ext, lines);
       incrementCount(histogram.dir, topDir, lines);
       incrementCount(histogram.domain, domain, lines);
-      current.applied = true;
-    };
-
-    for (const line of blameOutput.split('\n')) {
-      const headerMatch = line.match(/^([0-9a-f]{40})\s+\d+\s+\d+\s+(\d+)$/);
-      if (headerMatch) {
-        applyCurrent();
-        current = {
-          lines: parseInt(headerMatch[2], 10),
-          author: UNKNOWN_AUTHOR,
-          email: UNKNOWN_EMAIL,
-          authorTime: defaultTimestamp,
-          applied: false,
-        };
-        continue;
-      }
-
-      if (!current) {
-        continue;
-      }
-
-      if (line.startsWith('author ')) {
-        current.author = line.slice(7).trim() || UNKNOWN_AUTHOR;
-        continue;
-      }
-
-      if (line.startsWith('author-mail ')) {
-        const rawEmail = line.slice(12).trim();
-        current.email = rawEmail.replace(/^</, '').replace(/>$/, '') || UNKNOWN_EMAIL;
-        continue;
-      }
-
-      if (line.startsWith('author-time ')) {
-        const ts = parseInt(line.slice(12).trim(), 10);
-        if (Number.isFinite(ts)) {
-          current.authorTime = ts;
-        }
-        continue;
-      }
-
-      if (line.startsWith('\t')) {
-        applyCurrent();
-      }
     }
-
-    applyCurrent();
     return histogram;
   }
 }

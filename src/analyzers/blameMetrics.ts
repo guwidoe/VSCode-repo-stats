@@ -10,6 +10,7 @@ import type {
   BlameOwnershipEntry,
   TreemapNode,
 } from '../types/index.js';
+import { parseBlameStream } from './blameStream.js';
 import { throwIfCancelled } from './cancellation.js';
 
 const UNKNOWN_AUTHOR = 'Unknown';
@@ -32,18 +33,6 @@ export interface ParsedBlameFileStats {
   topOwnerEmail: string;
   topOwnerLines: number;
   topOwnerShare: number;
-}
-
-interface CommitMeta {
-  author: string;
-  email: string;
-  authorTime: number;
-}
-
-interface BlameHunkMeta extends CommitMeta {
-  commit: string;
-  lines: number;
-  applied: boolean;
 }
 
 export interface BlameFileTarget {
@@ -166,25 +155,18 @@ export function parseBlamePorcelain(
   let weightedAge = 0;
   let minAgeDays = Number.POSITIVE_INFINITY;
   let maxAgeDays = 0;
-  let current: BlameHunkMeta | null = null;
-  const commitMetadata = new Map<string, CommitMeta>();
+  const hunks = parseBlameStream(porcelainOutput, {
+    defaultAuthor: UNKNOWN_AUTHOR,
+    defaultEmail: UNKNOWN_EMAIL,
+    defaultAuthorTime: nowUnixSeconds,
+  });
 
-  const applyCurrent = () => {
-    if (!current || current.applied) {
-      return;
-    }
-
-    const lines = current.lines;
-    const author = current.author || UNKNOWN_AUTHOR;
-    const email = current.email || UNKNOWN_EMAIL;
-    const authorTime = current.authorTime > 0 ? current.authorTime : nowUnixSeconds;
+  for (const hunk of hunks) {
+    const lines = hunk.lines;
+    const author = hunk.author;
+    const email = hunk.email;
+    const authorTime = hunk.authorTime;
     const ageDays = Math.max(0, Math.floor((nowUnixSeconds - authorTime) / 86400));
-
-    commitMetadata.set(current.commit, {
-      author,
-      email,
-      authorTime,
-    });
 
     ageCounts.set(ageDays, (ageCounts.get(ageDays) ?? 0) + lines);
 
@@ -197,56 +179,7 @@ export function parseBlamePorcelain(
     weightedAge += ageDays * lines;
     minAgeDays = Math.min(minAgeDays, ageDays);
     maxAgeDays = Math.max(maxAgeDays, ageDays);
-    current.applied = true;
-  };
-
-  for (const line of porcelainOutput.split('\n')) {
-    const headerMatch = line.match(/^(\^?[0-9a-f]{40})\s+\d+\s+\d+\s+(\d+)$/i);
-    if (headerMatch) {
-      applyCurrent();
-      const commit = headerMatch[1].replace(/^\^/, '').toLowerCase();
-      const cachedMeta = commitMetadata.get(commit);
-      current = {
-        commit,
-        lines: parseInt(headerMatch[2], 10),
-        author: cachedMeta?.author || UNKNOWN_AUTHOR,
-        email: cachedMeta?.email || UNKNOWN_EMAIL,
-        authorTime: cachedMeta?.authorTime ?? nowUnixSeconds,
-        applied: false,
-      };
-      continue;
-    }
-
-    if (!current) {
-      continue;
-    }
-
-    if (line.startsWith('author ')) {
-      current.author = line.slice(7).trim() || UNKNOWN_AUTHOR;
-      continue;
-    }
-
-    if (line.startsWith('author-mail ')) {
-      const rawEmail = line.slice(12).trim();
-      current.email = rawEmail.replace(/^</, '').replace(/>$/, '') || UNKNOWN_EMAIL;
-      continue;
-    }
-
-    if (line.startsWith('author-time ')) {
-      const timestamp = parseInt(line.slice(12).trim(), 10);
-      if (Number.isFinite(timestamp)) {
-        current.authorTime = timestamp;
-      }
-      continue;
-    }
-
-    // End-of-hunk marker in --incremental output
-    if (line.startsWith('filename ')) {
-      applyCurrent();
-    }
   }
-
-  applyCurrent();
 
   let topOwner: OwnerCounter | null = null;
   for (const owner of ownership.values()) {
