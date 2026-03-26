@@ -1,7 +1,7 @@
 import * as os from 'os';
 import * as path from 'path';
 import simpleGit, { type SimpleGit } from 'simple-git';
-import type { AnalysisTarget, ExtensionSettings } from '../../types/index.js';
+import { AnalyzerExecutionError, type AnalysisTarget, type ExtensionSettings } from '../../types/index.js';
 import {
   cloneHistogram,
   createEmptyHistogram,
@@ -315,7 +315,11 @@ export class MemberEvolutionRuntime {
       }
 
       const detail = error instanceof Error ? error.message : String(error);
-      throw new Error(`Failed to run git blame for ${filePath} at ${commitSha}: ${detail}`);
+      throw new AnalyzerExecutionError(
+        `Failed to run git blame for ${filePath} at ${commitSha}: ${detail}`,
+        'EVOLUTION_BLAME_FAILED',
+        { cause: error }
+      );
     }
 
     const ext = path.extname(filePath) || EMPTY_EXT;

@@ -4,6 +4,7 @@
 
 import { describe, it, expect } from 'vitest';
 import {
+  AnalyzerExecutionError,
   RepoStatsError,
   NotAGitRepoError,
   GitNotFoundError,
@@ -17,6 +18,18 @@ describe('Error Types', () => {
       expect(error.message).toBe('Test error');
       expect(error.code).toBe('TEST_CODE');
       expect(error.name).toBe('RepoStatsError');
+    });
+  });
+
+  describe('AnalyzerExecutionError', () => {
+    it('should preserve code and cause', () => {
+      const cause = new Error('root cause');
+      const error = new AnalyzerExecutionError('Analyzer failed', 'LOC_COUNT_FAILED', { cause });
+
+      expect(error.message).toBe('Analyzer failed');
+      expect(error.code).toBe('LOC_COUNT_FAILED');
+      expect(error.name).toBe('AnalyzerExecutionError');
+      expect(error.cause).toBe(cause);
     });
   });
 

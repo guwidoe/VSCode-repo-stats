@@ -12,7 +12,7 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as path from 'path';
-import { TreemapNode } from '../types/index.js';
+import { AnalyzerExecutionError, TreemapNode } from '../types/index.js';
 import {
   SccBinaryManager,
   SccInfo,
@@ -244,7 +244,11 @@ export class LOCCounter implements LOCClient {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      throw new Error(`Failed to count lines of code: ${errorMessage}`);
+      throw new AnalyzerExecutionError(
+        `Failed to count lines of code: ${errorMessage}`,
+        'LOC_COUNT_FAILED',
+        { cause: error }
+      );
     }
   }
 

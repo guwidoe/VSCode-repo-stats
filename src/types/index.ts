@@ -28,6 +28,20 @@ export class GitOperationError extends RepoStatsError {
   }
 }
 
+export class AnalyzerExecutionError extends RepoStatsError {
+  public readonly cause?: unknown;
+
+  constructor(
+    message: string,
+    code = 'ANALYZER_EXECUTION_FAILED',
+    options: { cause?: unknown } = {}
+  ) {
+    super(message, code);
+    this.name = 'AnalyzerExecutionError';
+    this.cause = options.cause;
+  }
+}
+
 export class NotAGitRepoError extends RepoStatsError {
   constructor(path: string) {
     super(`"${path}" is not a Git repository`, 'NOT_GIT_REPO');
