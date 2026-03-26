@@ -6,6 +6,11 @@ This changelog was reconstructed retroactively from the repository's version bum
 
 - No unreleased changes yet.
 
+## 1.4.4 - 2026-03-26
+
+- Replaced the Code Frequency time period dropdown with a contributor-style range slider that previews additions and deletions inline.
+- Improved Code Frequency range selection responsiveness on large repositories by using asynchronous slider updates while the main chart catches up.
+
 ## 1.4.3 - 2026-03-25
 
 - Added cancellable analysis runs, including dashboard cancel actions and cancellation checks in the analysis and evolution pipelines.
