@@ -40,6 +40,7 @@ export type {
   RunResultMetadata,
   SccInfo,
   ScopedSettingSource,
+  ScopedSettingUpdateMessage,
   ScopedSettingValue,
   SettingWriteTarget,
   TooltipSettings,
