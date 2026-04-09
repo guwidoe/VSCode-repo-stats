@@ -105,9 +105,23 @@ describe('ProviderFileActions', () => {
       getSelectedTarget: vi.fn(async () => createTargetContext()),
     });
 
-    await expect(actions.openRepositoryFile('src/index.ts', 'missing')).resolves.toEqual({ ok: false });
-    await expect(actions.revealRepositoryFile('src/index.ts', 'missing')).resolves.toEqual({ ok: false });
-    await expect(actions.copyRepositoryPath('src/index.ts', 'missing')).resolves.toEqual({ ok: false });
+    await expect(actions.openRepositoryFile('src/index.ts', 'missing')).resolves.toEqual({ ok: false, reason: 'unresolved-path' });
+    await expect(actions.revealRepositoryFile('src/index.ts', 'missing')).resolves.toEqual({ ok: false, reason: 'unresolved-path' });
+    await expect(actions.copyRepositoryPath('src/index.ts', 'missing')).resolves.toEqual({ ok: false, reason: 'unresolved-path' });
+
+    expect(vscodeMocks.showTextDocument).not.toHaveBeenCalled();
+    expect(vscodeMocks.executeCommand).not.toHaveBeenCalled();
+    expect(vscodeMocks.writeText).not.toHaveBeenCalled();
+  });
+
+  it('returns explicit failure results for invalid logical paths instead of throwing', async () => {
+    const actions = new ProviderFileActions({
+      getSelectedTarget: vi.fn(async () => createTargetContext()),
+    });
+
+    await expect(actions.openRepositoryFile('../secret.txt')).resolves.toEqual({ ok: false, reason: 'invalid-path' });
+    await expect(actions.revealRepositoryFile('/etc/passwd')).resolves.toEqual({ ok: false, reason: 'invalid-path' });
+    await expect(actions.copyRepositoryPath('nested/../repo-b/src/app.ts')).resolves.toEqual({ ok: false, reason: 'invalid-path' });
 
     expect(vscodeMocks.showTextDocument).not.toHaveBeenCalled();
     expect(vscodeMocks.executeCommand).not.toHaveBeenCalled();

@@ -9,39 +9,60 @@ export interface ProviderFileActionDependencies {
 
 export interface ProviderFileActionResult {
   ok: boolean;
+  reason?: 'invalid-path' | 'unresolved-path';
 }
 
 export class ProviderFileActions {
   constructor(private readonly deps: ProviderFileActionDependencies) {}
 
   async openRepositoryFile(logicalPath: string, repositoryId?: string): Promise<ProviderFileActionResult> {
-    const filePath = await this.resolveTargetFilePath(logicalPath, repositoryId);
-    if (!filePath) {
-      return { ok: false };
+    const resolution = await this.resolveActionTarget(logicalPath, repositoryId);
+    if (!resolution.ok) {
+      return resolution;
     }
 
-    await vscode.window.showTextDocument(vscode.Uri.file(filePath));
+    await vscode.window.showTextDocument(vscode.Uri.file(resolution.filePath));
     return { ok: true };
   }
 
   async revealRepositoryFile(logicalPath: string, repositoryId?: string): Promise<ProviderFileActionResult> {
-    const filePath = await this.resolveTargetFilePath(logicalPath, repositoryId);
-    if (!filePath) {
-      return { ok: false };
+    const resolution = await this.resolveActionTarget(logicalPath, repositoryId);
+    if (!resolution.ok) {
+      return resolution;
     }
 
-    await vscode.commands.executeCommand('revealInExplorer', vscode.Uri.file(filePath));
+    await vscode.commands.executeCommand('revealInExplorer', vscode.Uri.file(resolution.filePath));
     return { ok: true };
   }
 
   async copyRepositoryPath(logicalPath: string, repositoryId?: string): Promise<ProviderFileActionResult> {
-    const filePath = await this.resolveTargetFilePath(logicalPath, repositoryId);
-    if (!filePath) {
-      return { ok: false };
+    const resolution = await this.resolveActionTarget(logicalPath, repositoryId);
+    if (!resolution.ok) {
+      return resolution;
     }
 
-    await vscode.env.clipboard.writeText(filePath);
+    await vscode.env.clipboard.writeText(resolution.filePath);
     return { ok: true };
+  }
+
+  private async resolveActionTarget(
+    logicalPath: string,
+    repositoryId?: string
+  ): Promise<{ ok: true; filePath: string } | { ok: false; reason: 'invalid-path' | 'unresolved-path' }> {
+    try {
+      const filePath = await this.resolveTargetFilePath(logicalPath, repositoryId);
+      if (!filePath) {
+        return { ok: false, reason: 'unresolved-path' };
+      }
+
+      return { ok: true, filePath };
+    } catch (error) {
+      if (isLogicalPathValidationError(error)) {
+        return { ok: false, reason: 'invalid-path' };
+      }
+
+      throw error;
+    }
   }
 
   async resolveTargetFilePath(logicalPath: string, repositoryId?: string): Promise<string | undefined> {
@@ -76,4 +97,9 @@ export class ProviderFileActions {
 
     return resolveContainedPath(matchingMember.repoPath, relativePath, path);
   }
+}
+
+function isLogicalPathValidationError(error: unknown): error is Error {
+  return error instanceof Error
+    && (error.message.startsWith('Repo Stats rejected ') || error.message.startsWith('Repo Stats received '));
 }
