@@ -96,7 +96,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
   ): void {
     webviewView.webview.options = {
       enableScripts: true,
-      localResourceRoots: [this.extensionUri],
+      localResourceRoots: [this.getWebviewDistRoot()],
     };
 
     webviewView.webview.html = this.getWebviewContent(webviewView.webview);
@@ -115,9 +115,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       {
         enableScripts: true,
         retainContextWhenHidden: true,
-        localResourceRoots: [
-          vscode.Uri.joinPath(this.extensionUri, 'webview-ui', 'dist'),
-        ],
+        localResourceRoots: [this.getWebviewDistRoot()],
       }
     );
 
@@ -324,6 +322,10 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
 
   private getWebviewContent(webview: vscode.Webview): string {
     return getRepoStatsWebviewHtml(webview, this.extensionUri);
+  }
+
+  private getWebviewDistRoot(): vscode.Uri {
+    return vscode.Uri.joinPath(this.extensionUri, 'webview-ui', 'dist');
   }
 }
 

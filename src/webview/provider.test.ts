@@ -104,6 +104,28 @@ beforeEach(() => {
 });
 
 describe('RepoStatsProvider message routing', () => {
+  it('uses the bundled webview dist root for sidebar resources', () => {
+    const { provider } = createProvider();
+    const webview = {
+      postMessage: vi.fn(),
+      options: undefined as unknown,
+      html: '',
+      asWebviewUri: vi.fn((value: unknown) => value),
+      cspSource: 'vscode-webview:',
+    };
+
+    provider.resolveWebviewView(
+      { webview } as never,
+      {} as never,
+      {} as never
+    );
+
+    expect(webview.options).toEqual({
+      enableScripts: true,
+      localResourceRoots: [{ fsPath: '/extension/webview-ui/dist' }],
+    });
+  });
+
   it('routes analysis requests through runAnalysis', async () => {
     const { providerAny, webview } = createProvider();
     providerAny.runAnalysis = vi.fn(async () => {});
