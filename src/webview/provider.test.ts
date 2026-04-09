@@ -58,6 +58,7 @@ function createProvider() {
     runAnalysis: (webview: unknown) => Promise<void>;
     updateSettings: (settings: unknown, target: string) => Promise<boolean>;
     updateScopedSetting: (key: string, value: unknown, target: string) => Promise<boolean>;
+    resetScopedSettingOverride: (key: string) => Promise<boolean>;
   };
 
   providerAny.analysisService = {
@@ -78,6 +79,9 @@ function createProvider() {
     })),
   };
   providerAny.settingsService = {
+    updateSettings: vi.fn(async () => false),
+    updateScopedSetting: vi.fn(async () => false),
+    resetScopedSettingOverride: vi.fn(async () => false),
     getSettings: vi.fn(() => ({})),
     getRepoScopedSettings: vi.fn(() => ({})),
     canUseRepoScope: vi.fn(() => false),
@@ -211,6 +215,26 @@ describe('RepoStatsProvider message routing', () => {
     expect(providerAny.updateScopedSetting).toHaveBeenCalledWith('excludePatterns', ['fixtures'], 'repo');
     expect(providerAny.contextSync.handlePostSettingsMutation).toHaveBeenNthCalledWith(1, webview, true);
     expect(providerAny.contextSync.handlePostSettingsMutation).toHaveBeenNthCalledWith(2, webview, false);
+  });
+
+  it('allows global settings writes without a selected target', async () => {
+    const { providerAny } = createProvider();
+
+    await expect(providerAny.updateSettings({ overviewDisplayMode: 'count' }, 'global')).resolves.toBe(false);
+
+    expect((providerAny.settingsService as { updateSettings: ReturnType<typeof vi.fn> }).updateSettings)
+      .toHaveBeenCalledWith(undefined, { overviewDisplayMode: 'count' }, 'global');
+  });
+
+  it('rejects repo-scoped setting writes without a selected target', async () => {
+    const { providerAny } = createProvider();
+
+    await expect(providerAny.updateScopedSetting('excludePatterns', ['fixtures'], 'repo')).rejects.toThrow(
+      'Repo-scoped settings require a selected repository inside the current workspace.'
+    );
+
+    expect((providerAny.settingsService as { updateScopedSetting: ReturnType<typeof vi.fn> }).updateScopedSetting)
+      .not.toHaveBeenCalled();
   });
 
   it('recovers from invalid messages by surfacing an error and refreshing context', async () => {
