@@ -7,6 +7,10 @@ import type {
   WebviewMessage,
 } from '../types/index.js';
 import type { AnalysisTargetContext } from './context.js';
+import type {
+  ProviderFileActionFailureReason,
+  ProviderFileActionResult,
+} from './providerFileActions.js';
 
 interface ProviderMessageRouterDependencies {
   runAnalysis: (webview: vscode.Webview) => Promise<void>;
@@ -24,10 +28,11 @@ interface ProviderMessageRouterDependencies {
   ) => Promise<void>;
   getSelectedTarget: () => Promise<AnalysisTargetContext | null>;
   updateRepositorySelection: (repositoryIds: string[], webview: vscode.Webview) => Promise<void>;
-  openRepositoryFile: (path: string, repositoryId?: string) => Promise<{ ok: boolean }>;
-  revealRepositoryFile: (path: string, repositoryId?: string) => Promise<{ ok: boolean }>;
-  copyRepositoryPath: (path: string, repositoryId?: string) => Promise<{ ok: boolean }>;
+  openRepositoryFile: (path: string, repositoryId?: string) => Promise<ProviderFileActionResult>;
+  revealRepositoryFile: (path: string, repositoryId?: string) => Promise<ProviderFileActionResult>;
+  copyRepositoryPath: (path: string, repositoryId?: string) => Promise<ProviderFileActionResult>;
   showPathCopiedMessage: () => void;
+  showFileActionFailure: (action: 'open' | 'reveal' | 'copy', reason: ProviderFileActionFailureReason) => void;
   sendCurrentTargetContext: (webview: vscode.Webview) => Promise<unknown>;
   updateSettings: (settings: Partial<ExtensionSettings>, target: SettingWriteTarget) => Promise<boolean>;
   updateScopedSetting: <K extends RepoScopableSettingKey>(
@@ -77,18 +82,28 @@ export class ProviderMessageRouter {
         return;
 
       case 'openFile':
-        await this.deps.openRepositoryFile(message.path, message.repositoryId);
+        await this.handleFileActionFailure(
+          'open',
+          this.deps.openRepositoryFile(message.path, message.repositoryId)
+        );
         return;
 
       case 'revealInExplorer':
-        await this.deps.revealRepositoryFile(message.path, message.repositoryId);
+        await this.handleFileActionFailure(
+          'reveal',
+          this.deps.revealRepositoryFile(message.path, message.repositoryId)
+        );
         return;
 
-      case 'copyPath':
-        if ((await this.deps.copyRepositoryPath(message.path, message.repositoryId)).ok) {
+      case 'copyPath': {
+        const result = await this.deps.copyRepositoryPath(message.path, message.repositoryId);
+        if (result.ok) {
           this.deps.showPathCopiedMessage();
+        } else {
+          this.deps.showFileActionFailure('copy', result.reason);
         }
         return;
+      }
 
       case 'getSettings':
         await this.deps.sendCurrentTargetContext(webview);
@@ -118,6 +133,16 @@ export class ProviderMessageRouter {
         await this.deps.handlePostSettingsMutation(webview, shouldPromptReanalysis);
         return;
       }
+    }
+  }
+
+  private async handleFileActionFailure(
+    action: 'open' | 'reveal',
+    actionPromise: Promise<ProviderFileActionResult>
+  ): Promise<void> {
+    const result = await actionPromise;
+    if (!result.ok) {
+      this.deps.showFileActionFailure(action, result.reason);
     }
   }
 }

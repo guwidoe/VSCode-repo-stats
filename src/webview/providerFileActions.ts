@@ -7,9 +7,11 @@ export interface ProviderFileActionDependencies {
   getSelectedTarget: () => Promise<AnalysisTargetContext | null>;
 }
 
+export type ProviderFileActionFailureReason = 'invalid-path' | 'unresolved-path';
+
 export interface ProviderFileActionResult {
   ok: boolean;
-  reason?: 'invalid-path' | 'unresolved-path';
+  reason?: ProviderFileActionFailureReason;
 }
 
 export class ProviderFileActions {
@@ -48,7 +50,7 @@ export class ProviderFileActions {
   private async resolveActionTarget(
     logicalPath: string,
     repositoryId?: string
-  ): Promise<{ ok: true; filePath: string } | { ok: false; reason: 'invalid-path' | 'unresolved-path' }> {
+  ): Promise<{ ok: true; filePath: string } | { ok: false; reason: ProviderFileActionFailureReason }> {
     try {
       const filePath = await this.resolveTargetFilePath(logicalPath, repositoryId);
       if (!filePath) {

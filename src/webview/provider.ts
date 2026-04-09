@@ -10,7 +10,10 @@ import { AnalysisTargetService } from './analysisTargetService.js';
 import { BookmarkedRepositoryManager } from './bookmarkedRepositoryManager.js';
 import { parseWebviewMessage } from './messageValidation.js';
 import { ProviderContextSync } from './providerContextSync.js';
-import { ProviderFileActions } from './providerFileActions.js';
+import {
+  ProviderFileActionFailureReason,
+  ProviderFileActions,
+} from './providerFileActions.js';
 import { ProviderMessageRouter } from './providerMessageRouter.js';
 import {
   buildRepositorySelectionQuickPickItems,
@@ -79,6 +82,9 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       copyRepositoryPath: (logicalPath, repositoryId) => this.fileActions.copyRepositoryPath(logicalPath, repositoryId),
       showPathCopiedMessage: () => {
         vscode.window.showInformationMessage('Path copied to clipboard');
+      },
+      showFileActionFailure: (action, reason) => {
+        vscode.window.showWarningMessage(this.createFileActionFailureMessage(action, reason));
       },
       sendCurrentTargetContext: (webview) => this.contextSync.sendCurrentTargetContext(webview),
       updateSettings: (settings, target) => this.updateSettings(settings, target),
@@ -326,6 +332,23 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
 
   private getWebviewDistRoot(): vscode.Uri {
     return vscode.Uri.joinPath(this.extensionUri, 'webview-ui', 'dist');
+  }
+
+  private createFileActionFailureMessage(
+    action: 'open' | 'reveal' | 'copy',
+    reason: ProviderFileActionFailureReason
+  ): string {
+    const actionLabel = action === 'copy'
+      ? 'copy'
+      : action === 'open'
+        ? 'open'
+        : 'reveal';
+
+    if (reason === 'invalid-path') {
+      return `Repo Stats could not ${actionLabel} that path because the request was invalid.`;
+    }
+
+    return `Repo Stats could not ${actionLabel} that path in the current repository selection.`;
   }
 }
 

@@ -3,12 +3,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const vscodeMocks = vi.hoisted(() => ({
   showErrorMessage: vi.fn(async () => undefined),
   showInformationMessage: vi.fn(async () => undefined),
+  showWarningMessage: vi.fn(async () => undefined),
 }));
 
 vi.mock('vscode', () => ({
   window: {
     showErrorMessage: vscodeMocks.showErrorMessage,
     showInformationMessage: vscodeMocks.showInformationMessage,
+    showWarningMessage: vscodeMocks.showWarningMessage,
   },
   workspace: {
     getConfiguration: vi.fn(() => ({
@@ -101,6 +103,7 @@ function createProvider() {
 beforeEach(() => {
   vscodeMocks.showErrorMessage.mockClear();
   vscodeMocks.showInformationMessage.mockClear();
+  vscodeMocks.showWarningMessage.mockClear();
 });
 
 describe('RepoStatsProvider message routing', () => {
@@ -163,12 +166,27 @@ describe('RepoStatsProvider message routing', () => {
 
   it('does not show copy success when a file action reports no-op', async () => {
     const { providerAny, webview } = createProvider();
-    providerAny.fileActions.copyRepositoryPath = vi.fn(async () => ({ ok: false }));
+    providerAny.fileActions.copyRepositoryPath = vi.fn(async () => ({ ok: false, reason: 'unresolved-path' }));
 
     await providerAny.handleWebviewMessage({ type: 'copyPath', path: 'README.md', repositoryId: 'repo-3' }, webview);
 
     expect(providerAny.fileActions.copyRepositoryPath).toHaveBeenCalledWith('README.md', 'repo-3');
     expect(vscodeMocks.showInformationMessage).not.toHaveBeenCalled();
+    expect(vscodeMocks.showWarningMessage).toHaveBeenCalledWith(
+      'Repo Stats could not copy that path in the current repository selection.'
+    );
+  });
+
+  it('surfaces invalid file action failures to the user', async () => {
+    const { providerAny, webview } = createProvider();
+    providerAny.fileActions.openRepositoryFile = vi.fn(async () => ({ ok: false, reason: 'invalid-path' }));
+
+    await providerAny.handleWebviewMessage({ type: 'openFile', path: '../secret.txt', repositoryId: 'repo-3' }, webview);
+
+    expect(providerAny.fileActions.openRepositoryFile).toHaveBeenCalledWith('../secret.txt', 'repo-3');
+    expect(vscodeMocks.showWarningMessage).toHaveBeenCalledWith(
+      'Repo Stats could not open that path because the request was invalid.'
+    );
   });
 
   it('routes settings mutations through the shared post-mutation flow', async () => {
