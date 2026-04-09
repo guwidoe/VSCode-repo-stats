@@ -100,18 +100,21 @@ export async function runBenchmarkIteration(options: {
     phaseCallCounts: {},
   };
 
-  const gitClient = new InstrumentedGitClient(createGitAnalyzer(options.repoPath), accumulator);
-  const locClientInner = createLOCCounter(options.repoPath, options.sccStoragePath);
+  const gitClient = new InstrumentedGitClient(createGitAnalyzer({ repoPath: options.repoPath }), accumulator);
+  const locClientInner = createLOCCounter({
+    repoPath: options.repoPath,
+    storagePath: options.sccStoragePath,
+  });
   await locClientInner.ensureSccAvailable();
   const locClient = new InstrumentedLocClient(locClientInner, accumulator);
 
-  const coordinator = new AnalysisCoordinator(
-    options.repoPath,
-    options.settings,
-    options.sccStoragePath,
+  const coordinator = new AnalysisCoordinator({
+    repoPath: options.repoPath,
+    settings: options.settings,
+    sccStoragePath: options.sccStoragePath,
     gitClient,
-    locClient
-  );
+    locClient,
+  });
 
   const startedAt = performance.now();
   const result = await coordinator.analyze();

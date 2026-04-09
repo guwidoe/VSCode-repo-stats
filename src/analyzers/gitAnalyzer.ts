@@ -35,6 +35,10 @@ export interface GitClient {
   raw(args: string[]): Promise<string>;
 }
 
+export interface GitAnalyzerOptions {
+  repoPath: string;
+}
+
 // Git analyzer implementation
 
 export class GitAnalyzer implements GitClient {
@@ -296,6 +300,6 @@ export class GitAnalyzer implements GitClient {
 
 // Factory function for dependency injection
 
-export function createGitAnalyzer(repoPath: string): GitClient {
-  return new GitAnalyzer(repoPath);
+export function createGitAnalyzer(options: GitAnalyzerOptions): GitClient {
+  return new GitAnalyzer(options.repoPath);
 }

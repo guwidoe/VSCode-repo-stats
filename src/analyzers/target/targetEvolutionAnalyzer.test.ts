@@ -181,7 +181,7 @@ describe('TargetEvolutionAnalyzer', () => {
     ]);
 
     const phases: string[] = [];
-    const result = await createTargetEvolutionAnalyzer(target, createSettings()).analyze((update) => {
+    const result = await createTargetEvolutionAnalyzer({ target, settings: createSettings() }).analyze((update) => {
       phases.push(update.phase);
     });
 
@@ -230,10 +230,10 @@ describe('TargetEvolutionAnalyzer', () => {
       message: 'rewrite app',
     });
 
-    const result = await createTargetEvolutionAnalyzer(
-      createTarget([{ repoPath, displayName: 'single-repo' }], 'repo:single', 'repository'),
-      createSettings()
-    ).analyze();
+    const result = await createTargetEvolutionAnalyzer({
+      target: createTarget([{ repoPath, displayName: 'single-repo' }], 'repo:single', 'repository'),
+      settings: createSettings(),
+    }).analyze();
 
     expect(result.targetId).toBe('repo:single');
     expect(result.historyMode).toBe('singleBranch');
@@ -267,13 +267,13 @@ describe('TargetEvolutionAnalyzer', () => {
       });
     }
 
-    const result = await createTargetEvolutionAnalyzer(
-      createTarget([{ repoPath, displayName: 'commit-repo' }], 'repo:commit', 'repository'),
-      createSettings({
+    const result = await createTargetEvolutionAnalyzer({
+      target: createTarget([{ repoPath, displayName: 'commit-repo' }], 'repo:commit', 'repository'),
+      settings: createSettings({
         samplingMode: 'commit',
         maxSnapshots: 4,
-      })
-    ).analyze();
+      }),
+    }).analyze();
 
     expect(result.historyMode).toBe('singleBranch');
     expect(result.authors.snapshots?.map((snapshot) => snapshot.commitIndex)).toEqual([0, 2, 5, 7]);
@@ -301,11 +301,11 @@ describe('TargetEvolutionAnalyzer', () => {
       headSha: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
     };
 
-    const analyzer = new TargetEvolutionAnalyzer(
+    const analyzer = new TargetEvolutionAnalyzer({
       target,
-      createSettings(),
-      abortController.signal,
-      (member) => ({
+      settings: createSettings(),
+      signal: abortController.signal,
+      runtimeFactory: (member) => ({
         member,
         expectedBlameMisses: 0,
         getHeadInfo: async () => headInfo,
@@ -314,8 +314,8 @@ describe('TargetEvolutionAnalyzer', () => {
           analyzeStarted.resolve();
           return analyzeResult.promise;
         },
-      })
-    );
+      }),
+    });
 
     const analysisPromise = analyzer.analyze();
     await analyzeStarted.promise;

@@ -42,6 +42,11 @@ export interface LOCClient {
   getSccInfo(): Promise<SccInfo>;
 }
 
+export interface LOCCounterOptions {
+  repoPath: string;
+  storagePath: string;
+}
+
 // Extension filter helpers
 
 /**
@@ -411,9 +416,6 @@ interface DirectoryMetrics {
 
 // Factory function for dependency injection
 
-export function createLOCCounter(
-  repoPath: string,
-  storagePath: string
-): LOCClient {
-  return new LOCCounter(repoPath, storagePath);
+export function createLOCCounter(options: LOCCounterOptions): LOCClient {
+  return new LOCCounter(options.repoPath, options.storagePath);
 }

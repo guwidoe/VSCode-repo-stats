@@ -45,6 +45,15 @@ export interface AnalysisCallbacks {
   onBlameUpdate?: (blameMetrics: BlameMetrics) => void;
 }
 
+export interface AnalysisCoordinatorOptions {
+  repoPath: string;
+  settings: ExtensionSettings;
+  sccStoragePath: string;
+  gitClient?: GitClient;
+  locClient?: LOCClient;
+  previousBlameFileCache?: Record<string, BlameFileCacheEntry>;
+}
+
 // Analysis coordinator
 
 export class AnalysisCoordinator {
@@ -55,19 +64,15 @@ export class AnalysisCoordinator {
   private previousBlameFileCache: Record<string, BlameFileCacheEntry>;
   private latestBlameFileCache: Record<string, BlameFileCacheEntry>;
 
-  constructor(
-    repoPath: string,
-    settings: ExtensionSettings,
-    sccStoragePath: string,
-    gitClient?: GitClient,
-    locClient?: LOCClient,
-    previousBlameFileCache: Record<string, BlameFileCacheEntry> = {}
-  ) {
-    this.repoPath = repoPath;
-    this.settings = settings;
-    this.gitClient = gitClient || createGitAnalyzer(repoPath);
-    this.locClient = locClient || createLOCCounter(repoPath, sccStoragePath);
-    this.previousBlameFileCache = previousBlameFileCache;
+  constructor(options: AnalysisCoordinatorOptions) {
+    this.repoPath = options.repoPath;
+    this.settings = options.settings;
+    this.gitClient = options.gitClient || createGitAnalyzer({ repoPath: options.repoPath });
+    this.locClient = options.locClient || createLOCCounter({
+      repoPath: options.repoPath,
+      storagePath: options.sccStoragePath,
+    });
+    this.previousBlameFileCache = options.previousBlameFileCache ?? {};
     this.latestBlameFileCache = {};
   }
 
@@ -537,18 +542,6 @@ export class AnalysisCoordinator {
 
 // Factory function
 
-export function createAnalysisCoordinator(
-  repoPath: string,
-  settings: ExtensionSettings,
-  sccStoragePath: string,
-  previousBlameFileCache: Record<string, BlameFileCacheEntry> = {}
-): AnalysisCoordinator {
-  return new AnalysisCoordinator(
-    repoPath,
-    settings,
-    sccStoragePath,
-    undefined,
-    undefined,
-    previousBlameFileCache
-  );
+export function createAnalysisCoordinator(options: AnalysisCoordinatorOptions): AnalysisCoordinator {
+  return new AnalysisCoordinator(options);
 }
