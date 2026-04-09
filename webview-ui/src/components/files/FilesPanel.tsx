@@ -7,7 +7,7 @@ import type { MouseEvent as ReactMouseEvent } from 'react';
 import { ChevronDown, Columns3 } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useStore } from '../../store';
-import { useVsCodeApi } from '../../hooks/useVsCodeApi';
+import { useVscodeApi } from '../../hooks/useVscodeApi';
 import { useFileCatalog } from './useFileCatalog';
 import { buildDefaultColumnWidths, DEFAULT_COLUMN_ORDER, getColumnConfig } from './columns';
 import { DataGridFrame } from '../datagrid/DataGridFrame';
@@ -28,7 +28,7 @@ import './FilesPanel.css';
 export function FilesPanel() {
   const catalog = useFileCatalog();
   const data = useStore((state) => state.data);
-  const { openFile, revealInExplorer } = useVsCodeApi();
+  const { openFile, revealInExplorer } = useVscodeApi();
 
   const [sortRules, setSortRules] = useState<SortRule[]>(DEFAULT_SORT_RULES);
   const [columnFilters, setColumnFilters] = useState<ColumnFilters>({});

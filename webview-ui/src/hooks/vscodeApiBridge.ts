@@ -1,17 +1,17 @@
 import type { WebviewMessage } from '../types';
 
-interface VsCodeApi {
+interface VscodeApi {
   postMessage: (message: WebviewMessage) => void;
   getState: () => unknown;
   setState: (state: unknown) => void;
 }
 
-type VsCodeApiSource = 'vscode' | 'mock';
+type VscodeApiSource = 'vscode' | 'mock';
 
-let vsCodeApi: VsCodeApi | null = null;
-let vsCodeApiSource: VsCodeApiSource | null = null;
+let vscodeApi: VscodeApi | null = null;
+let vscodeApiSource: VscodeApiSource | null = null;
 
-function createMockVsCodeApi(): VsCodeApi {
+function createMockVscodeApi(): VscodeApi {
   return {
     postMessage: () => {},
     getState: () => ({}),
@@ -19,29 +19,29 @@ function createMockVsCodeApi(): VsCodeApi {
   };
 }
 
-export function resetVsCodeApiForTests(): void {
-  vsCodeApi = null;
-  vsCodeApiSource = null;
+export function resetVscodeApiForTests(): void {
+  vscodeApi = null;
+  vscodeApiSource = null;
 }
 
-export function getOrCreateVsCodeApi(): VsCodeApi {
-  const nextSource: VsCodeApiSource = typeof acquireVsCodeApi === 'function' ? 'vscode' : 'mock';
+export function getOrCreateVscodeApi(): VscodeApi {
+  const nextSource: VscodeApiSource = typeof acquireVsCodeApi === 'function' ? 'vscode' : 'mock';
   if (nextSource === 'mock') {
-    return createMockVsCodeApi();
+    return createMockVscodeApi();
   }
 
-  if (vsCodeApi && vsCodeApiSource === nextSource) {
-    return vsCodeApi;
+  if (vscodeApi && vscodeApiSource === nextSource) {
+    return vscodeApi;
   }
 
-  vsCodeApi = acquireVsCodeApi();
-  vsCodeApiSource = nextSource;
+  vscodeApi = acquireVsCodeApi();
+  vscodeApiSource = nextSource;
 
-  return vsCodeApi;
+  return vscodeApi;
 }
 
-export function postVsCodeMessage(message: WebviewMessage): void {
-  getOrCreateVsCodeApi().postMessage(message);
+export function postVscodeMessage(message: WebviewMessage): void {
+  getOrCreateVscodeApi().postMessage(message);
 }
 
-declare function acquireVsCodeApi(): VsCodeApi;
+declare function acquireVsCodeApi(): VscodeApi;

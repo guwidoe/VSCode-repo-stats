@@ -11,7 +11,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { useStore, selectFilteredTreemapNode } from '../../store';
-import { useVsCodeApi } from '../../hooks/useVsCodeApi';
+import { useVscodeApi } from '../../hooks/useVscodeApi';
 import type { TreemapNode } from '../../types';
 import { getScopedSettingDisplayValue } from '../../utils/scopedSettings';
 import { resolveAgeColorDomain } from '../../utils/colors';
@@ -34,7 +34,7 @@ function buildRepoExcludePattern(node: TreemapNode): string | null {
 }
 
 export function TreemapPanel() {
-  const { openFile, revealInExplorer, copyPath, updateScopedSetting } = useVsCodeApi();
+  const { openFile, revealInExplorer, copyPath, updateScopedSetting } = useVscodeApi();
   const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   // Store state - use the filtered treemap node from the selector

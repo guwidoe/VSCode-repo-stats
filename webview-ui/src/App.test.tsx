@@ -45,8 +45,8 @@ vi.mock('./store', () => ({
   useStore: useStoreMock,
 }));
 
-vi.mock('./hooks/useVsCodeApi', () => ({
-  useVsCodeApi: () => ({
+vi.mock('./hooks/useVscodeApi', () => ({
+  useVscodeApi: () => ({
     requestRefresh,
     cancelAnalysis,
     updateRepositorySelection,

@@ -4,7 +4,7 @@
 
 import { useState } from 'react';
 import { useStore } from '../../store';
-import { useVsCodeApi } from '../../hooks/useVsCodeApi';
+import { useVscodeApi } from '../../hooks/useVscodeApi';
 import { SettingsTabs, type SettingsTab } from './SettingsTabs';
 import { GeneralSettings } from './GeneralSettings';
 import { OverviewSettings } from './OverviewSettings';
@@ -18,7 +18,7 @@ export function SettingsPanel() {
   const scopedSettings = useStore((state) => state.scopedSettings);
   const repoScopeAvailable = useStore((state) => state.repoScopeAvailable);
   const data = useStore((state) => state.data);
-  const { updateSettings, updateScopedSetting, resetScopedSetting, requestRefresh } = useVsCodeApi();
+  const { updateSettings, updateScopedSetting, resetScopedSetting, requestRefresh } = useVscodeApi();
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
 
   if (!settings || !scopedSettings) {
