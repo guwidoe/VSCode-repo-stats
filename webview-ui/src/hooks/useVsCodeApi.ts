@@ -1,13 +1,15 @@
 import { useCallback, useEffect } from 'react';
 import type {
   ExtensionSettings,
-  ExtensionMessage,
   RepoScopableSettingKey,
   RepoScopableSettingValueMap,
   ScopedSettingUpdateMessage,
   SettingWriteTarget,
 } from '../types';
-import { applyExtensionMessage } from './vscodeExtensionMessageHandler';
+import {
+  applyExtensionMessage,
+  parseExtensionMessage,
+} from './vscodeExtensionMessageHandler';
 import {
   postVsCodeMessage,
   resetVsCodeApiForTests,
@@ -35,8 +37,14 @@ function createScopedSettingUpdateMessage<K extends RepoScopableSettingKey>(
 
 export function useVsCodeApi() {
   useEffect(() => {
-    const handleMessage = (event: MessageEvent<ExtensionMessage>) => {
-      applyExtensionMessage(event.data);
+    const handleMessage = (event: MessageEvent<unknown>) => {
+      const message = parseExtensionMessage(event.data);
+      if (!message) {
+        console.warn('[RepoStats] Ignored malformed extension message.', event.data);
+        return;
+      }
+
+      applyExtensionMessage(message);
     };
 
     window.addEventListener('message', handleMessage);

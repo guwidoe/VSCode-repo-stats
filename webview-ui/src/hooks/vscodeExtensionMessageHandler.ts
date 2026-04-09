@@ -2,6 +2,101 @@ import { normalizeEvolutionResult } from '@shared/contracts';
 import type { ExtensionMessage } from '../types';
 import { useStore } from '../store';
 
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === 'object' && value !== null;
+}
+
+function isString(value: unknown): value is string {
+  return typeof value === 'string';
+}
+
+function isBoolean(value: unknown): value is boolean {
+  return typeof value === 'boolean';
+}
+
+function isNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(isString);
+}
+
+function isMessageRecord(message: unknown): message is UnknownRecord & { type: string } {
+  return isRecord(message) && isString(message.type);
+}
+
+export function parseExtensionMessage(message: unknown): ExtensionMessage | null {
+  if (!isMessageRecord(message)) {
+    return null;
+  }
+
+  switch (message.type) {
+    case 'analysisStarted':
+    case 'analysisCancelled':
+    case 'evolutionStarted':
+    case 'evolutionCancelled':
+      return { type: message.type };
+
+    case 'analysisProgress':
+      if (!isString(message.phase) || !isNumber(message.progress)) {
+        return null;
+      }
+      return { type: 'analysisProgress', phase: message.phase, progress: message.progress };
+
+    case 'analysisComplete':
+      if (!isRecord(message.data)) {
+        return null;
+      }
+      return message as ExtensionMessage;
+
+    case 'analysisError':
+      return isString(message.error) ? { type: 'analysisError', error: message.error } : null;
+
+    case 'repositorySelectionLoaded':
+      if (!Array.isArray(message.repositories) || !isStringArray(message.selectedRepositoryIds)) {
+        return null;
+      }
+      if (message.selectedTarget !== null && !isRecord(message.selectedTarget)) {
+        return null;
+      }
+      return message as ExtensionMessage;
+
+    case 'incrementalUpdate':
+      return isRecord(message.data) ? (message as ExtensionMessage) : null;
+
+    case 'evolutionProgress':
+      if (!isString(message.phase) || !isNumber(message.progress) || !isString(message.stage)) {
+        return null;
+      }
+      return message as ExtensionMessage;
+
+    case 'evolutionComplete':
+      return isRecord(message.data) ? (message as ExtensionMessage) : null;
+
+    case 'evolutionError':
+      return isString(message.error) ? { type: 'evolutionError', error: message.error } : null;
+
+    case 'evolutionStale':
+      return isString(message.reason) ? { type: 'evolutionStale', reason: message.reason } : null;
+
+    case 'stalenessStatus':
+      return isBoolean(message.coreStale) && isBoolean(message.evolutionStale)
+        ? { type: 'stalenessStatus', coreStale: message.coreStale, evolutionStale: message.evolutionStale }
+        : null;
+
+    case 'settingsLoaded':
+      return isRecord(message.settings) && isRecord(message.scopedSettings) && isBoolean(message.repoScopeAvailable)
+        ? (message as ExtensionMessage)
+        : null;
+
+    default:
+      return null;
+  }
+}
+
 function repositorySelectionChanged(message: Extract<ExtensionMessage, { type: 'repositorySelectionLoaded' }>): boolean {
   const currentSelectedRepositoryIds = useStore.getState().selectedRepositoryIds;
   return currentSelectedRepositoryIds.length !== message.selectedRepositoryIds.length

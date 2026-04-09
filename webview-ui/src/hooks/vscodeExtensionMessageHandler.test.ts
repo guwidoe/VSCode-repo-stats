@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { AnalysisResult, ExtensionMessage, ExtensionSettings } from '../types';
 import { useStore } from '../store';
-import { applyExtensionMessage } from './vscodeExtensionMessageHandler';
+import {
+  applyExtensionMessage,
+  parseExtensionMessage,
+} from './vscodeExtensionMessageHandler';
 import { applyOptimisticSettingsUpdate } from './vscodeOptimisticSettings';
 
 function createSettings(): ExtensionSettings {
@@ -117,6 +120,20 @@ beforeEach(() => {
 });
 
 describe('applyExtensionMessage', () => {
+  it('parses valid extension messages before dispatch', () => {
+    expect(parseExtensionMessage({ type: 'analysisStarted' })).toEqual({ type: 'analysisStarted' });
+    expect(parseExtensionMessage({ type: 'analysisError', error: 'boom' })).toEqual({
+      type: 'analysisError',
+      error: 'boom',
+    });
+  });
+
+  it('rejects malformed extension message payloads', () => {
+    expect(parseExtensionMessage({ type: 'analysisError', error: 42 })).toBeNull();
+    expect(parseExtensionMessage({ type: 'stalenessStatus', coreStale: true })).toBeNull();
+    expect(parseExtensionMessage({ path: 'missing-type' })).toBeNull();
+  });
+
   it('normalizes evolution payloads before storing them', () => {
     const message = {
       type: 'evolutionComplete',
