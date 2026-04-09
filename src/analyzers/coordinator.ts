@@ -24,9 +24,7 @@ import {
 import { createPathPatternMatcher } from './pathMatching.js';
 import { throwIfCancelled } from './cancellation.js';
 
-// ============================================================================
-// Progress Callback Type
-// ============================================================================
+// Progress callback type
 
 export type ProgressCallback = (phase: string, progress: number) => void;
 
@@ -47,9 +45,7 @@ export interface AnalysisCallbacks {
   onBlameUpdate?: (blameMetrics: BlameMetrics) => void;
 }
 
-// ============================================================================
-// Analysis Coordinator
-// ============================================================================
+// Analysis coordinator
 
 export class AnalysisCoordinator {
   private gitClient: GitClient;
@@ -539,9 +535,7 @@ export class AnalysisCoordinator {
   }
 }
 
-// ============================================================================
-// Factory Function
-// ============================================================================
+// Factory function
 
 export function createAnalysisCoordinator(
   repoPath: string,

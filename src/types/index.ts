@@ -1,8 +1,6 @@
 export * from '../shared/contracts.js';
 
-// ============================================================================
-// Error Types
-// ============================================================================
+// Error types
 
 export class RepoStatsError extends Error {
   constructor(

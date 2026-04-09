@@ -53,9 +53,7 @@ export type {
 
 export { REPO_SCOPABLE_SETTING_KEYS } from '@shared/contracts';
 
-// ============================================================================
-// UI State Types
-// ============================================================================
+// UI state types
 
 export type ViewType = 'overview' | 'files' | 'contributors' | 'commits' | 'frequency' | 'evolution' | 'treemap' | 'settings' | 'about';
 

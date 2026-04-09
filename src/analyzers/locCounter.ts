@@ -31,9 +31,7 @@ function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === 'object' && value !== null;
 }
 
-// ============================================================================
-// Interfaces for Dependency Injection
-// ============================================================================
+// Interfaces for dependency injection
 
 export interface LOCClient {
   countLines(
@@ -44,9 +42,7 @@ export interface LOCClient {
   getSccInfo(): Promise<SccInfo>;
 }
 
-// ============================================================================
-// Extension Filter Helpers
-// ============================================================================
+// Extension filter helpers
 
 /**
  * Normalizes a user-provided extension into a lowercase ".ext" form.
@@ -133,9 +129,7 @@ export function shouldExcludeFileByExtension(
   return extension.length > 0 && excludedExtensions.has(extension);
 }
 
-// ============================================================================
-// SCC Output Types
-// ============================================================================
+// SCC output types
 
 interface SccFileEntry {
   Location: string;
@@ -179,9 +173,7 @@ export function parseSccLanguageGroups(stdout: string): SccLanguageGroup[] {
   return parsed;
 }
 
-// ============================================================================
-// LOC Counter Implementation
-// ============================================================================
+// LOC counter implementation
 
 export class LOCCounter implements LOCClient {
   private repoPath: string;
@@ -406,9 +398,7 @@ export class LOCCounter implements LOCClient {
   }
 }
 
-// ============================================================================
-// Internal Types
-// ============================================================================
+// Internal types
 
 interface DirectoryMetrics {
   lines: number;
@@ -419,9 +409,7 @@ interface DirectoryMetrics {
   maxComplexity: number;
 }
 
-// ============================================================================
-// Factory Function for Dependency Injection
-// ============================================================================
+// Factory function for dependency injection
 
 export function createLOCCounter(
   repoPath: string,
