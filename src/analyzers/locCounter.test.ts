@@ -5,6 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   normalizeExtensionForFilter,
+  parseSccLanguageGroups,
   shouldExcludeFileByExtension,
 } from './locCounter';
 
@@ -52,5 +53,45 @@ describe('shouldExcludeFileByExtension', () => {
 
   it('returns false when exclusion set is empty', () => {
     expect(shouldExcludeFileByExtension('icons/logo.svg', new Set())).toBe(false);
+  });
+});
+
+describe('parseSccLanguageGroups', () => {
+  it('accepts valid scc by-file output', () => {
+    expect(parseSccLanguageGroups(JSON.stringify([
+      {
+        Name: 'TypeScript',
+        Files: [
+          {
+            Location: '/repo/src/index.ts',
+            Code: 10,
+            Lines: 14,
+            Blank: 2,
+            Comment: 2,
+            Complexity: 1,
+          },
+        ],
+      },
+    ]))).toEqual([
+      {
+        Name: 'TypeScript',
+        Files: [
+          {
+            Location: '/repo/src/index.ts',
+            Code: 10,
+            Lines: 14,
+            Blank: 2,
+            Comment: 2,
+            Complexity: 1,
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('rejects malformed scc output shapes', () => {
+    expect(() => parseSccLanguageGroups(JSON.stringify([{ Name: 'TypeScript', Files: [{}] }]))).toThrow(
+      'Received invalid scc JSON output.'
+    );
   });
 });

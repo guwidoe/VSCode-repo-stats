@@ -25,6 +25,12 @@ import {
 
 const execAsync = promisify(exec);
 
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === 'object' && value !== null;
+}
+
 // ============================================================================
 // Interfaces for Dependency Injection
 // ============================================================================
@@ -133,7 +139,7 @@ export function shouldExcludeFileByExtension(
 
 interface SccFileEntry {
   Location: string;
-  Language: string;
+  Language?: string;
   Code: number;
   Lines: number;
   Blank: number;
@@ -144,6 +150,33 @@ interface SccFileEntry {
 interface SccLanguageGroup {
   Name: string;
   Files: SccFileEntry[];
+}
+
+function isSccFileEntry(value: unknown): value is SccFileEntry {
+  return isRecord(value)
+    && typeof value.Location === 'string'
+    && (value.Language === undefined || typeof value.Language === 'string')
+    && typeof value.Code === 'number'
+    && typeof value.Lines === 'number'
+    && typeof value.Blank === 'number'
+    && typeof value.Comment === 'number'
+    && typeof value.Complexity === 'number';
+}
+
+function isSccLanguageGroup(value: unknown): value is SccLanguageGroup {
+  return isRecord(value)
+    && typeof value.Name === 'string'
+    && Array.isArray(value.Files)
+    && value.Files.every(isSccFileEntry);
+}
+
+export function parseSccLanguageGroups(stdout: string): SccLanguageGroup[] {
+  const parsed: unknown = JSON.parse(stdout);
+  if (!Array.isArray(parsed) || !parsed.every(isSccLanguageGroup)) {
+    throw new Error('Received invalid scc JSON output.');
+  }
+
+  return parsed;
 }
 
 // ============================================================================
@@ -218,7 +251,7 @@ export class LOCCounter implements LOCClient {
       );
 
       // scc outputs array of language groups, each containing a Files array
-      const languageGroups = JSON.parse(stdout) as SccLanguageGroup[];
+      const languageGroups = parseSccLanguageGroups(stdout);
       const allFiles: SccFileEntry[] = [];
       for (const group of languageGroups) {
         if (group.Files) {
