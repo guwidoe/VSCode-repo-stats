@@ -35,6 +35,11 @@ export interface AnalysisTargetContext {
   settingsRepository?: RepositoryContext;
 }
 
+export interface RepositorySelection {
+  repositories: RepositoryContext[];
+  selected: RepositoryContext | null;
+}
+
 export interface AnalysisTargetSelection {
   repositories: RepositoryContext[];
   selectedRepositoryIds: string[];

@@ -4,7 +4,9 @@
 
 import type { TreemapNode, TreemapSettings } from '../types';
 
-// Language colors (GitHub Linguist-style)
+// ============================================================================
+// Language Colors (GitHub Linguist-style)
+// ============================================================================
 
 export const LANGUAGE_COLORS: Record<string, string> = {
   TypeScript: '#3178c6',
@@ -64,7 +66,9 @@ export function getLanguageColor(language: string): string {
   return LANGUAGE_COLORS[language] || LANGUAGE_COLORS.Unknown;
 }
 
-// Age-based colors (heat map)
+// ============================================================================
+// Age-based Colors (Heat Map)
+// ============================================================================
 
 export interface AgeColorDomain {
   newestTimestamp: number;
@@ -167,7 +171,9 @@ export function getAgeColor(lastModified: string | undefined, domain: AgeColorDo
   return interpolateColor(AGE_RED, AGE_GREEN, ratio);
 }
 
-// Complexity-based colors (heat map)
+// ============================================================================
+// Complexity-based Colors (Heat Map)
+// ============================================================================
 
 export function getComplexityColor(complexity: number | undefined): string {
   if (complexity === undefined || complexity === 0) {
@@ -190,7 +196,9 @@ export function getComplexityColor(complexity: number | undefined): string {
   }
 }
 
-// Code density colors (heat map)
+// ============================================================================
+// Code Density Colors (Heat Map)
+// ============================================================================
 
 export function getCodeDensityColor(
   lines: number,
@@ -221,7 +229,9 @@ export function getCodeDensityColor(
   }
 }
 
-// Color interpolation helper
+// ============================================================================
+// Color Interpolation Helper
+// ============================================================================
 
 function interpolateColor(color1: string, color2: string, ratio: number): string {
   const r1 = parseInt(color1.slice(1, 3), 16);
@@ -239,7 +249,9 @@ function interpolateColor(color1: string, color2: string, ratio: number): string
   return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }
 
-// Contributor avatar colors
+// ============================================================================
+// Contributor Avatar Colors
+// ============================================================================
 
 const AVATAR_COLORS = [
   '#e91e63', '#9c27b0', '#673ab7', '#3f51b5',
@@ -267,7 +279,9 @@ export function getInitials(name: string): string {
   return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
 }
 
-// Format utilities
+// ============================================================================
+// Format Utilities
+// ============================================================================
 
 export function formatNumber(num: number): string {
   if (num >= 1000000) {

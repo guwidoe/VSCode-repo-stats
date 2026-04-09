@@ -235,11 +235,7 @@ export class RepoAnalysisService {
 
       this.sendMessageIfCurrent(run, webview, { type: 'evolutionStarted' });
 
-      const analyzer = createTargetEvolutionAnalyzer({
-        target: target.target,
-        settings,
-        signal: run.signal,
-      });
+      const analyzer = createTargetEvolutionAnalyzer(target.target, settings, run.signal);
       const result = await analyzer.analyze((update) => {
         this.sendMessageIfCurrent(run, webview, {
           type: 'evolutionProgress',

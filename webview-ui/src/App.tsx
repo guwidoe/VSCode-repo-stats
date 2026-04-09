@@ -5,7 +5,7 @@
 import { useEffect, useMemo } from 'react';
 import type { AnalysisTargetOption, RepositoryOption } from './types';
 import { useStore } from './store';
-import { useVscodeApi } from './hooks/useVscodeApi';
+import { useVsCodeApi } from './hooks/useVsCodeApi';
 import { Navigation } from './components/Navigation';
 import { OverviewPanel } from './components/overview/OverviewPanel';
 import { ContributorsPanel } from './components/contributors/ContributorsPanel';
@@ -108,7 +108,7 @@ export function App() {
     selectedRepositoryIds,
     selectedTarget,
   } = useStore();
-  const { requestRefresh, cancelAnalysis, updateRepositorySelection } = useVscodeApi();
+  const { requestRefresh, cancelAnalysis, updateRepositorySelection } = useVsCodeApi();
 
   const isCoreView = activeView !== 'settings' && activeView !== 'about' && activeView !== 'evolution';
   const hasRenderableCoreData = Boolean(settings && data);

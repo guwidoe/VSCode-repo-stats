@@ -31,7 +31,9 @@ function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === 'object' && value !== null;
 }
 
-// Interfaces for dependency injection
+// ============================================================================
+// Interfaces for Dependency Injection
+// ============================================================================
 
 export interface LOCClient {
   countLines(
@@ -42,12 +44,9 @@ export interface LOCClient {
   getSccInfo(): Promise<SccInfo>;
 }
 
-export interface LOCCounterOptions {
-  repoPath: string;
-  storagePath: string;
-}
-
-// Extension filter helpers
+// ============================================================================
+// Extension Filter Helpers
+// ============================================================================
 
 /**
  * Normalizes a user-provided extension into a lowercase ".ext" form.
@@ -134,7 +133,9 @@ export function shouldExcludeFileByExtension(
   return extension.length > 0 && excludedExtensions.has(extension);
 }
 
-// SCC output types
+// ============================================================================
+// SCC Output Types
+// ============================================================================
 
 interface SccFileEntry {
   Location: string;
@@ -178,7 +179,9 @@ export function parseSccLanguageGroups(stdout: string): SccLanguageGroup[] {
   return parsed;
 }
 
-// LOC counter implementation
+// ============================================================================
+// LOC Counter Implementation
+// ============================================================================
 
 export class LOCCounter implements LOCClient {
   private repoPath: string;
@@ -403,7 +406,9 @@ export class LOCCounter implements LOCClient {
   }
 }
 
-// Internal types
+// ============================================================================
+// Internal Types
+// ============================================================================
 
 interface DirectoryMetrics {
   lines: number;
@@ -414,8 +419,13 @@ interface DirectoryMetrics {
   maxComplexity: number;
 }
 
-// Factory function for dependency injection
+// ============================================================================
+// Factory Function for Dependency Injection
+// ============================================================================
 
-export function createLOCCounter(options: LOCCounterOptions): LOCClient {
-  return new LOCCounter(options.repoPath, options.storagePath);
+export function createLOCCounter(
+  repoPath: string,
+  storagePath: string
+): LOCClient {
+  return new LOCCounter(repoPath, storagePath);
 }

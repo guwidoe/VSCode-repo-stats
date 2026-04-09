@@ -11,8 +11,8 @@ import {
   parseExtensionMessage,
 } from './vscodeExtensionMessageHandler';
 import {
-  postVscodeMessage,
-  resetVscodeApiForTests,
+  postVsCodeMessage,
+  resetVsCodeApiForTests,
 } from './vscodeApiBridge';
 import {
   applyOptimisticScopedSettingReset,
@@ -20,7 +20,7 @@ import {
   applyOptimisticSettingsUpdate,
 } from './vscodeOptimisticSettings';
 
-export { resetVscodeApiForTests };
+export { resetVsCodeApiForTests };
 
 function createScopedSettingUpdateMessage<K extends RepoScopableSettingKey>(
   key: K,
@@ -35,7 +35,7 @@ function createScopedSettingUpdateMessage<K extends RepoScopableSettingKey>(
   } as ScopedSettingUpdateMessage<K>;
 }
 
-export function useVscodeApi() {
+export function useVsCodeApi() {
   useEffect(() => {
     const handleMessage = (event: MessageEvent<unknown>) => {
       const message = parseExtensionMessage(event.data);
@@ -48,11 +48,11 @@ export function useVscodeApi() {
     };
 
     window.addEventListener('message', handleMessage);
-    postVscodeMessage({ type: 'getSettings' });
-    postVscodeMessage({ type: 'checkStaleness' });
+    postVsCodeMessage({ type: 'getSettings' });
+    postVsCodeMessage({ type: 'checkStaleness' });
 
     const stalenessTimer = window.setInterval(() => {
-      postVscodeMessage({ type: 'checkStaleness' });
+      postVsCodeMessage({ type: 'checkStaleness' });
     }, 15000);
 
     return () => {
@@ -62,48 +62,48 @@ export function useVscodeApi() {
   }, []);
 
   const requestAnalysis = useCallback(() => {
-    postVscodeMessage({ type: 'requestAnalysis' });
+    postVsCodeMessage({ type: 'requestAnalysis' });
   }, []);
 
   const requestRefresh = useCallback(() => {
-    postVscodeMessage({ type: 'requestRefresh' });
+    postVsCodeMessage({ type: 'requestRefresh' });
   }, []);
 
   const cancelAnalysis = useCallback(() => {
-    postVscodeMessage({ type: 'cancelAnalysis' });
+    postVsCodeMessage({ type: 'cancelAnalysis' });
   }, []);
 
   const requestEvolutionAnalysis = useCallback(() => {
-    postVscodeMessage({ type: 'requestEvolutionAnalysis' });
+    postVsCodeMessage({ type: 'requestEvolutionAnalysis' });
   }, []);
 
   const requestEvolutionRefresh = useCallback(() => {
-    postVscodeMessage({ type: 'requestEvolutionRefresh' });
+    postVsCodeMessage({ type: 'requestEvolutionRefresh' });
   }, []);
 
   const cancelEvolutionAnalysis = useCallback(() => {
-    postVscodeMessage({ type: 'cancelEvolutionAnalysis' });
+    postVsCodeMessage({ type: 'cancelEvolutionAnalysis' });
   }, []);
 
   const openFile = useCallback((path: string, repositoryId?: string) => {
-    postVscodeMessage({ type: 'openFile', path, repositoryId });
+    postVsCodeMessage({ type: 'openFile', path, repositoryId });
   }, []);
 
   const revealInExplorer = useCallback((path: string, repositoryId?: string) => {
-    postVscodeMessage({ type: 'revealInExplorer', path, repositoryId });
+    postVsCodeMessage({ type: 'revealInExplorer', path, repositoryId });
   }, []);
 
   const copyPath = useCallback((path: string, repositoryId?: string) => {
-    postVscodeMessage({ type: 'copyPath', path, repositoryId });
+    postVsCodeMessage({ type: 'copyPath', path, repositoryId });
   }, []);
 
   const updateRepositorySelection = useCallback((repositoryIds: string[]) => {
-    postVscodeMessage({ type: 'updateRepositorySelection', repositoryIds });
+    postVsCodeMessage({ type: 'updateRepositorySelection', repositoryIds });
   }, []);
 
   const updateSettings = useCallback((settings: Partial<ExtensionSettings>) => {
     applyOptimisticSettingsUpdate(settings);
-    postVscodeMessage({ type: 'updateSettings', settings });
+    postVsCodeMessage({ type: 'updateSettings', settings });
   }, []);
 
   const updateScopedSetting = useCallback(
@@ -113,14 +113,14 @@ export function useVscodeApi() {
       target: SettingWriteTarget
     ) => {
       applyOptimisticScopedSettingUpdate(key, value, target);
-      postVscodeMessage(createScopedSettingUpdateMessage(key, value, target));
+      postVsCodeMessage(createScopedSettingUpdateMessage(key, value, target));
     },
     []
   );
 
   const resetScopedSetting = useCallback((key: RepoScopableSettingKey) => {
     applyOptimisticScopedSettingReset(key);
-    postVscodeMessage({ type: 'resetScopedSetting', key });
+    postVsCodeMessage({ type: 'resetScopedSetting', key });
   }, []);
 
   return {

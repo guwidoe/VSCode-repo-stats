@@ -91,9 +91,8 @@ export function normalizeExtension(extension: string): string | null {
 
 /**
  * Builds a normalized binary-extension set from settings.
- * - If undefined: uses the built-in binary extensions.
- * - If provided (including empty array): normalizes values to canonical lowercase
- *   extensions and ignores invalid entries.
+ * - If undefined: uses default built-in binary extensions.
+ * - If provided (including empty array): uses exactly the provided values.
  */
 export function buildBinaryExtensionSet(extensions?: string[]): Set<string> {
   if (extensions === undefined) {

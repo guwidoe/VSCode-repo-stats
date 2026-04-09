@@ -12,7 +12,9 @@ import * as https from 'https';
 
 const execAsync = promisify(exec);
 
+// ============================================================================
 // Configuration
+// ============================================================================
 
 const SCC_VERSION = '3.5.0';
 const GITHUB_RELEASE_BASE = 'https://github.com/boyter/scc/releases/download';
@@ -33,14 +35,18 @@ const BINARY_NAMES: Record<string, Record<string, string>> = {
   },
 };
 
+// ============================================================================
 // Types
+// ============================================================================
 
 export interface SccInfo {
   version: string;
   source: 'system' | 'downloaded' | 'mixed' | 'none';
 }
 
-// SCC binary manager implementation
+// ============================================================================
+// SCC Binary Manager Implementation
+// ============================================================================
 
 export class SccBinaryManager {
   private storagePath: string;
@@ -310,7 +316,9 @@ export class SccBinaryManager {
   }
 }
 
-// Factory function
+// ============================================================================
+// Factory Function
+// ============================================================================
 
 export function createSccBinaryManager(storagePath: string): SccBinaryManager {
   return new SccBinaryManager(storagePath);

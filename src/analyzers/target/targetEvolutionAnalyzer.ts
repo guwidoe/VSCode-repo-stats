@@ -60,33 +60,17 @@ interface TargetSnapshotEvent {
   samplingMode: EvolutionSamplingMode;
 }
 
-export interface TargetEvolutionAnalyzerOptions {
-  target: AnalysisTarget;
-  settings: ExtensionSettings;
-  signal?: AbortSignal;
-  runtimeFactory?: (
-    member: AnalysisTarget['members'][number],
-    settings: ExtensionSettings,
-    signal?: AbortSignal
-  ) => EvolutionRuntimeLike;
-}
-
 export class TargetEvolutionAnalyzer {
-  private readonly target: AnalysisTarget;
-  private readonly settings: ExtensionSettings;
-  private readonly signal?: AbortSignal;
-  private readonly runtimeFactory: (
-    member: AnalysisTarget['members'][number],
-    settings: ExtensionSettings,
-    signal?: AbortSignal
-  ) => EvolutionRuntimeLike;
-
-  constructor(options: TargetEvolutionAnalyzerOptions) {
-    this.target = options.target;
-    this.settings = options.settings;
-    this.signal = options.signal;
-    this.runtimeFactory = options.runtimeFactory ?? ((member, settings, signal) => new MemberEvolutionRuntime(member, settings, signal));
-  }
+  constructor(
+    private readonly target: AnalysisTarget,
+    private readonly settings: ExtensionSettings,
+    private readonly signal?: AbortSignal,
+    private readonly runtimeFactory: (
+      member: AnalysisTarget['members'][number],
+      settings: ExtensionSettings,
+      signal?: AbortSignal
+    ) => EvolutionRuntimeLike = (member, settings, signal) => new MemberEvolutionRuntime(member, settings, signal)
+  ) {}
 
   async analyze(onProgress?: EvolutionProgressCallback): Promise<EvolutionResult> {
     const startedAt = Date.now();
@@ -386,7 +370,9 @@ function estimateEtaSeconds(startedAt: number, progress: number): number | undef
 }
 
 export function createTargetEvolutionAnalyzer(
-  options: TargetEvolutionAnalyzerOptions
+  target: AnalysisTarget,
+  settings: ExtensionSettings,
+  signal?: AbortSignal
 ): TargetEvolutionAnalyzer {
-  return new TargetEvolutionAnalyzer(options);
+  return new TargetEvolutionAnalyzer(target, settings, signal);
 }

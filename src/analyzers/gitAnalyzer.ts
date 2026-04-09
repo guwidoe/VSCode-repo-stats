@@ -20,7 +20,9 @@ import {
   parseCommitHistoryLog,
 } from './commitAnalytics.js';
 
-// Interfaces for dependency injection
+// ============================================================================
+// Interfaces for Dependency Injection
+// ============================================================================
 
 export interface GitClient {
   isRepo(): Promise<boolean>;
@@ -35,11 +37,9 @@ export interface GitClient {
   raw(args: string[]): Promise<string>;
 }
 
-export interface GitAnalyzerOptions {
-  repoPath: string;
-}
-
-// Git analyzer implementation
+// ============================================================================
+// Git Analyzer Implementation
+// ============================================================================
 
 export class GitAnalyzer implements GitClient {
   private git: SimpleGit;
@@ -298,8 +298,10 @@ export class GitAnalyzer implements GitClient {
   }
 }
 
-// Factory function for dependency injection
+// ============================================================================
+// Factory Function for Dependency Injection
+// ============================================================================
 
-export function createGitAnalyzer(options: GitAnalyzerOptions): GitClient {
-  return new GitAnalyzer(options.repoPath);
+export function createGitAnalyzer(repoPath: string): GitClient {
+  return new GitAnalyzer(repoPath);
 }

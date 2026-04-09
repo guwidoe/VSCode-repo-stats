@@ -165,16 +165,16 @@ function createSettings(): ExtensionSettings {
 
 describe('AnalysisCoordinator', () => {
   it('does not re-add tracked binary files from excluded directories', async () => {
-    const coordinator = new AnalysisCoordinator({
-      repoPath: '/tmp/repo',
-      settings: createSettings(),
-      sccStoragePath: '/tmp/scc',
-      gitClient: createGitClient({
+    const coordinator = new AnalysisCoordinator(
+      '/tmp/repo',
+      createSettings(),
+      '/tmp/scc',
+      createGitClient({
         getTrackedFiles: async () => ['backend/fixtures/seed.png'],
       }),
-      locClient: createLocClient(),
-      previousBlameFileCache: {} as Record<string, BlameFileCacheEntry>,
-    });
+      createLocClient(),
+      {} as Record<string, BlameFileCacheEntry>
+    );
 
     const result = await coordinator.analyze();
 
@@ -185,11 +185,11 @@ describe('AnalysisCoordinator', () => {
     const blameStarted = createDeferred<void>();
     const blameResult = createDeferred<string>();
     const abortController = new AbortController();
-    const coordinator = new AnalysisCoordinator({
-      repoPath: '/tmp/repo',
-      settings: createSettings(),
-      sccStoragePath: '/tmp/scc',
-      gitClient: createGitClient({
+    const coordinator = new AnalysisCoordinator(
+      '/tmp/repo',
+      createSettings(),
+      '/tmp/scc',
+      createGitClient({
         getFileModificationDates: async () => new Map([['src/app.ts', '2024-01-01T00:00:00Z']]),
         getTrackedFiles: async () => ['src/app.ts'],
         getHeadBlobShas: async () => new Map([['src/app.ts', 'blob-1']]),
@@ -198,11 +198,11 @@ describe('AnalysisCoordinator', () => {
           return blameResult.promise;
         },
       }),
-      locClient: createLocClient({
+      createLocClient({
         countLines: async () => createTreeWithFile(),
       }),
-      previousBlameFileCache: {} as Record<string, BlameFileCacheEntry>,
-    });
+      {} as Record<string, BlameFileCacheEntry>
+    );
 
     const analyzePromise = coordinator.analyze({ signal: abortController.signal });
     await blameStarted.promise;

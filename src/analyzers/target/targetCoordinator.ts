@@ -103,12 +103,10 @@ export class TargetAnalysisCoordinator {
     for (const member of this.options.target.members) {
       throwIfCancelled(this.options.signal);
       const coordinator = this.coordinators.get(member.id) ?? createAnalysisCoordinator(
-        {
-          repoPath: member.repoPath,
-          settings: this.options.settings,
-          sccStoragePath: this.options.sccStoragePath,
-          previousBlameFileCache: this.options.previousBlameFileCaches?.[member.id] ?? {},
-        }
+        member.repoPath,
+        this.options.settings,
+        this.options.sccStoragePath,
+        this.options.previousBlameFileCaches?.[member.id] ?? {}
       );
       const info = await coordinator.getRepositoryInfo();
       revisions.push({
@@ -135,12 +133,10 @@ export class TargetAnalysisCoordinator {
       memberSettings,
       this.options.previousBlameFileCaches?.[member.id] ?? {}
     ) ?? createAnalysisCoordinator(
-      {
-        repoPath: member.repoPath,
-        settings: memberSettings,
-        sccStoragePath: this.options.sccStoragePath,
-        previousBlameFileCache: this.options.previousBlameFileCaches?.[member.id] ?? {},
-      }
+      member.repoPath,
+      memberSettings,
+      this.options.sccStoragePath,
+      this.options.previousBlameFileCaches?.[member.id] ?? {}
     );
     this.coordinators.set(member.id, nextCoordinator);
     return nextCoordinator;

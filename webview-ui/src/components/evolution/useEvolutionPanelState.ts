@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useStore } from '../../store';
-import { useVscodeApi } from '../../hooks/useVscodeApi';
+import { useVsCodeApi } from '../../hooks/useVsCodeApi';
 import { processEvolutionSeries, type EvolutionAxisMode } from './evolutionUtils';
 import type { EvolutionDimension, EvolutionTimeSeriesData } from '../../types';
 
@@ -16,7 +16,7 @@ export function useEvolutionPanelState() {
     requestEvolutionAnalysis,
     requestEvolutionRefresh,
     cancelEvolutionAnalysis,
-  } = useVscodeApi();
+  } = useVsCodeApi();
 
   const [dimension, setDimension] = useState<EvolutionDimension>('cohort');
   const [axisMode, setAxisMode] = useState<EvolutionAxisMode>('time');
