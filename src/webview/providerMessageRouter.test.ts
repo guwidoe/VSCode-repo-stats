@@ -16,6 +16,7 @@ function createDependencies(selectedTarget: AnalysisTargetContext | null = null)
     revealRepositoryFile: vi.fn(async () => ({ ok: true })),
     copyRepositoryPath: vi.fn(async () => ({ ok: true })),
     showPathCopiedMessage: vi.fn(),
+    showFileActionFailure: vi.fn(),
     sendCurrentTargetContext: vi.fn(async () => {}),
     updateSettings: vi.fn(async () => false),
     updateScopedSetting: vi.fn(async () => false),
@@ -60,6 +61,7 @@ describe('ProviderMessageRouter', () => {
 
     expect(deps.copyRepositoryPath).toHaveBeenCalledWith('README.md', 'repo-1');
     expect(deps.showPathCopiedMessage).not.toHaveBeenCalled();
+    expect(deps.showFileActionFailure).toHaveBeenCalledWith('copy', 'unresolved-path');
 
     deps.copyRepositoryPath.mockResolvedValueOnce({ ok: true });
     await router.route({ type: 'copyPath', path: 'README.md', repositoryId: 'repo-1' }, {} as never);

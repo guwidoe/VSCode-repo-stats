@@ -100,7 +100,7 @@ export class ProviderMessageRouter {
         if (result.ok) {
           this.deps.showPathCopiedMessage();
         } else {
-          this.deps.showFileActionFailure('copy', result.reason);
+          this.deps.showFileActionFailure('copy', result.reason ?? 'unresolved-path');
         }
         return;
       }
@@ -142,7 +142,7 @@ export class ProviderMessageRouter {
   ): Promise<void> {
     const result = await actionPromise;
     if (!result.ok) {
-      this.deps.showFileActionFailure(action, result.reason);
+      this.deps.showFileActionFailure(action, result.reason ?? 'unresolved-path');
     }
   }
 }
