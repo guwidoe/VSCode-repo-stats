@@ -6,6 +6,10 @@ This changelog was reconstructed retroactively from the repository's version bum
 
 - No unreleased changes yet.
 
+## 1.4.5 - 2026-05-05
+
+- Fixed commit analytics, contributor stats, code frequency, and file modification dates to use the currently checked-out branch instead of counting all branches.
+
 ## 1.4.4 - 2026-03-26
 
 - Replaced the Code Frequency time period dropdown with a contributor-style range slider that previews additions and deletions inline.

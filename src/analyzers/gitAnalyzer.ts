@@ -68,7 +68,7 @@ export class GitAnalyzer implements GitClient {
       const [branch, headSha, commitCountRaw] = await Promise.all([
         this.git.revparse(['--abbrev-ref', 'HEAD']),
         this.git.revparse(['HEAD']),
-        this.git.raw(['rev-list', '--all', '--count']),
+        this.git.raw(['rev-list', 'HEAD', '--count']),
       ]);
 
       const name = this.getRepositoryName();
@@ -97,7 +97,9 @@ export class GitAnalyzer implements GitClient {
       throw new NotAGitRepoError(this.repoPath);
     }
 
+    const headSha = (await this.git.revparse(['HEAD'])).trim();
     const cacheKey = JSON.stringify({
+      headSha,
       maxCommits,
       excludePatterns: [...excludePatterns].sort((a, b) => a.localeCompare(b)),
     });
@@ -108,7 +110,7 @@ export class GitAnalyzer implements GitClient {
 
     const rawLog = await this.git.raw([
       'log',
-      '--all',
+      'HEAD',
       `--max-count=${maxCommits}`,
       '--no-renames',
       '--format=__COMMIT__|%H|%an|%ae|%aI|%s',
@@ -154,7 +156,7 @@ export class GitAnalyzer implements GitClient {
     // Format: date\n\nfile1\nfile2\n\ndate\n\nfile3\n...
     const rawLog = await this.git.raw([
       'log',
-      '--all',
+      'HEAD',
       '--format=%aI',
       '--name-only',
     ]);

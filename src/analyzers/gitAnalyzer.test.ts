@@ -133,6 +133,82 @@ describe('GitAnalyzer', () => {
     ]);
   });
 
+  it('limits repository history analytics to the checked-out branch', async () => {
+    const repoPath = mkdtempSync(path.join(tmpdir(), 'repo-stats-git-analyzer-branches-'));
+    repos.push(repoPath);
+
+    runGit(['init', '-b', 'main'], repoPath);
+    runGit(['config', 'user.name', 'Test User'], repoPath);
+    runGit(['config', 'user.email', 'test@example.com'], repoPath);
+    runGit(['config', 'commit.gpgsign', 'false'], repoPath);
+
+    commitFile({
+      repoPath,
+      filePath: 'shared.txt',
+      content: 'base\n',
+      name: 'Alice',
+      email: 'alice@example.com',
+      date: '2024-01-01T12:00:00Z',
+      message: 'base commit',
+    });
+
+    runGit(['checkout', '-b', 'feature'], repoPath);
+    commitFile({
+      repoPath,
+      filePath: 'feature.txt',
+      content: 'feature\n',
+      name: 'Bob',
+      email: 'bob@example.com',
+      date: '2024-01-08T12:00:00Z',
+      message: 'feature only commit',
+    });
+
+    runGit(['checkout', 'main'], repoPath);
+    commitFile({
+      repoPath,
+      filePath: 'main.txt',
+      content: 'main\n',
+      name: 'Carol',
+      email: 'carol@example.com',
+      date: '2024-01-15T12:00:00Z',
+      message: 'main only commit',
+    });
+
+    const analyzer = new GitAnalyzer(repoPath);
+
+    const mainInfo = await analyzer.getRepoInfo();
+    const mainAnalytics = await analyzer.getCommitAnalytics(10);
+    const mainFrequency = await analyzer.getCodeFrequency(10);
+    const mainModificationDates = await analyzer.getFileModificationDates();
+
+    expect(mainInfo).toMatchObject({ branch: 'main', commitCount: 2 });
+    expect(mainAnalytics.summary.totalCommits).toBe(2);
+    expect(mainAnalytics.contributorSummaries.map((summary) => summary.authorEmail)).toEqual([
+      'alice@example.com',
+      'carol@example.com',
+    ]);
+    expect(mainFrequency.map((entry) => entry.week)).toEqual(['2024-W01', '2024-W03']);
+    expect(mainModificationDates.has('main.txt')).toBe(true);
+    expect(mainModificationDates.has('feature.txt')).toBe(false);
+
+    runGit(['checkout', 'feature'], repoPath);
+
+    const featureInfo = await analyzer.getRepoInfo();
+    const featureAnalytics = await analyzer.getCommitAnalytics(10);
+    const featureFrequency = await analyzer.getCodeFrequency(10);
+    const featureModificationDates = await analyzer.getFileModificationDates();
+
+    expect(featureInfo).toMatchObject({ branch: 'feature', commitCount: 2 });
+    expect(featureAnalytics.summary.totalCommits).toBe(2);
+    expect(featureAnalytics.contributorSummaries.map((summary) => summary.authorEmail)).toEqual([
+      'alice@example.com',
+      'bob@example.com',
+    ]);
+    expect(featureFrequency.map((entry) => entry.week)).toEqual(['2024-W01', '2024-W02']);
+    expect(featureModificationDates.has('feature.txt')).toBe(true);
+    expect(featureModificationDates.has('main.txt')).toBe(false);
+  });
+
   it('throws a typed error when HEAD blob lookup fails', async () => {
     const repoPath = mkdtempSync(path.join(tmpdir(), 'repo-stats-git-analyzer-empty-'));
     repos.push(repoPath);
