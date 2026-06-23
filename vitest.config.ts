@@ -8,6 +8,7 @@ export default defineConfig({
     alias: {
       vscode: fileURLToPath(new URL('./test/stubs/vscode.ts', import.meta.url)),
       '@shared': fileURLToPath(new URL('./shared', import.meta.url)),
+      '@analyzers': fileURLToPath(new URL('./src/analyzers', import.meta.url)),
     },
     dedupe: ['react', 'react-dom'],
   },
