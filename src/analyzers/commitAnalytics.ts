@@ -21,6 +21,7 @@ interface ParsedCommitHistoryEntry {
   additions: number;
   deletions: number;
   filesChanged: number;
+  changedFiles: string[];
   hasIncludedChanges: boolean;
   sawAnyFileStats: boolean;
 }
@@ -78,6 +79,7 @@ export function parseCommitHistoryLog(
     current.additions += fileStat.additions;
     current.deletions += fileStat.deletions;
     current.filesChanged += 1;
+    current.changedFiles.push(fileStat.filePath);
   }
 
   pushCurrent();
@@ -114,6 +116,7 @@ export function buildCommitAnalytics(
       deletions: commit.deletions,
       changedLines: commit.additions + commit.deletions,
       filesChanged: commit.filesChanged,
+      changedFiles: commit.changedFiles,
     });
   }
 
@@ -223,6 +226,7 @@ export function mergeCommitAnalytics(analyticsList: CommitAnalytics[]): CommitAn
       records.push({
         ...record,
         authorId: mergedAuthorId,
+        changedFiles: record.changedFiles ? [...record.changedFiles] : undefined,
       });
     }
   }
@@ -296,6 +300,7 @@ function createParsedCommit(line: string): ParsedCommitHistoryEntry {
     additions: 0,
     deletions: 0,
     filesChanged: 0,
+    changedFiles: [],
     hasIncludedChanges: false,
     sawAnyFileStats: false,
   };

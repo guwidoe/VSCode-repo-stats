@@ -19,6 +19,7 @@ function createRecord(overrides: Partial<CommitRecord>): CommitRecord {
     deletions: overrides.deletions ?? 0,
     changedLines: overrides.changedLines ?? ((overrides.additions ?? 1) + (overrides.deletions ?? 0)),
     filesChanged: overrides.filesChanged ?? 1,
+    changedFiles: overrides.changedFiles,
   };
 }
 
@@ -217,6 +218,20 @@ describe('analyzeCommitMetadataTrends', () => {
       commitBucketStrategy: 'equalBuckets',
       commitBucketCount: 2,
     }).buckets.map((bucket) => bucket.id)).toEqual(['1-3', '4-5']);
+  });
+
+  it('extracts directory and file extension dimensions when path metadata is available', () => {
+    const records = [
+      createRecord({ sha: 'a', summary: 'feat: ui', changedFiles: ['src/app.ts', 'src/components/Button.tsx'] }),
+      createRecord({ sha: 'b', summary: 'fix: docs', changedFiles: ['README.md'] }),
+    ];
+
+    const directoryResult = analyzeCommitMetadataTrends(createAnalytics(records), createSettings([builtInExtractor('dir', 'directory')]));
+    const extensionResult = analyzeCommitMetadataTrends(createAnalytics(records), createSettings([builtInExtractor('ext', 'fileExtension')]));
+
+    expect(directoryResult.series.map((point) => point.value).sort()).toEqual(['(root)', 'src']);
+    expect(directoryResult.diagnostics.availability).toBe('available');
+    expect(extensionResult.series.map((point) => point.value).sort()).toEqual(['.md', '.ts', '.tsx']);
   });
 
   it('limits series into Other and reports invalid regex and unavailable path dimensions', () => {

@@ -182,10 +182,9 @@ function extractBuiltInValues(
     case 'fileCount':
       return [bucketFileCount(record.filesChanged)];
     case 'directory':
+      return extractPathMetadata(record, extractor.builtInId, context, extractor.name, getTopLevelDirectory);
     case 'fileExtension':
-      context?.unavailableDimensions.add(extractor.builtInId);
-      context?.notes.push(`${extractor.name} requires per-commit changed path metadata, which is not available yet.`);
-      return [];
+      return extractPathMetadata(record, extractor.builtInId, context, extractor.name, getFileExtension);
   }
 }
 
@@ -492,6 +491,44 @@ function ensureGlobalFlags(flags: string): string {
 
 function dedupeValues(values: string[]): string[] {
   return Array.from(new Set(values.filter((value) => value.length > 0)));
+}
+
+function extractPathMetadata(
+  record: CommitRecord,
+  dimension: string,
+  context: ExtractionContext | undefined,
+  extractorName: string,
+  mapper: (filePath: string) => string | null
+): string[] {
+  if (!record.changedFiles) {
+    context?.unavailableDimensions.add(dimension);
+    context?.notes.push(`${extractorName} requires per-commit changed path metadata, but this result does not include it.`);
+    return [];
+  }
+
+  return dedupeValues(record.changedFiles.flatMap((filePath) => {
+    const value = mapper(filePath);
+    return value ? [value] : [];
+  }));
+}
+
+function getTopLevelDirectory(filePath: string): string | null {
+  const normalized = filePath.replace(/\\/g, '/').replace(/^\.\//, '');
+  const slashIndex = normalized.indexOf('/');
+  if (slashIndex === -1) {
+    return '(root)';
+  }
+  return normalized.slice(0, slashIndex) || null;
+}
+
+function getFileExtension(filePath: string): string | null {
+  const normalized = filePath.replace(/\\/g, '/');
+  const fileName = normalized.slice(normalized.lastIndexOf('/') + 1);
+  const dotIndex = fileName.lastIndexOf('.');
+  if (dotIndex <= 0 || dotIndex === fileName.length - 1) {
+    return '(none)';
+  }
+  return fileName.slice(dotIndex).toLowerCase();
 }
 
 function bucketCommitSize(changedLines: number): string {

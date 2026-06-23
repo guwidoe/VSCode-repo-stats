@@ -3,6 +3,7 @@ import {
   buildCodeFrequencyFromCommitAnalytics,
   buildCommitAnalytics,
   buildContributorStatsFromCommitAnalytics,
+  mergeCommitAnalytics,
   parseCommitHistoryLog,
 } from './commitAnalytics';
 import { queryCommitAnalytics } from '../shared/commitAnalyticsQuery';
@@ -41,6 +42,7 @@ describe('commit analytics', () => {
         deletions: 0,
         changedLines: 1,
         filesChanged: 1,
+        changedFiles: ['src/app.ts'],
       },
       {
         sha: 'cccccccccccccccccccccccccccccccccccccccc',
@@ -53,6 +55,7 @@ describe('commit analytics', () => {
         deletions: 1,
         changedLines: 4,
         filesChanged: 2,
+        changedFiles: ['src/app.ts', 'src/util.ts'],
       },
       {
         sha: 'dddddddddddddddddddddddddddddddddddddddd',
@@ -65,6 +68,7 @@ describe('commit analytics', () => {
         deletions: 0,
         changedLines: 0,
         filesChanged: 0,
+        changedFiles: [],
       },
     ]);
 
@@ -121,6 +125,23 @@ describe('commit analytics', () => {
     ).toEqual([
       'dddddddddddddddddddddddddddddddddddddddd',
       'cccccccccccccccccccccccccccccccccccccccc',
+    ]);
+  });
+
+  it('preserves changed paths when merging multi-repo analytics', () => {
+    const first = buildCommitAnalytics(parseCommitHistoryLog(RAW_LOG, ['**/backend/fixtures/**']), 'repo-a');
+    const second = buildCommitAnalytics(parseCommitHistoryLog([
+      '__COMMIT__|eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee|Alice|alice@example.com|2024-01-29T12:00:00Z|change docs',
+      '1\t0\tdocs/guide.md',
+    ].join('\n')), 'repo-b');
+
+    const merged = mergeCommitAnalytics([first, second]);
+
+    expect(merged.records.map((record) => ({ repositoryId: record.repositoryId, changedFiles: record.changedFiles }))).toEqual([
+      { repositoryId: 'repo-a', changedFiles: ['src/app.ts'] },
+      { repositoryId: 'repo-a', changedFiles: ['src/app.ts', 'src/util.ts'] },
+      { repositoryId: 'repo-a', changedFiles: [] },
+      { repositoryId: 'repo-b', changedFiles: ['docs/guide.md'] },
     ]);
   });
 

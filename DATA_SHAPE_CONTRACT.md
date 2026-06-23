@@ -28,6 +28,15 @@ Consumers should not assume a single `repository` field exists.
 
 Because enrichment is staged, consumers may receive nodes where optional metrics are `undefined`.
 
+## CommitRecord contract
+
+`CommitRecord` is the shared backbone for commit explorer, contributors, code frequency, and commit metadata trends.
+
+- Core scalar fields (`sha`, `repositoryId`, author, timestamp, summary, additions/deletions, changed-line and file counts) are always present for analyzed commits.
+- `changedFiles` is optional for compatibility with older cached/precomputed results, but new git history parses populate it with included, non-excluded paths from `git log --numstat`.
+- Directory and file-extension metadata trend dimensions require `changedFiles`. If it is absent, consumers must report the dimension as unavailable/partial instead of rendering an empty result as if no paths matched.
+- Excluded paths are removed before both counts and `changedFiles` are recorded, so path-based metadata follows the same exclude contract as contributor and frequency analytics.
+
 ## Allowed fallbacks (expected partial data)
 
 The following are treated as expected, contract-based defaults:

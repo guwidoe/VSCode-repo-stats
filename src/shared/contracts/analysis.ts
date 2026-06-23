@@ -181,6 +181,7 @@ export interface CommitRecord {
   deletions: number;
   changedLines: number;
   filesChanged: number;
+  changedFiles?: string[];
 }
 
 export interface CommitStatBucket {
