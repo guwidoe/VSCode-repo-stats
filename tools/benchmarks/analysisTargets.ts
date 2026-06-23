@@ -65,6 +65,33 @@ export const DEFAULT_BENCHMARK_SETTINGS: ExtensionSettings = {
     maxSeries: 20,
     cohortFormat: '%Y',
   },
+  commitMetadata: {
+    extractors: [
+      {
+        id: 'conventionalType',
+        name: 'Conventional Commit Type',
+        enabled: true,
+        dimension: 'type',
+        includeUnmatched: false,
+        unmatchedValue: 'Uncategorized',
+        aliases: {},
+        kind: 'builtIn',
+        builtInId: 'conventionalType',
+      },
+    ],
+    defaultExtractorId: 'conventionalType',
+    defaultBucketMode: 'calendar',
+    defaultCalendarGranularity: 'month',
+    defaultCommitBucketStrategy: 'fixedSize',
+    defaultCommitBucketSize: 100,
+    defaultCommitBucketCount: 12,
+    defaultMetric: 'commits',
+    defaultChartType: 'stackedBar',
+    multiValueMode: 'countEach',
+    includeUncategorized: true,
+    maxSeries: 12,
+    includeOtherSeries: true,
+  },
 };
 
 export const ANALYSIS_BENCHMARK_TARGETS: AnalysisBenchmarkTarget[] = [

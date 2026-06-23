@@ -336,6 +336,76 @@
           "scope": "resource",
           "default": "%Y",
           "description": "Cohort grouping format for Evolution analysis (%Y, %Y-%m, %Y-W%W)"
+        },
+        "repoStats.commitMetadata": {
+          "type": "object",
+          "scope": "resource",
+          "default": {
+            "extractors": [
+              {
+                "id": "conventionalType",
+                "name": "Conventional Commit Type",
+                "enabled": true,
+                "dimension": "type",
+                "includeUnmatched": false,
+                "unmatchedValue": "Uncategorized",
+                "aliases": {
+                  "feature": "feat",
+                  "bug": "fix",
+                  "bugfix": "fix"
+                },
+                "kind": "builtIn",
+                "builtInId": "conventionalType"
+              },
+              {
+                "id": "conventionalScope",
+                "name": "Conventional Commit Scope",
+                "enabled": true,
+                "dimension": "scope",
+                "includeUnmatched": false,
+                "unmatchedValue": "Unscoped",
+                "aliases": {},
+                "kind": "builtIn",
+                "builtInId": "conventionalScope"
+              },
+              {
+                "id": "bracketTag",
+                "name": "Bracket Tags",
+                "enabled": true,
+                "dimension": "tag",
+                "includeUnmatched": false,
+                "unmatchedValue": "Untagged",
+                "aliases": {},
+                "kind": "builtIn",
+                "builtInId": "bracketTag"
+              },
+              {
+                "id": "issueKey",
+                "name": "Issue Keys",
+                "enabled": true,
+                "dimension": "issue",
+                "includeUnmatched": false,
+                "unmatchedValue": "No Issue",
+                "aliases": {},
+                "kind": "builtIn",
+                "builtInId": "issueKey"
+              }
+            ],
+            "defaultExtractorId": "conventionalType",
+            "defaultBucketMode": "calendar",
+            "defaultCalendarGranularity": "month",
+            "defaultCommitBucketStrategy": "fixedSize",
+            "defaultCommitBucketSize": 100,
+            "defaultCommitBucketCount": 12,
+            "defaultMetric": "commits",
+            "defaultChartType": "stackedBar",
+            "multiValueMode": "countEach",
+            "includeUncategorized": true,
+            "maxSeries": 12,
+            "includeOtherSeries": true
+          },
+          "additionalProperties": true,
+          "description": "Commit Metadata Trends extractor presets, default bucketing, chart, and aggregation behavior. Use the integrated Commit Metadata settings UI for editing."
         }
       }
     }

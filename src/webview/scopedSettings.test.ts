@@ -82,6 +82,24 @@ describe('getScopedSettingDisplayValue', () => {
       defaultValue: '%Y',
       source: 'default',
     },
+    commitMetadata: {
+      defaultValue: {
+        extractors: [],
+        defaultExtractorId: 'conventionalType',
+        defaultBucketMode: 'calendar',
+        defaultCalendarGranularity: 'month',
+        defaultCommitBucketStrategy: 'fixedSize',
+        defaultCommitBucketSize: 100,
+        defaultCommitBucketCount: 12,
+        defaultMetric: 'commits',
+        defaultChartType: 'stackedBar',
+        multiValueMode: 'countEach',
+        includeUncategorized: true,
+        maxSeries: 12,
+        includeOtherSeries: true,
+      },
+      source: 'default',
+    },
   };
 
   it('uses repo fallback chain for repo target', () => {

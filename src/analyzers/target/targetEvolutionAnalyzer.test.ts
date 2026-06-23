@@ -124,6 +124,33 @@ function createSettings(overrides: Partial<ExtensionSettings['evolution']> = {})
       cohortFormat: '%Y',
       ...overrides,
     },
+    commitMetadata: {
+      extractors: [
+        {
+          id: 'conventionalType',
+          name: 'Conventional Commit Type',
+          enabled: true,
+          dimension: 'type',
+          includeUnmatched: false,
+          unmatchedValue: 'Uncategorized',
+          aliases: {},
+          kind: 'builtIn',
+          builtInId: 'conventionalType',
+        },
+      ],
+      defaultExtractorId: 'conventionalType',
+      defaultBucketMode: 'calendar',
+      defaultCalendarGranularity: 'month',
+      defaultCommitBucketStrategy: 'fixedSize',
+      defaultCommitBucketSize: 100,
+      defaultCommitBucketCount: 12,
+      defaultMetric: 'commits',
+      defaultChartType: 'stackedBar',
+      multiValueMode: 'countEach',
+      includeUncategorized: true,
+      maxSeries: 12,
+      includeOtherSeries: true,
+    },
   };
 }
 

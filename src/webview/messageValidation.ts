@@ -15,6 +15,12 @@ const TREEMAP_COLOR_MODES = ['language', 'age', 'complexity', 'density'] as cons
 const GRANULARITY_MODES = ['auto', 'weekly', 'monthly'] as const;
 const OVERVIEW_DISPLAY_MODES = ['percent', 'count'] as const;
 const TREEMAP_AGE_RANGE_MODES = ['auto', 'custom'] as const;
+const COMMIT_METADATA_BUCKET_MODES = ['calendar', 'commitCount'] as const;
+const COMMIT_METADATA_CALENDAR_GRANULARITIES = ['day', 'week', 'month', 'quarter', 'year'] as const;
+const COMMIT_METADATA_BUCKET_STRATEGIES = ['fixedSize', 'equalBuckets'] as const;
+const COMMIT_METADATA_METRICS = ['commits', 'additions', 'deletions', 'changedLines', 'filesChanged'] as const;
+const COMMIT_METADATA_CHART_TYPES = ['stackedBar', 'normalizedStackedBar', 'heatmap'] as const;
+const COMMIT_METADATA_MULTI_VALUE_MODES = ['countEach', 'split', 'first'] as const;
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -87,6 +93,26 @@ function isEvolutionSettings(value: unknown): value is ExtensionSettings['evolut
     && typeof value.cohortFormat === 'string';
 }
 
+function isCommitMetadataSettings(value: unknown): value is ExtensionSettings['commitMetadata'] {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return Array.isArray(value.extractors)
+    && typeof value.defaultExtractorId === 'string'
+    && isEnumValue(value.defaultBucketMode, COMMIT_METADATA_BUCKET_MODES)
+    && isEnumValue(value.defaultCalendarGranularity, COMMIT_METADATA_CALENDAR_GRANULARITIES)
+    && isEnumValue(value.defaultCommitBucketStrategy, COMMIT_METADATA_BUCKET_STRATEGIES)
+    && isNumber(value.defaultCommitBucketSize)
+    && isNumber(value.defaultCommitBucketCount)
+    && isEnumValue(value.defaultMetric, COMMIT_METADATA_METRICS)
+    && isEnumValue(value.defaultChartType, COMMIT_METADATA_CHART_TYPES)
+    && isEnumValue(value.multiValueMode, COMMIT_METADATA_MULTI_VALUE_MODES)
+    && isBoolean(value.includeUncategorized)
+    && isNumber(value.maxSeries)
+    && isBoolean(value.includeOtherSeries);
+}
+
 function isPartialExtensionSettings(value: unknown): value is Partial<ExtensionSettings> {
   if (!isRecord(value)) {
     return false;
@@ -104,7 +130,8 @@ function isPartialExtensionSettings(value: unknown): value is Partial<ExtensionS
     && (value.overviewDisplayMode === undefined || isEnumValue(value.overviewDisplayMode, OVERVIEW_DISPLAY_MODES))
     && (value.tooltipSettings === undefined || isTooltipSettings(value.tooltipSettings))
     && (value.treemap === undefined || isTreemapSettings(value.treemap))
-    && (value.evolution === undefined || isEvolutionSettings(value.evolution));
+    && (value.evolution === undefined || isEvolutionSettings(value.evolution))
+    && (value.commitMetadata === undefined || isCommitMetadataSettings(value.commitMetadata));
 }
 
 function isScopedSettingValue<K extends RepoScopableSettingKey>(
@@ -128,6 +155,10 @@ function isScopedSettingValue<K extends RepoScopableSettingKey>(
       return isEnumValue(value, EVOLUTION_SAMPLING_MODES);
     case 'evolution.cohortFormat':
       return typeof value === 'string';
+    case 'commitMetadata':
+      return isCommitMetadataSettings(value);
+    default:
+      return false;
   }
 }
 

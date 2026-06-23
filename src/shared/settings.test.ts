@@ -3,10 +3,12 @@ import type { ExtensionSettings } from './contracts';
 import {
   applySettingsPatch,
   buildScopedSettingValueFromInspect,
+  createCommitMetadataAnalysisSettingsSnapshot,
   createCoreAnalysisSettingsSnapshot,
   createEvolutionAnalysisSettingsSnapshot,
   flattenSettingsUpdate,
   setScopedSettingValue,
+  settingsAffectCommitMetadataAnalysis,
   settingsAffectCoreAnalysis,
   settingsAffectEvolutionAnalysis,
 } from './settings';
@@ -49,11 +51,38 @@ function createSettings(): ExtensionSettings {
       maxSeries: 20,
       cohortFormat: '%Y',
     },
+    commitMetadata: {
+      extractors: [
+        {
+          id: 'conventionalType',
+          name: 'Conventional Commit Type',
+          enabled: true,
+          dimension: 'type',
+          includeUnmatched: false,
+          unmatchedValue: 'Uncategorized',
+          aliases: {},
+          kind: 'builtIn',
+          builtInId: 'conventionalType',
+        },
+      ],
+      defaultExtractorId: 'conventionalType',
+      defaultBucketMode: 'calendar',
+      defaultCalendarGranularity: 'month',
+      defaultCommitBucketStrategy: 'fixedSize',
+      defaultCommitBucketSize: 100,
+      defaultCommitBucketCount: 12,
+      defaultMetric: 'commits',
+      defaultChartType: 'stackedBar',
+      multiValueMode: 'countEach',
+      includeUncategorized: true,
+      maxSeries: 12,
+      includeOtherSeries: true,
+    },
   };
 }
 
 describe('applySettingsPatch', () => {
-  it('merges nested tooltip, treemap, and evolution settings without dropping existing values', () => {
+  it('merges nested tooltip, treemap, evolution, and commit metadata settings without dropping existing values', () => {
     const current = createSettings();
     const patched = applySettingsPatch(current, {
       tooltipSettings: {
@@ -70,6 +99,10 @@ describe('applySettingsPatch', () => {
         ...current.evolution,
         maxSnapshots: 40,
       },
+      commitMetadata: {
+        ...current.commitMetadata,
+        maxSeries: 8,
+      },
     });
 
     expect(patched.tooltipSettings.showComplexity).toBe(true);
@@ -78,6 +111,8 @@ describe('applySettingsPatch', () => {
     expect(patched.treemap.ageColorNewestDate).toBe('2026-01-01');
     expect(patched.evolution.maxSnapshots).toBe(40);
     expect(patched.evolution.snapshotIntervalDays).toBe(30);
+    expect(patched.commitMetadata.maxSeries).toBe(8);
+    expect(patched.commitMetadata.defaultMetric).toBe('commits');
   });
 });
 
@@ -111,8 +146,26 @@ describe('analysis settings snapshots', () => {
 
     expect(settingsAffectCoreAnalysis(current, next)).toBe(false);
     expect(settingsAffectEvolutionAnalysis(current, next)).toBe(true);
+    expect(settingsAffectCommitMetadataAnalysis(current, next)).toBe(false);
     expect(createEvolutionAnalysisSettingsSnapshot(current)).not.toEqual(
       createEvolutionAnalysisSettingsSnapshot(next)
+    );
+  });
+
+  it('tracks commit metadata settings in their own analysis snapshot', () => {
+    const current = createSettings();
+    const next = applySettingsPatch(current, {
+      commitMetadata: {
+        ...current.commitMetadata,
+        defaultBucketMode: 'commitCount',
+      },
+    });
+
+    expect(settingsAffectCoreAnalysis(current, next)).toBe(false);
+    expect(settingsAffectEvolutionAnalysis(current, next)).toBe(false);
+    expect(settingsAffectCommitMetadataAnalysis(current, next)).toBe(true);
+    expect(createCommitMetadataAnalysisSettingsSnapshot(current)).not.toEqual(
+      createCommitMetadataAnalysisSettingsSnapshot(next)
     );
   });
 });
@@ -136,6 +189,7 @@ describe('flattenSettingsUpdate', () => {
           maxSeries: 15,
           cohortFormat: '%Y-%m',
         },
+        commitMetadata: createSettings().commitMetadata,
       })
     ).toEqual([
       { key: 'overviewDisplayMode', value: 'count' },
@@ -149,6 +203,7 @@ describe('flattenSettingsUpdate', () => {
       { key: 'evolution.maxSnapshots', value: 25 },
       { key: 'evolution.maxSeries', value: 15 },
       { key: 'evolution.cohortFormat', value: '%Y-%m' },
+      { key: 'commitMetadata', value: createSettings().commitMetadata },
     ]);
   });
 });
@@ -167,11 +222,17 @@ describe('scoped setting helpers', () => {
     });
   });
 
-  it('updates evolution scoped settings through the typed applier map', () => {
+  it('updates evolution and commit metadata scoped settings through the typed applier map', () => {
     const current = createSettings();
     const next = setScopedSettingValue(current, 'evolution.samplingMode', 'commit');
+    const metadataNext = setScopedSettingValue(current, 'commitMetadata', {
+      ...current.commitMetadata,
+      defaultMetric: 'changedLines',
+    });
 
     expect(next.evolution.samplingMode).toBe('commit');
     expect(next.excludePatterns).toEqual(current.excludePatterns);
+    expect(metadataNext.commitMetadata.defaultMetric).toBe('changedLines');
+    expect(metadataNext.evolution).toEqual(current.evolution);
   });
 });

@@ -1,3 +1,4 @@
+import type { CommitMetadataSettings } from './commitMetadata.js';
 import type { EvolutionSamplingMode } from './evolution.js';
 
 export interface TooltipSettings {
@@ -45,6 +46,7 @@ export interface ExtensionSettings {
   tooltipSettings: TooltipSettings;
   treemap: TreemapSettings;
   evolution: EvolutionSettings;
+  commitMetadata: CommitMetadataSettings;
 }
 
 export interface RepoScopableSettingValueMap {
@@ -59,6 +61,7 @@ export interface RepoScopableSettingValueMap {
   'evolution.maxSnapshots': number;
   'evolution.maxSeries': number;
   'evolution.cohortFormat': string;
+  commitMetadata: CommitMetadataSettings;
 }
 
 export const REPO_SCOPABLE_SETTING_KEYS = [
@@ -73,6 +76,7 @@ export const REPO_SCOPABLE_SETTING_KEYS = [
   'evolution.maxSnapshots',
   'evolution.maxSeries',
   'evolution.cohortFormat',
+  'commitMetadata',
 ] as const satisfies readonly (keyof RepoScopableSettingValueMap)[];
 
 export type RepoScopableSettingKey = keyof RepoScopableSettingValueMap;

@@ -132,6 +132,7 @@ const scopedSettingAppliers: {
       cohortFormat: value,
     },
   }),
+  commitMetadata: (settings, value) => ({ ...settings, commitMetadata: value }),
 };
 
 export function setScopedSettingValue<K extends RepoScopableSettingKey>(
@@ -240,6 +241,12 @@ export function applySettingsPatch(
           ...nextSettings.evolution,
         }
       : currentSettings.evolution,
+    commitMetadata: nextSettings.commitMetadata
+      ? {
+          ...currentSettings.commitMetadata,
+          ...nextSettings.commitMetadata,
+        }
+      : currentSettings.commitMetadata,
   };
 }
 
@@ -265,6 +272,13 @@ export function createEvolutionAnalysisSettingsSnapshot(settings: ExtensionSetti
   };
 }
 
+export function createCommitMetadataAnalysisSettingsSnapshot(settings: ExtensionSettings): object {
+  return {
+    maxCommitsToAnalyze: settings.maxCommitsToAnalyze,
+    commitMetadata: settings.commitMetadata,
+  };
+}
+
 export function settingsAffectCoreAnalysis(
   currentSettings: ExtensionSettings,
   nextSettings: ExtensionSettings
@@ -279,6 +293,14 @@ export function settingsAffectEvolutionAnalysis(
 ): boolean {
   return JSON.stringify(createEvolutionAnalysisSettingsSnapshot(currentSettings)) !==
     JSON.stringify(createEvolutionAnalysisSettingsSnapshot(nextSettings));
+}
+
+export function settingsAffectCommitMetadataAnalysis(
+  currentSettings: ExtensionSettings,
+  nextSettings: ExtensionSettings
+): boolean {
+  return JSON.stringify(createCommitMetadataAnalysisSettingsSnapshot(currentSettings)) !==
+    JSON.stringify(createCommitMetadataAnalysisSettingsSnapshot(nextSettings));
 }
 
 export function flattenSettingsUpdate(settings: Partial<ExtensionSettings>): SettingsUpdateEntry[] {
@@ -330,6 +352,9 @@ export function flattenSettingsUpdate(settings: Partial<ExtensionSettings>): Set
     updates.push({ key: 'evolution.maxSnapshots', value: settings.evolution.maxSnapshots });
     updates.push({ key: 'evolution.maxSeries', value: settings.evolution.maxSeries });
     updates.push({ key: 'evolution.cohortFormat', value: settings.evolution.cohortFormat });
+  }
+  if (settings.commitMetadata !== undefined) {
+    updates.push({ key: 'commitMetadata', value: settings.commitMetadata });
   }
 
   return updates;

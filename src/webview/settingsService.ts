@@ -71,6 +71,7 @@ export class RepositorySettingsService {
       'evolution.maxSnapshots': this.getScopedSettingValue(config, 'evolution.maxSnapshots'),
       'evolution.maxSeries': this.getScopedSettingValue(config, 'evolution.maxSeries'),
       'evolution.cohortFormat': this.getScopedSettingValue(config, 'evolution.cohortFormat'),
+      commitMetadata: this.getScopedSettingValue(config, 'commitMetadata'),
     };
   }
 
@@ -103,6 +104,7 @@ export class RepositorySettingsService {
         maxSeries: this.getRequiredConfigValue<number>(config, 'evolution.maxSeries'),
         cohortFormat: this.getRequiredConfigValue<string>(config, 'evolution.cohortFormat'),
       },
+      commitMetadata: this.getRequiredConfigValue<ExtensionSettings['commitMetadata']>(config, 'commitMetadata'),
     };
   }
 
