@@ -2,6 +2,49 @@ import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { CommitAnalytics, CommitMetadataSettings, CommitRecord } from '../../types';
 import type { CommitTableRow } from './types';
+
+type PlotTrace = {
+  customdata?: string[] | string[][];
+};
+
+type PlotProps = {
+  data?: PlotTrace[];
+  onClick?: (event: { points: Array<{ customdata: string }> }) => void;
+};
+
+function firstCustomData(data: PlotTrace[] | undefined): string {
+  for (const trace of data ?? []) {
+    const customdata = trace.customdata;
+    if (!customdata) {
+      continue;
+    }
+    for (const item of customdata) {
+      if (typeof item === 'string' && item) {
+        return item;
+      }
+      if (Array.isArray(item)) {
+        const nested = item.find((value) => value.length > 0);
+        if (nested) {
+          return nested;
+        }
+      }
+    }
+  }
+  return '';
+}
+
+vi.mock('react-plotly.js', () => ({
+  default: ({ data, onClick }: PlotProps) => (
+    <button
+      type="button"
+      data-testid="metadata-plot"
+      onClick={() => onClick?.({ points: [{ customdata: firstCustomData(data) }] })}
+    >
+      Plotly metadata chart
+    </button>
+  ),
+}));
+
 import { CommitMetadataTrends } from './CommitMetadataTrends';
 
 function createRecord(overrides: Partial<CommitRecord>): CommitRecord {
@@ -122,7 +165,7 @@ describe('CommitMetadataTrends', () => {
     fireEvent.change(screen.getByLabelText('Bucket by'), { target: { value: 'commitCount' } });
     expect(screen.getByLabelText('Bucket size')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByTitle('feat: 1'));
+    fireEvent.click(screen.getByTestId('metadata-plot'));
     expect(screen.getByText('feat in Commits 1–2')).toBeInTheDocument();
     expect(screen.getByText('feat: add chart')).toBeInTheDocument();
   });

@@ -1,8 +1,8 @@
 .commit-metadata-card {
   border: 1px solid var(--vscode-panel-border);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--vscode-editor-background) 94%, var(--vscode-foreground) 6%);
-  padding: 18px;
+  border-radius: 8px;
+  background: var(--vscode-editor-background);
+  padding: 14px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -70,115 +70,18 @@
   padding-bottom: 7px;
 }
 
-.commit-metadata-bars {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-}
-
-.commit-metadata-bar-row {
-  display: grid;
-  grid-template-columns: minmax(88px, 140px) minmax(180px, 1fr) minmax(54px, auto);
-  gap: 10px;
-  align-items: center;
-  min-width: 420px;
-}
-
-.commit-metadata-bucket-label,
-.commit-metadata-total,
-.commit-metadata-heatmap-axis,
-.commit-metadata-heatmap-label {
-  font-size: 12px;
-  color: var(--vscode-descriptionForeground);
-}
-
-.commit-metadata-bar-track {
-  height: 26px;
-  display: flex;
+.commit-metadata-plot-shell {
   border: 1px solid var(--vscode-panel-border);
-  border-radius: 999px;
-  overflow: hidden;
-  background: color-mix(in srgb, var(--vscode-editor-background) 82%, var(--vscode-foreground) 18%);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--vscode-editor-background) 96%, var(--vscode-foreground) 4%);
+  padding: 4px;
+  min-height: 360px;
 }
 
-.commit-metadata-bar-segment {
-  min-width: 0;
-  border: 0;
-  padding: 0;
-  cursor: pointer;
-  opacity: 0.88;
-}
-
-.commit-metadata-bar-segment:hover,
-.commit-metadata-heatmap-cell:hover:not(:disabled) {
-  opacity: 1 !important;
-  outline: 1px solid var(--vscode-focusBorder);
-  z-index: 1;
-}
-
-.commit-metadata-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 14px;
-}
-
-.commit-metadata-legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--vscode-descriptionForeground);
-}
-
-.commit-metadata-legend-item span {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-}
-
-.commit-metadata-heatmap {
-  overflow-x: auto;
-}
-
-.commit-metadata-heatmap-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 10px;
-  color: var(--vscode-descriptionForeground);
-}
-
-.commit-metadata-heatmap-grid {
-  display: grid;
-  gap: 4px;
-  min-width: 520px;
-}
-
-.commit-metadata-heatmap-axis,
-.commit-metadata-heatmap-label {
-  padding: 6px;
-}
-
-.commit-metadata-heatmap-label {
-  text-align: right;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.commit-metadata-heatmap-cell {
-  min-height: 32px;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  color: #0f172a;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.commit-metadata-heatmap-cell:disabled {
-  cursor: default;
+.commit-metadata-plot-shell .js-plotly-plot,
+.commit-metadata-plot-shell .plot-container,
+.commit-metadata-plot-shell .svg-container {
+  width: 100% !important;
 }
 
 .commit-metadata-empty {

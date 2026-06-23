@@ -1,5 +1,5 @@
-import { Fragment, useMemo, useState } from 'react';
-import { AlertTriangle, BarChart3, Grid3X3, ListFilter } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { AlertTriangle, BarChart3, ListFilter } from 'lucide-react';
 import { analyzeCommitMetadataTrends } from '@analyzers/commitMetadata.js';
 import type {
   CommitMetadataBucketMode,
@@ -10,6 +10,12 @@ import type {
   CommitMetadataSeriesPoint,
   CommitMetadataSettings,
 } from '../../types';
+import {
+  COMMIT_METADATA_METRIC_LABELS,
+  CommitMetadataPlot,
+  formatCommitMetadataMetric,
+  getCommitMetadataPointMetric,
+} from './CommitMetadataPlot';
 import type { CommitTableRow } from './types';
 import './CommitMetadataTrends.css';
 
@@ -20,29 +26,6 @@ interface CommitMetadataTrendsProps {
   onOpenSettings?: () => void;
 }
 
-const SERIES_COLORS = [
-  '#60a5fa',
-  '#a78bfa',
-  '#34d399',
-  '#fbbf24',
-  '#fb7185',
-  '#22d3ee',
-  '#f97316',
-  '#c084fc',
-  '#4ade80',
-  '#f472b6',
-  '#93c5fd',
-  '#d9f99d',
-];
-
-const METRIC_LABELS: Record<CommitMetadataMetric, string> = {
-  commits: 'Commits',
-  additions: 'Additions',
-  deletions: 'Deletions',
-  changedLines: 'Changed lines',
-  filesChanged: 'Files changed',
-};
-
 const CALENDAR_LABELS: Record<CommitMetadataCalendarGranularity, string> = {
   day: 'Day',
   week: 'Week',
@@ -50,19 +33,6 @@ const CALENDAR_LABELS: Record<CommitMetadataCalendarGranularity, string> = {
   quarter: 'Quarter',
   year: 'Year',
 };
-
-function getPointMetric(point: CommitMetadataSeriesPoint, metric: CommitMetadataMetric): number {
-  return point[metric];
-}
-
-function formatMetric(value: number, metric: CommitMetadataMetric): string {
-  const rounded = metric === 'commits' ? Number(value.toFixed(2)) : Math.round(value);
-  return rounded.toLocaleString();
-}
-
-function getSeriesValues(series: CommitMetadataSeriesPoint[]): string[] {
-  return Array.from(new Set(series.map((point) => point.value))).sort((a, b) => a.localeCompare(b));
-}
 
 export function CommitMetadataTrends({ analytics, settings, rows, onOpenSettings }: CommitMetadataTrendsProps) {
   const enabledExtractors = useMemo(
@@ -123,12 +93,6 @@ export function CommitMetadataTrends({ analytics, settings, rows, onOpenSettings
     return rows.filter((row) => selectedShas.has(row.sha));
   }, [rows, selectedPoint]);
 
-  const seriesValues = useMemo(() => getSeriesValues(result?.series ?? []), [result?.series]);
-  const colorByValue = useMemo(() => new Map(seriesValues.map((value, index) => [
-    value,
-    SERIES_COLORS[index % SERIES_COLORS.length],
-  ])), [seriesValues]);
-
   if (enabledExtractors.length === 0) {
     return (
       <section className="commit-metadata-card">
@@ -149,7 +113,7 @@ export function CommitMetadataTrends({ analytics, settings, rows, onOpenSettings
       <div className="commit-metadata-header">
         <div>
           <h3>Metadata Trends</h3>
-          <p>Explore commit message categories, authors, repositories, size buckets, directories, and extensions over calendar or commit-count buckets.</p>
+          <p>Interactive chart of commit metadata over calendar time or equalized commit buckets. Use zoom/pan for dense histories and click marks to inspect commits.</p>
         </div>
         {result?.diagnostics.availability !== 'available' && (
           <div className="commit-metadata-diagnostic" role="status">
@@ -217,8 +181,8 @@ export function CommitMetadataTrends({ analytics, settings, rows, onOpenSettings
         <label>
           <span>Metric</span>
           <select value={metric} onChange={(event) => setMetric(event.target.value as CommitMetadataMetric)}>
-            {(Object.keys(METRIC_LABELS) as CommitMetadataMetric[]).map((metricKey) => (
-              <option key={metricKey} value={metricKey}>{METRIC_LABELS[metricKey]}</option>
+            {(Object.keys(COMMIT_METADATA_METRIC_LABELS) as CommitMetadataMetric[]).map((metricKey) => (
+              <option key={metricKey} value={metricKey}>{COMMIT_METADATA_METRIC_LABELS[metricKey]}</option>
             ))}
           </select>
         </label>
@@ -244,26 +208,13 @@ export function CommitMetadataTrends({ analytics, settings, rows, onOpenSettings
       </div>
 
       {result && result.series.length > 0 ? (
-        <>
-          {chartType === 'heatmap'
-            ? renderCommitMetadataHeatmap({ result, metric, colorByValue, onSelectPoint: setSelectedPoint })
-            : renderCommitMetadataStackedBars({
-                result,
-                metric,
-                normalized: chartType === 'normalizedStackedBar',
-                colorByValue,
-                onSelectPoint: setSelectedPoint,
-              })}
-
-          <div className="commit-metadata-legend">
-            {seriesValues.map((value) => (
-              <span key={value} className="commit-metadata-legend-item">
-                <span style={{ background: colorByValue.get(value) }} />
-                {value}
-              </span>
-            ))}
-          </div>
-        </>
+        <CommitMetadataPlot
+          result={result}
+          metric={metric}
+          chartType={chartType}
+          bucketMode={bucketMode}
+          onSelectPoint={setSelectedPoint}
+        />
       ) : (
         <div className="commit-metadata-empty commit-metadata-empty-inline">
           <ListFilter size={24} />
@@ -284,7 +235,7 @@ export function CommitMetadataTrends({ analytics, settings, rows, onOpenSettings
           <div className="commit-metadata-drilldown-header">
             <div>
               <h4>{selectedPoint.value} in {result?.buckets.find((bucket) => bucket.id === selectedPoint.bucketId)?.label ?? selectedPoint.bucketId}</h4>
-              <p>{formatMetric(getPointMetric(selectedPoint, metric), metric)} {METRIC_LABELS[metric].toLowerCase()} across {selectedRows.length.toLocaleString()} commits</p>
+              <p>{formatCommitMetadataMetric(getCommitMetadataPointMetric(selectedPoint, metric), metric)} {COMMIT_METADATA_METRIC_LABELS[metric].toLowerCase()} across {selectedRows.length.toLocaleString()} commits</p>
             </div>
             <button type="button" onClick={() => setSelectedPoint(null)}>Clear</button>
           </div>
@@ -303,122 +254,3 @@ export function CommitMetadataTrends({ analytics, settings, rows, onOpenSettings
   );
 }
 
-function renderCommitMetadataStackedBars({
-  result,
-  metric,
-  normalized,
-  colorByValue,
-  onSelectPoint,
-}: {
-  result: NonNullable<ReturnType<typeof analyzeCommitMetadataTrends>>;
-  metric: CommitMetadataMetric;
-  normalized: boolean;
-  colorByValue: Map<string, string>;
-  onSelectPoint: (point: CommitMetadataSeriesPoint) => void;
-}) {
-  const maxBucketTotal = Math.max(1, ...result.buckets.map((bucket) => result.series
-    .filter((point) => point.bucketId === bucket.id)
-    .reduce((sum, point) => sum + getPointMetric(point, metric), 0)));
-
-  return (
-    <div className="commit-metadata-bars" role="img" aria-label="Commit metadata stacked bar chart">
-      {result.buckets.map((bucket) => {
-        const points = result.series.filter((point) => point.bucketId === bucket.id);
-        const total = points.reduce((sum, point) => sum + getPointMetric(point, metric), 0);
-        const denominator = normalized ? Math.max(1, total) : maxBucketTotal;
-        return (
-          <div key={bucket.id} className="commit-metadata-bar-row">
-            <span className="commit-metadata-bucket-label">{bucket.label}</span>
-            <div className="commit-metadata-bar-track">
-              {points.map((point) => {
-                const value = getPointMetric(point, metric);
-                const width = total === 0 ? 0 : (value / denominator) * 100;
-                return (
-                  <button
-                    key={`${point.bucketId}-${point.value}`}
-                    type="button"
-                    className="commit-metadata-bar-segment"
-                    style={{ width: `${width}%`, background: colorByValue.get(point.value) }}
-                    title={`${point.value}: ${formatMetric(value, metric)}`}
-                    onClick={() => onSelectPoint(point)}
-                  />
-                );
-              })}
-            </div>
-            <span className="commit-metadata-total">{formatMetric(total, metric)}</span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function renderCommitMetadataHeatmap({
-  result,
-  metric,
-  colorByValue,
-  onSelectPoint,
-}: {
-  result: NonNullable<ReturnType<typeof analyzeCommitMetadataTrends>>;
-  metric: CommitMetadataMetric;
-  colorByValue: Map<string, string>;
-  onSelectPoint: (point: CommitMetadataSeriesPoint) => void;
-}) {
-  const values = getSeriesValues(result.series);
-  const maxValue = Math.max(1, ...result.series.map((point) => getPointMetric(point, metric)));
-
-  return (
-    <div className="commit-metadata-heatmap">
-      <div className="commit-metadata-heatmap-title"><Grid3X3 size={15} /> Heatmap by bucket</div>
-      <div className="commit-metadata-heatmap-grid" style={{ gridTemplateColumns: `minmax(120px, 1fr) repeat(${result.buckets.length}, minmax(64px, 1fr))` }}>
-        <div className="commit-metadata-heatmap-corner" />
-        {result.buckets.map((bucket) => <div key={bucket.id} className="commit-metadata-heatmap-axis">{bucket.label}</div>)}
-        {values.map((value) => (
-          <Fragment key={value}>
-            {renderHeatmapRow({ value, result, metric, maxValue, color: colorByValue.get(value) ?? '#60a5fa', onSelectPoint })}
-          </Fragment>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function renderHeatmapRow({
-  value,
-  result,
-  metric,
-  maxValue,
-  color,
-  onSelectPoint,
-}: {
-  value: string;
-  result: NonNullable<ReturnType<typeof analyzeCommitMetadataTrends>>;
-  metric: CommitMetadataMetric;
-  maxValue: number;
-  color: string;
-  onSelectPoint: (point: CommitMetadataSeriesPoint) => void;
-}) {
-  return (
-    <>
-      <div className="commit-metadata-heatmap-label">{value}</div>
-      {result.buckets.map((bucket) => {
-        const point = result.series.find((candidate) => candidate.bucketId === bucket.id && candidate.value === value);
-        const metricValue = point ? getPointMetric(point, metric) : 0;
-        const opacity = metricValue === 0 ? 0.08 : Math.max(0.2, metricValue / maxValue);
-        return (
-          <button
-            key={`${value}-${bucket.id}`}
-            type="button"
-            className="commit-metadata-heatmap-cell"
-            style={{ background: color, opacity }}
-            title={`${value} / ${bucket.label}: ${formatMetric(metricValue, metric)}`}
-            disabled={!point}
-            onClick={() => point && onSelectPoint(point)}
-          >
-            {metricValue > 0 ? formatMetric(metricValue, metric) : ''}
-          </button>
-        );
-      })}
-    </>
-  );
-}
