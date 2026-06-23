@@ -8,12 +8,14 @@ import {
   Rows3,
 } from 'lucide-react';
 import { useCommitPanelState } from '../../hooks/useCommitPanelState';
+import { useStore } from '../../store';
 import { DataGridFrame } from '../datagrid/DataGridFrame';
 import { DataGridToolbar } from '../datagrid/DataGridToolbar';
 import { CommitResultsList } from './CommitResultsList';
 import { CommitDistributionChart } from './CommitDistributionChart';
 import { ContributorPatternsChart } from './ContributorPatternsChart';
 import { LargestCommitsChart } from './LargestCommitsChart';
+import { CommitMetadataTrends } from './CommitMetadataTrends';
 import { CommitsHeaderCell } from './CommitsHeaderCell';
 import { CommitColumnManagerPopover } from './CommitColumnManagerPopover';
 import { DEFAULT_COMMIT_COLUMN_ORDER, getCommitColumnConfig } from './columns';
@@ -31,6 +33,9 @@ export function CommitsPanel() {
     summary,
     table,
   } = useCommitPanelState();
+  const settings = useStore((state) => state.settings);
+  const setActiveView = useStore((state) => state.setActiveView);
+  const [activeSection, setActiveSection] = useState<'explorer' | 'metadata'>('explorer');
   const [showInsights, setShowInsights] = useState(false);
   const [showColumnManager, setShowColumnManager] = useState(false);
   const [columnOrder, setColumnOrder] = useState<CommitColumnKey[]>(DEFAULT_COMMIT_COLUMN_ORDER);
@@ -172,6 +177,37 @@ export function CommitsPanel() {
         </div>
       </div>
 
+      <div className="commit-section-tabs" role="tablist" aria-label="Commit views">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeSection === 'explorer'}
+          className={`commit-section-tab ${activeSection === 'explorer' ? 'active' : ''}`}
+          onClick={() => setActiveSection('explorer')}
+        >
+          Explorer
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeSection === 'metadata'}
+          className={`commit-section-tab ${activeSection === 'metadata' ? 'active' : ''}`}
+          onClick={() => setActiveSection('metadata')}
+        >
+          Metadata Trends
+        </button>
+      </div>
+
+      {activeSection === 'metadata' && settings && (
+        <CommitMetadataTrends
+          analytics={data.commitAnalytics}
+          settings={settings.commitMetadata}
+          rows={rows}
+          onOpenSettings={() => setActiveView('settings')}
+        />
+      )}
+
+      {activeSection === 'explorer' && (
       <section className="commit-explorer-card">
         <div className="commit-explorer-header">
           <div>
@@ -324,6 +360,7 @@ export function CommitsPanel() {
           />
         </DataGridFrame>
       </section>
+      )}
     </div>
   );
 }

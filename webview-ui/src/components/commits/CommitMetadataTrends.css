@@ -1,0 +1,264 @@
+.commit-metadata-card {
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--vscode-editor-background) 94%, var(--vscode-foreground) 6%);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.commit-metadata-header,
+.commit-metadata-drilldown-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.commit-metadata-header h3,
+.commit-metadata-drilldown h4 {
+  margin: 0 0 6px;
+}
+
+.commit-metadata-header p,
+.commit-metadata-drilldown p,
+.commit-metadata-empty p {
+  margin: 0;
+  color: var(--vscode-descriptionForeground);
+}
+
+.commit-metadata-diagnostic {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid color-mix(in srgb, var(--vscode-inputValidation-warningBorder) 65%, transparent);
+  color: var(--vscode-inputValidation-warningForeground, var(--vscode-editorWarning-foreground));
+  border-radius: 999px;
+  padding: 5px 10px;
+  white-space: nowrap;
+}
+
+.commit-metadata-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.commit-metadata-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.commit-metadata-controls select,
+.commit-metadata-controls input[type='number'] {
+  background: var(--vscode-dropdown-background);
+  color: var(--vscode-dropdown-foreground);
+  border: 1px solid var(--vscode-dropdown-border);
+  border-radius: 6px;
+  min-height: 30px;
+  padding: 4px 8px;
+}
+
+.commit-metadata-checkbox {
+  flex-direction: row !important;
+  align-items: center;
+  padding-bottom: 7px;
+}
+
+.commit-metadata-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.commit-metadata-bar-row {
+  display: grid;
+  grid-template-columns: minmax(88px, 140px) minmax(180px, 1fr) minmax(54px, auto);
+  gap: 10px;
+  align-items: center;
+  min-width: 420px;
+}
+
+.commit-metadata-bucket-label,
+.commit-metadata-total,
+.commit-metadata-heatmap-axis,
+.commit-metadata-heatmap-label {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.commit-metadata-bar-track {
+  height: 26px;
+  display: flex;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--vscode-editor-background) 82%, var(--vscode-foreground) 18%);
+}
+
+.commit-metadata-bar-segment {
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0.88;
+}
+
+.commit-metadata-bar-segment:hover,
+.commit-metadata-heatmap-cell:hover:not(:disabled) {
+  opacity: 1 !important;
+  outline: 1px solid var(--vscode-focusBorder);
+  z-index: 1;
+}
+
+.commit-metadata-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+.commit-metadata-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.commit-metadata-legend-item span {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.commit-metadata-heatmap {
+  overflow-x: auto;
+}
+
+.commit-metadata-heatmap-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.commit-metadata-heatmap-grid {
+  display: grid;
+  gap: 4px;
+  min-width: 520px;
+}
+
+.commit-metadata-heatmap-axis,
+.commit-metadata-heatmap-label {
+  padding: 6px;
+}
+
+.commit-metadata-heatmap-label {
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.commit-metadata-heatmap-cell {
+  min-height: 32px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #0f172a;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.commit-metadata-heatmap-cell:disabled {
+  cursor: default;
+}
+
+.commit-metadata-empty {
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.commit-metadata-empty-inline {
+  min-height: 140px;
+  border: 1px dashed var(--vscode-panel-border);
+  border-radius: 12px;
+}
+
+.commit-metadata-primary,
+.commit-metadata-empty button,
+.commit-metadata-drilldown button {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.commit-metadata-notes {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+}
+
+.commit-metadata-drilldown {
+  border-top: 1px solid var(--vscode-panel-border);
+  padding-top: 14px;
+}
+
+.commit-metadata-drilldown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 280px;
+  overflow: auto;
+}
+
+.commit-metadata-drilldown-row {
+  display: grid;
+  grid-template-columns: 72px minmax(160px, 1fr) minmax(120px, auto);
+  gap: 10px;
+  align-items: center;
+  padding: 7px 8px;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 8px;
+}
+
+.commit-metadata-drilldown-row code {
+  color: var(--vscode-textLink-foreground);
+}
+
+.commit-metadata-drilldown-row small {
+  color: var(--vscode-descriptionForeground);
+  text-align: right;
+}
+
+@media (max-width: 760px) {
+  .commit-metadata-header,
+  .commit-metadata-drilldown-header {
+    flex-direction: column;
+  }
+
+  .commit-metadata-drilldown-row {
+    grid-template-columns: 1fr;
+  }
+
+  .commit-metadata-drilldown-row small {
+    text-align: left;
+  }
+}

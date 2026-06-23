@@ -8,7 +8,8 @@
     "moduleResolution": "bundler",
     "baseUrl": ".",
     "paths": {
-      "@shared/*": ["../shared/*"]
+      "@shared/*": ["../shared/*"],
+      "@analyzers/*": ["../src/analyzers/*"]
     },
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,

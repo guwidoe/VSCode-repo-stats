@@ -41,6 +41,7 @@ function getInitialTargets(scopedSettings: RepoScopedSettings): Record<RepoScopa
     'evolution.maxSnapshots': scopedSettings['evolution.maxSnapshots'].source === 'repo' ? 'repo' : 'global',
     'evolution.maxSeries': scopedSettings['evolution.maxSeries'].source === 'repo' ? 'repo' : 'global',
     'evolution.cohortFormat': scopedSettings['evolution.cohortFormat'].source === 'repo' ? 'repo' : 'global',
+    commitMetadata: scopedSettings.commitMetadata.source === 'repo' ? 'repo' : 'global',
   };
 }
 

@@ -24,6 +24,30 @@
   font-size: 12px;
 }
 
+.commit-section-tabs {
+  display: inline-flex;
+  align-self: flex-start;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--vscode-editor-background) 90%, var(--vscode-foreground) 10%);
+}
+
+.commit-section-tab {
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--vscode-descriptionForeground);
+  padding: 7px 12px;
+  cursor: pointer;
+}
+
+.commit-section-tab.active {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+
 .commit-summary-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
