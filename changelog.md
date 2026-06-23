@@ -6,6 +6,11 @@ This changelog was reconstructed retroactively from the repository's version bum
 
 - No unreleased changes yet.
 
+## 1.4.6 - 2026-06-23
+
+- Added Commit Metadata Trends with configurable extractors, calendar and commit-count bucketing, Plotly charts, and commit drilldown.
+- Added integrated Commit Metadata settings for built-in and custom regex extractors.
+
 ## 1.4.5 - 2026-05-05
 
 - Fixed commit analytics, contributor stats, code frequency, and file modification dates to use the currently checked-out branch instead of counting all branches.
