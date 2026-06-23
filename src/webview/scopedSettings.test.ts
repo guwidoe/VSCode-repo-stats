@@ -98,7 +98,22 @@ describe('getScopedSettingDisplayValue', () => {
         maxSeries: 12,
         includeOtherSeries: true,
       },
-      source: 'default',
+      repoValue: {
+        extractors: [],
+        defaultExtractorId: 'bracketTag',
+        defaultBucketMode: 'commitCount',
+        defaultCalendarGranularity: 'month',
+        defaultCommitBucketStrategy: 'fixedSize',
+        defaultCommitBucketSize: 50,
+        defaultCommitBucketCount: 8,
+        defaultMetric: 'changedLines',
+        defaultChartType: 'heatmap',
+        multiValueMode: 'first',
+        includeUncategorized: false,
+        maxSeries: 8,
+        includeOtherSeries: true,
+      },
+      source: 'repo',
     },
   };
 
@@ -109,6 +124,7 @@ describe('getScopedSettingDisplayValue', () => {
     ]);
     expect(getScopedSettingDisplayValue(scopedSettings, 'maxCommitsToAnalyze', 'repo')).toBe(500);
     expect(getScopedSettingDisplayValue(scopedSettings, 'evolution.snapshotIntervalDays', 'repo')).toBe(14);
+    expect(getScopedSettingDisplayValue(scopedSettings, 'commitMetadata', 'repo').defaultExtractorId).toBe('bracketTag');
   });
 
   it('uses global or default for global target', () => {

@@ -6,6 +6,36 @@ import {
   validateLogicalPath,
 } from './messageValidation';
 
+function createCommitMetadataSettings() {
+  return {
+    extractors: [
+      {
+        id: 'conventionalType',
+        name: 'Conventional Commit Type',
+        enabled: true,
+        dimension: 'type',
+        includeUnmatched: false,
+        unmatchedValue: 'Uncategorized',
+        aliases: {},
+        kind: 'builtIn' as const,
+        builtInId: 'conventionalType' as const,
+      },
+    ],
+    defaultExtractorId: 'conventionalType',
+    defaultBucketMode: 'calendar' as const,
+    defaultCalendarGranularity: 'month' as const,
+    defaultCommitBucketStrategy: 'fixedSize' as const,
+    defaultCommitBucketSize: 100,
+    defaultCommitBucketCount: 12,
+    defaultMetric: 'commits' as const,
+    defaultChartType: 'stackedBar' as const,
+    multiValueMode: 'countEach' as const,
+    includeUncategorized: true,
+    maxSeries: 12,
+    includeOtherSeries: true,
+  };
+}
+
 describe('parseWebviewMessage', () => {
   it('accepts valid path-bearing messages', () => {
     expect(parseWebviewMessage({ type: 'openFile', path: 'src/index.ts', repositoryId: 'repo-1' })).toEqual({
@@ -33,6 +63,31 @@ describe('parseWebviewMessage', () => {
       value: 'not-a-number',
       target: 'repo',
     })).toThrow('Received invalid value for scoped setting evolution.maxSnapshots.');
+  });
+
+  it('accepts commit metadata scoped settings', () => {
+    expect(parseWebviewMessage({
+      type: 'updateScopedSetting',
+      key: 'commitMetadata',
+      value: createCommitMetadataSettings(),
+      target: 'repo',
+    })).toMatchObject({
+      type: 'updateScopedSetting',
+      key: 'commitMetadata',
+      target: 'repo',
+    });
+  });
+
+  it('rejects invalid commit metadata settings payloads', () => {
+    expect(() => parseWebviewMessage({
+      type: 'updateScopedSetting',
+      key: 'commitMetadata',
+      value: {
+        ...createCommitMetadataSettings(),
+        defaultBucketMode: 'invalid',
+      },
+      target: 'repo',
+    })).toThrow('Received invalid value for scoped setting commitMetadata.');
   });
 
   it('rejects malformed settings payloads', () => {
