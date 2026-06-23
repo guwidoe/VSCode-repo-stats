@@ -36,6 +36,7 @@ Because enrichment is staged, consumers may receive nodes where optional metrics
 - `changedFiles` is optional for compatibility with older cached/precomputed results, but new git history parses populate it with included, non-excluded paths from `git log --numstat`.
 - Directory and file-extension metadata trend dimensions require `changedFiles`. If it is absent, consumers must report the dimension as unavailable/partial instead of rendering an empty result as if no paths matched.
 - Excluded paths are removed before both counts and `changedFiles` are recorded, so path-based metadata follows the same exclude contract as contributor and frequency analytics.
+- If `limitReached` is true on `AnalysisResult`, commit metadata trends are intentionally scoped to the analyzed commit window. UI should pair those trends with the existing analysis-limit warning rather than implying full-history coverage.
 
 ## Allowed fallbacks (expected partial data)
 

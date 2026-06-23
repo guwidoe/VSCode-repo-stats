@@ -29,6 +29,8 @@ Use this checklist before shipping UI-heavy changes.
 - [ ] Open header filter popovers for date, author, summary, and numeric columns.
 - [ ] Confirm filtered results update and `Clear filters` resets the table.
 - [ ] Expand insights and confirm charts render for changed-lines distribution, files-changed distribution, contributor commit-size patterns, and largest commits.
+- [ ] Switch to Metadata Trends and verify extractor, bucket mode, metric, chart type, series limit, and uncategorized controls update the chart.
+- [ ] Click stacked-bar and heatmap segments and confirm the drilldown commit list matches the selected bucket/value.
 
 ## Contributors + Code Frequency
 - [ ] Confirm Contributors chart and time-range controls render correctly.

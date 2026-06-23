@@ -87,6 +87,16 @@ Results are cached based on the current Git HEAD, so subsequent opens are instan
 - Summary cards with total additions, deletions, and net change
 - Weekly or monthly granularity toggle
 
+### Commit Metadata Trends
+
+- First-class **Metadata Trends** section inside the Commits view
+- Extracts commit categories from conventional commits, scopes, bracket tags, hashtags, issue keys, authors, repositories, commit size buckets, file count buckets, top-level directories, and file extensions
+- Supports custom regex extractors such as `\\[(?<tag>[^\\]]+)\\]` for `[tag]`-style commit messages or `(?<ticket>[A-Z]+-\\d+)` for issue IDs
+- Buckets history by calendar time (day/week/month/quarter/year) or by commit-count windows (every N commits or equal history buckets)
+- Chart modes: stacked bars, 100% stacked bars, and heatmaps
+- Metrics: commit count, additions, deletions, changed lines, and files changed
+- Click any chart segment to drill into the matching commits
+
 ### Evolution (On-Demand)
 
 - **Git-of-theseus style ownership timelines** (inspired by repository evolution analysis)
@@ -107,7 +117,9 @@ Results are cached based on the current Git HEAD, so subsequent opens are instan
 
 ### Settings Panel
 
-Configure analysis scope, chart granularity, overview display mode, treemap tooltip fields, generated file patterns, binary extensions, and Evolution sampling controls. Multi-repository analysis comes from repository membership selection (include/exclude exactly the repositories you want to aggregate).
+Configure analysis scope, chart granularity, overview display mode, treemap tooltip fields, generated file patterns, binary extensions, Evolution sampling controls, and Commit Metadata extractor presets. Multi-repository analysis comes from repository membership selection (include/exclude exactly the repositories you want to aggregate).
+
+Commit Metadata settings include built-in extractor toggles, custom regex extractor CRUD, alias normalization, unmatched labels, default bucket/chart/metric choices, and multi-value behavior (`countEach`, `split`, or `first`). These settings are repo-scopable because teams often use different commit conventions across repositories.
 
 ## Installation
 
@@ -159,14 +171,47 @@ This extension uses [scc](https://github.com/boyter/scc) for accurate lines-of-c
 | `repoStats.evolution.maxSnapshots` | `20` | Target number of historical snapshots analyzed in Evolution |
 | `repoStats.evolution.maxSeries` | `20` | Default maximum visible series in Evolution charts |
 | `repoStats.evolution.cohortFormat` | `"%Y"` | Cohort grouping format (`%Y`, `%Y-%m`, `%Y-W%W`) |
+| `repoStats.commitMetadata` | See `package.json` | Commit Metadata Trends extractors, defaults, multi-value mode, and series limits |
 
 Tip: If assets like `.svg` files inflate LOC totals for your project, add `.svg` to `repoStats.locExcludedExtensions`.
 
 `repoStats.excludePatterns` accepts simple directory names (`vendor`), repo-relative paths (`backend/fixtures`), exact repo-root paths prefixed with `/` (`/src`, `/README.md`), and glob-style patterns (`**/backend/fixtures/**`).
 
-The following settings can be saved per-repository via the Settings UI and VS Code workspace-folder settings (`.vscode/settings.json`) when repo scope is available: `excludePatterns`, `generatedPatterns`, `binaryExtensions`, `locExcludedExtensions`, `maxCommitsToAnalyze`, `evolution.snapshotIntervalDays`, `evolution.maxSnapshots`, `evolution.maxSeries`, and `evolution.cohortFormat`.
+The following settings can be saved per-repository via the Settings UI and VS Code workspace-folder settings (`.vscode/settings.json`) when repo scope is available: `excludePatterns`, `generatedPatterns`, `binaryExtensions`, `locExcludedExtensions`, `maxCommitsToAnalyze`, Evolution sampling settings, and `commitMetadata`.
 
 Use the repository selector in the header (or `Repo Stats: Select Repositories`) to decide exactly which repositories participate in aggregation. Convenience actions include `All`, `Top-level`, and `None`.
+
+<details>
+<summary>Commit Metadata custom extractor examples</summary>
+
+Bracket tags:
+
+```json
+{
+  "name": "Bracket Tags",
+  "regex": "\\[(?<tag>[^\\]]+)\\]",
+  "captureGroup": "tag",
+  "dimension": "tag",
+  "normalization": "lowercase",
+  "aliases": { "bugfix": "fix", "feature": "feat" }
+}
+```
+
+Issue keys:
+
+```json
+{
+  "name": "Ticket Keys",
+  "regex": "(?<ticket>[A-Z]+-\\d+)",
+  "captureGroup": "ticket",
+  "dimension": "ticket",
+  "normalization": "uppercase"
+}
+```
+
+If a commit matches multiple values, `countEach` counts it once for each value, `split` divides one commit of weight across all values, and `first` keeps only the first match. When `maxCommitsToAnalyze` truncates history, Metadata Trends reflects only the analyzed commits and the dashboard shows the normal analysis-limit warning.
+
+</details>
 
 <details>
 <summary>Default Generated Patterns</summary>
