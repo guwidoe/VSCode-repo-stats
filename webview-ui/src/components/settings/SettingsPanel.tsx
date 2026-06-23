@@ -11,6 +11,7 @@ import { OverviewSettings } from './OverviewSettings';
 import { ChartsSettings } from './ChartsSettings';
 import { EvolutionSettings } from './EvolutionSettings';
 import { TreemapSettings } from './TreemapSettings';
+import { CommitMetadataSettings } from './CommitMetadataSettings';
 import './SettingsPanel.css';
 
 export function SettingsPanel() {
@@ -75,6 +76,15 @@ export function SettingsPanel() {
 
         {activeTab === 'treemap' && (
           <TreemapSettings settings={settings} data={data} updateSettings={updateSettings} />
+        )}
+
+        {activeTab === 'commitMetadata' && (
+          <CommitMetadataSettings
+            scopedSettings={scopedSettings}
+            repoScopeAvailable={repoScopeAvailable}
+            updateScopedSetting={updateScopedSetting}
+            resetScopedSetting={resetScopedSetting}
+          />
         )}
       </div>
     </div>

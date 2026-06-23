@@ -4,7 +4,7 @@
 
 import './SettingsTabs.css';
 
-export type SettingsTab = 'general' | 'overview' | 'charts' | 'evolution' | 'treemap';
+export type SettingsTab = 'general' | 'overview' | 'charts' | 'evolution' | 'treemap' | 'commitMetadata';
 
 interface Props {
   activeTab: SettingsTab;
@@ -17,10 +17,11 @@ const TAB_LABELS: Record<SettingsTab, string> = {
   charts: 'Charts',
   evolution: 'Evolution',
   treemap: 'Treemap',
+  commitMetadata: 'Commit Metadata',
 };
 
 export function SettingsTabs({ activeTab, onTabChange }: Props) {
-  const tabs: SettingsTab[] = ['general', 'overview', 'treemap', 'charts', 'evolution'];
+  const tabs: SettingsTab[] = ['general', 'overview', 'treemap', 'charts', 'evolution', 'commitMetadata'];
 
   return (
     <div className="settings-tabs">

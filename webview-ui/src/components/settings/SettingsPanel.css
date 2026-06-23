@@ -95,6 +95,25 @@
   border-radius: 3px;
 }
 
+.settings-action-button,
+.settings-danger-button {
+  border: 1px solid var(--vscode-button-border, transparent);
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.settings-action-button {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+
+.settings-danger-button {
+  background: var(--vscode-inputValidation-errorBackground, transparent);
+  color: var(--vscode-errorForeground, var(--vscode-foreground));
+  border-color: var(--vscode-inputValidation-errorBorder, var(--vscode-panel-border));
+}
+
 /* Settings Sections */
 .settings-sections {
   display: flex;
@@ -475,6 +494,76 @@
 .settings-hint {
   margin: 12px 0 0 0;
   font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.commit-metadata-settings-grid,
+.commit-metadata-settings-list {
+  display: grid;
+  gap: 12px;
+}
+
+.commit-metadata-settings-grid {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.commit-metadata-extractor-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--vscode-editor-background) 92%, var(--vscode-foreground) 8%);
+}
+
+.commit-metadata-extractor-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.commit-metadata-extractor-card input,
+.commit-metadata-extractor-card select,
+.commit-metadata-extractor-card textarea {
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+  border-radius: 5px;
+  padding: 5px 7px;
+}
+
+.commit-metadata-extractor-card textarea {
+  min-height: 70px;
+  resize: vertical;
+}
+
+.commit-metadata-toggle-row {
+  flex-direction: row !important;
+  align-items: center;
+}
+
+.commit-metadata-regex-header,
+.commit-metadata-settings-two-col {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.commit-metadata-regex-header {
+  align-items: center;
+}
+
+.commit-metadata-settings-error {
+  margin: 0;
+  color: var(--vscode-errorForeground);
+  font-size: 12px;
+}
+
+.commit-metadata-settings-empty {
+  margin: 0;
   color: var(--vscode-descriptionForeground);
 }
 
