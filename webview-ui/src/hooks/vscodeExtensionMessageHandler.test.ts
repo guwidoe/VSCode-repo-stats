@@ -38,6 +38,7 @@ function createSettings(): ExtensionSettings {
     },
     evolution: {
       autoRun: false,
+      historyTraversalMode: 'firstParent',
       samplingMode: 'time',
       snapshotIntervalDays: 7,
       showInactivePeriods: false,

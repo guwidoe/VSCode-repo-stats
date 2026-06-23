@@ -35,6 +35,7 @@ function getInitialTargets(scopedSettings: RepoScopedSettings): Record<RepoScopa
     binaryExtensions: scopedSettings.binaryExtensions.source === 'repo' ? 'repo' : 'global',
     locExcludedExtensions: scopedSettings.locExcludedExtensions.source === 'repo' ? 'repo' : 'global',
     maxCommitsToAnalyze: scopedSettings.maxCommitsToAnalyze.source === 'repo' ? 'repo' : 'global',
+    'evolution.historyTraversalMode': scopedSettings['evolution.historyTraversalMode'].source === 'repo' ? 'repo' : 'global',
     'evolution.samplingMode': scopedSettings['evolution.samplingMode'].source === 'repo' ? 'repo' : 'global',
     'evolution.snapshotIntervalDays': scopedSettings['evolution.snapshotIntervalDays'].source === 'repo' ? 'repo' : 'global',
     'evolution.showInactivePeriods': scopedSettings['evolution.showInactivePeriods'].source === 'repo' ? 'repo' : 'global',

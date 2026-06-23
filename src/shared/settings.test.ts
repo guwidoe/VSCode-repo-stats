@@ -44,6 +44,7 @@ function createSettings(): ExtensionSettings {
     },
     evolution: {
       autoRun: false,
+      historyTraversalMode: 'firstParent',
       samplingMode: 'time',
       snapshotIntervalDays: 30,
       showInactivePeriods: false,
@@ -182,6 +183,7 @@ describe('flattenSettingsUpdate', () => {
         },
         evolution: {
           autoRun: true,
+          historyTraversalMode: 'firstParent',
           samplingMode: 'commit',
           snapshotIntervalDays: 14,
           showInactivePeriods: true,
@@ -197,6 +199,7 @@ describe('flattenSettingsUpdate', () => {
       { key: 'treemap.ageColorNewestDate', value: '2026-01-01' },
       { key: 'treemap.ageColorOldestDate', value: '2024-01-01' },
       { key: 'evolution.autoRun', value: true },
+      { key: 'evolution.historyTraversalMode', value: 'firstParent' },
       { key: 'evolution.samplingMode', value: 'commit' },
       { key: 'evolution.snapshotIntervalDays', value: 14 },
       { key: 'evolution.showInactivePeriods', value: true },

@@ -9,6 +9,8 @@ interface Props {
   onAxisModeChange: (mode: EvolutionAxisMode) => void;
   normalize: boolean;
   onNormalizeChange: (normalize: boolean) => void;
+  showInactivePeriods: boolean;
+  onShowInactivePeriodsChange: (show: boolean) => void;
   maxSeries: number;
   onMaxSeriesChange: (value: number) => void;
   onRun: () => void;
@@ -23,6 +25,8 @@ export function EvolutionControls({
   onAxisModeChange,
   normalize,
   onNormalizeChange,
+  showInactivePeriods,
+  onShowInactivePeriodsChange,
   maxSeries,
   onMaxSeriesChange,
   onRun,
@@ -31,6 +35,11 @@ export function EvolutionControls({
 }: Props) {
   return (
     <div className="evolution-controls">
+      <div className="evolution-controls-heading">
+        <h3>Chart Controls</h3>
+        <p>Dimension, axis, normalization, inactive periods, and max series only change cached chart display.</p>
+      </div>
+
       <label>
         <span>Dimension</span>
         <select
@@ -72,6 +81,16 @@ export function EvolutionControls({
           disabled={disabled}
         />
         <span>Normalize to 100%</span>
+      </label>
+
+      <label className="evolution-checkbox">
+        <input
+          type="checkbox"
+          checked={showInactivePeriods}
+          onChange={(event) => onShowInactivePeriodsChange(event.target.checked)}
+          disabled={disabled}
+        />
+        <span>Show inactive periods</span>
       </label>
 
       <label>

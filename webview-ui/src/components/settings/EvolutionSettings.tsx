@@ -38,6 +38,7 @@ const TIME_GRANULARITY_OPTIONS = [
 ] as const;
 
 type EvolutionScopedKey =
+  | 'evolution.historyTraversalMode'
   | 'evolution.samplingMode'
   | 'evolution.snapshotIntervalDays'
   | 'evolution.showInactivePeriods'
@@ -53,6 +54,8 @@ function getInitialTargets(
   scopedSettings: RepoScopedSettings
 ): Record<EvolutionScopedKey, SettingWriteTarget> {
   return {
+    'evolution.historyTraversalMode':
+      scopedSettings['evolution.historyTraversalMode'].source === 'repo' ? 'repo' : 'global',
     'evolution.samplingMode':
       scopedSettings['evolution.samplingMode'].source === 'repo' ? 'repo' : 'global',
     'evolution.snapshotIntervalDays':
@@ -90,6 +93,11 @@ export function EvolutionSettings({
     scopedSettings,
     'evolution.samplingMode',
     resolvedTargets['evolution.samplingMode']
+  );
+  const historyTraversalMode = getScopedSettingDisplayValue(
+    scopedSettings,
+    'evolution.historyTraversalMode',
+    resolvedTargets['evolution.historyTraversalMode']
   );
   const snapshotIntervalDays = getScopedSettingDisplayValue(
     scopedSettings,
@@ -162,166 +170,198 @@ export function EvolutionSettings({
         }
       />
 
-      <SelectSetting
-        title="Sampling Mode"
-        description="Choose whether Evolution samples history by elapsed time, by evenly spaced commit snapshots, or by auto-distributing snapshots across the repository history."
-        value={samplingMode}
-        options={[
-          { value: 'time', label: 'Time' },
-          { value: 'commit', label: 'Commit' },
-          { value: 'auto', label: 'Auto' },
-        ]}
-        onChange={(value) =>
-          updateScopedSetting(
-            'evolution.samplingMode',
-            value,
-            resolvedTargets['evolution.samplingMode']
-          )
-        }
-        headerContent={renderScopedHeader('evolution.samplingMode')}
-      />
+      <section className="settings-category">
+        <div className="settings-category-header">
+          <h3>Evolution Analysis Settings</h3>
+          <p>These settings decide what data is computed and cached. Changing them requires rerunning Evolution.</p>
+        </div>
 
-      {samplingMode === 'time' && (
-        <>
-          <SelectSetting
-            title="Time Snapshot Granularity"
-            description="How densely Evolution samples repository history in time-based mode. Finer granularity gives more detail, but analysis takes longer."
-            value={timeGranularity}
-            options={[
-              ...TIME_GRANULARITY_OPTIONS.map((option) => ({ value: option.value, label: option.label })),
-              { value: 'custom', label: 'Custom' },
-            ]}
-            onChange={(value) => {
-              if (value === 'custom') {
-                setPreferCustomTimeInterval(true);
-                return;
-              }
+        <SelectSetting
+          title="History Included"
+          description="Choose whether Evolution follows only the first-parent/mainline path or every reachable commit, including commits from merged branches. Full history can be slower and noisier."
+          value={historyTraversalMode}
+          options={[
+            { value: 'firstParent', label: 'Mainline commits only' },
+            { value: 'full', label: 'Full reachable history' },
+          ]}
+          onChange={(value) =>
+            updateScopedSetting(
+              'evolution.historyTraversalMode',
+              value,
+              resolvedTargets['evolution.historyTraversalMode']
+            )
+          }
+          headerContent={renderScopedHeader('evolution.historyTraversalMode')}
+        />
 
-              const selected = TIME_GRANULARITY_OPTIONS.find((option) => option.value === value);
-              if (!selected) {
-                return;
-              }
+        <SelectSetting
+          title="Sampling Mode"
+          description="Choose whether Evolution samples history by elapsed time, by evenly spaced commit snapshots, or by auto-distributing snapshots across the repository history."
+          value={samplingMode}
+          options={[
+            { value: 'time', label: 'Time' },
+            { value: 'commit', label: 'Commit' },
+            { value: 'auto', label: 'Auto' },
+          ]}
+          onChange={(value) =>
+            updateScopedSetting(
+              'evolution.samplingMode',
+              value,
+              resolvedTargets['evolution.samplingMode']
+            )
+          }
+          headerContent={renderScopedHeader('evolution.samplingMode')}
+        />
 
-              setPreferCustomTimeInterval(false);
-              updateScopedSetting(
-                'evolution.snapshotIntervalDays',
-                selected.days,
-                resolvedTargets['evolution.snapshotIntervalDays']
-              );
-            }}
-            headerContent={renderScopedHeader('evolution.snapshotIntervalDays')}
-          />
+        {samplingMode === 'time' && (
+          <>
+            <SelectSetting
+              title="Time Snapshot Granularity"
+              description="How densely Evolution samples repository history in time-based mode. Finer granularity gives more detail, but analysis takes longer."
+              value={timeGranularity}
+              options={[
+                ...TIME_GRANULARITY_OPTIONS.map((option) => ({ value: option.value, label: option.label })),
+                { value: 'custom', label: 'Custom' },
+              ]}
+              onChange={(value) => {
+                if (value === 'custom') {
+                  setPreferCustomTimeInterval(true);
+                  return;
+                }
 
-          {timeGranularity === 'custom' && (
-            <NumberSetting
-              title="Custom Snapshot Interval (Days)"
-              description="Exact minimum time between analyzed snapshots in time-based mode."
-              value={snapshotIntervalDays}
-              onChange={(value) =>
+                const selected = TIME_GRANULARITY_OPTIONS.find((option) => option.value === value);
+                if (!selected) {
+                  return;
+                }
+
+                setPreferCustomTimeInterval(false);
                 updateScopedSetting(
                   'evolution.snapshotIntervalDays',
-                  value,
+                  selected.days,
                   resolvedTargets['evolution.snapshotIntervalDays']
-                )
-              }
-              min={1}
-              max={365}
-              step={1}
+                );
+              }}
+              headerContent={renderScopedHeader('evolution.snapshotIntervalDays')}
             />
-          )}
-        </>
-      )}
 
-      {samplingMode === 'commit' && (
-        <div className="setting-section">
-          <div className="setting-header">
-            <div className="setting-header-main">
-              <h3 className="setting-title">Commit Snapshot Distribution</h3>
-              <p className="setting-description">
-                Commit mode spreads the selected number of snapshots evenly across commit history, so chart resolution tracks snapshot count instead of a raw every-N-commits interval.
-              </p>
+            {timeGranularity === 'custom' && (
+              <NumberSetting
+                title="Custom Snapshot Interval (Days)"
+                description="Exact minimum time between analyzed snapshots in time-based mode."
+                value={snapshotIntervalDays}
+                onChange={(value) =>
+                  updateScopedSetting(
+                    'evolution.snapshotIntervalDays',
+                    value,
+                    resolvedTargets['evolution.snapshotIntervalDays']
+                  )
+                }
+                min={1}
+                max={365}
+                step={1}
+              />
+            )}
+          </>
+        )}
+
+        {samplingMode === 'commit' && (
+          <div className="setting-section">
+            <div className="setting-header">
+              <div className="setting-header-main">
+                <h3 className="setting-title">Commit Snapshot Distribution</h3>
+                <p className="setting-description">
+                  Commit mode spreads the selected number of snapshots evenly across commit history, so chart resolution tracks snapshot count instead of a raw every-N-commits interval.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {samplingMode === 'auto' && (
-        <div className="setting-section">
-          <div className="setting-header">
-            <div className="setting-header-main">
-              <h3 className="setting-title">Auto Snapshot Distribution</h3>
-              <p className="setting-description">
-                Auto mode distributes snapshots across the full repository history using the Number of Snapshots setting as its target density.
-              </p>
+        {samplingMode === 'auto' && (
+          <div className="setting-section">
+            <div className="setting-header">
+              <div className="setting-header-main">
+                <h3 className="setting-title">Auto Snapshot Distribution</h3>
+                <p className="setting-description">
+                  Auto mode distributes snapshots across the selected history using the Number of Snapshots setting as its target density.
+                </p>
+              </div>
             </div>
           </div>
+        )}
+
+        <NumberSetting
+          title="Number of Snapshots"
+          description={samplingMode === 'time'
+            ? 'Target cap for analyzed snapshots in time mode. Lower values reduce runtime; higher values preserve more history detail.'
+            : 'Target number of snapshots to analyze. Commit and auto modes spread snapshots across the selected history to match this resolution.'}
+          value={maxSnapshots}
+          onChange={(value) =>
+            updateScopedSetting('evolution.maxSnapshots', value, resolvedTargets['evolution.maxSnapshots'])
+          }
+          min={2}
+          max={500}
+          step={1}
+          headerContent={renderScopedHeader('evolution.maxSnapshots')}
+        />
+
+        <SelectSetting
+          title="Cohort Format"
+          description="How code cohorts are grouped while Evolution computes ownership history."
+          value={cohortFormat}
+          options={[
+            { value: '%Y', label: 'Yearly (%Y)' },
+            { value: '%Y-%m', label: 'Monthly (%Y-%m)' },
+            { value: '%Y-W%W', label: 'Weekly (%Y-W%W)' },
+          ]}
+          onChange={(value) =>
+            updateScopedSetting(
+              'evolution.cohortFormat',
+              value,
+              resolvedTargets['evolution.cohortFormat']
+            )
+          }
+          headerContent={renderScopedHeader('evolution.cohortFormat')}
+        />
+      </section>
+
+      <section className="settings-category">
+        <div className="settings-category-header">
+          <h3>Evolution Display Defaults</h3>
+          <p>These only change how cached Evolution data is displayed. You can override them from the Evolution chart controls without recomputing.</p>
         </div>
-      )}
 
-      <SelectSetting
-        title="Inactive Periods"
-        description="Control whether Evolution charts fill inactive periods between snapshots or only show directly sampled points."
-        value={showInactivePeriods ? 'show' : 'skip'}
-        options={[
-          { value: 'skip', label: 'Skip inactive periods' },
-          { value: 'show', label: 'Show inactive periods' },
-        ]}
-        onChange={(value) =>
-          updateScopedSetting(
-            'evolution.showInactivePeriods',
-            value === 'show',
-            resolvedTargets['evolution.showInactivePeriods']
-          )
-        }
-        headerContent={renderScopedHeader('evolution.showInactivePeriods')}
-      />
+        <SelectSetting
+          title="Inactive Periods"
+          description="Default for whether Evolution charts fill inactive periods between snapshots or only show directly sampled points."
+          value={showInactivePeriods ? 'show' : 'skip'}
+          options={[
+            { value: 'skip', label: 'Skip inactive periods' },
+            { value: 'show', label: 'Show inactive periods' },
+          ]}
+          onChange={(value) =>
+            updateScopedSetting(
+              'evolution.showInactivePeriods',
+              value === 'show',
+              resolvedTargets['evolution.showInactivePeriods']
+            )
+          }
+          headerContent={renderScopedHeader('evolution.showInactivePeriods')}
+        />
 
-      <NumberSetting
-        title="Number of Snapshots"
-        description={samplingMode === 'time'
-          ? 'Target cap for analyzed snapshots in time mode. Lower values reduce runtime; higher values preserve more history detail.'
-          : 'Target number of snapshots to analyze. Commit and auto modes spread snapshots across the full history to match this resolution.'}
-        value={maxSnapshots}
-        onChange={(value) =>
-          updateScopedSetting('evolution.maxSnapshots', value, resolvedTargets['evolution.maxSnapshots'])
-        }
-        min={2}
-        max={500}
-        step={1}
-        headerContent={renderScopedHeader('evolution.maxSnapshots')}
-      />
-
-      <NumberSetting
-        title="Default Max Series"
-        description="Default series limit for Evolution charts before aggregating into 'Other'."
-        value={maxSeries}
-        onChange={(value) =>
-          updateScopedSetting('evolution.maxSeries', value, resolvedTargets['evolution.maxSeries'])
-        }
-        min={5}
-        max={200}
-        step={1}
-        headerContent={renderScopedHeader('evolution.maxSeries')}
-      />
-
-      <SelectSetting
-        title="Cohort Format"
-        description="How code cohorts are grouped in Evolution analysis."
-        value={cohortFormat}
-        options={[
-          { value: '%Y', label: 'Yearly (%Y)' },
-          { value: '%Y-%m', label: 'Monthly (%Y-%m)' },
-          { value: '%Y-W%W', label: 'Weekly (%Y-W%W)' },
-        ]}
-        onChange={(value) =>
-          updateScopedSetting(
-            'evolution.cohortFormat',
-            value,
-            resolvedTargets['evolution.cohortFormat']
-          )
-        }
-        headerContent={renderScopedHeader('evolution.cohortFormat')}
-      />
+        <NumberSetting
+          title="Default Max Series"
+          description="Default series limit for Evolution charts before aggregating into 'Other'."
+          value={maxSeries}
+          onChange={(value) =>
+            updateScopedSetting('evolution.maxSeries', value, resolvedTargets['evolution.maxSeries'])
+          }
+          min={5}
+          max={200}
+          step={1}
+          headerContent={renderScopedHeader('evolution.maxSeries')}
+        />
+      </section>
     </div>
   );
 }

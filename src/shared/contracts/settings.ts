@@ -1,5 +1,5 @@
 import type { CommitMetadataSettings } from './commitMetadata.js';
-import type { EvolutionSamplingMode } from './evolution.js';
+import type { EvolutionHistoryTraversalMode, EvolutionSamplingMode } from './evolution.js';
 
 export interface TooltipSettings {
   showLinesOfCode: boolean;
@@ -16,6 +16,7 @@ export interface TooltipSettings {
 
 export interface EvolutionSettings {
   autoRun: boolean;
+  historyTraversalMode: EvolutionHistoryTraversalMode;
   samplingMode: EvolutionSamplingMode;
   snapshotIntervalDays: number;
   showInactivePeriods: boolean;
@@ -55,6 +56,7 @@ export interface RepoScopableSettingValueMap {
   binaryExtensions: string[];
   locExcludedExtensions: string[];
   maxCommitsToAnalyze: number;
+  'evolution.historyTraversalMode': EvolutionHistoryTraversalMode;
   'evolution.samplingMode': EvolutionSamplingMode;
   'evolution.snapshotIntervalDays': number;
   'evolution.showInactivePeriods': boolean;
@@ -70,6 +72,7 @@ export const REPO_SCOPABLE_SETTING_KEYS = [
   'binaryExtensions',
   'locExcludedExtensions',
   'maxCommitsToAnalyze',
+  'evolution.historyTraversalMode',
   'evolution.samplingMode',
   'evolution.snapshotIntervalDays',
   'evolution.showInactivePeriods',

@@ -41,6 +41,7 @@ export type {
   ContributorStats,
   EvolutionDiagnostics,
   EvolutionDimension,
+  EvolutionHistoryTraversalMode,
   EvolutionResult,
   EvolutionSamplingMode,
   EvolutionSettings,

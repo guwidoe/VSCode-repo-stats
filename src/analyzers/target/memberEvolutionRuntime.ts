@@ -94,9 +94,12 @@ export class MemberEvolutionRuntime {
   async getCommitHistory(branch: string): Promise<MemberCommit[]> {
     throwIfCancelled(this.signal);
 
+    const historyArgs = this.settings.evolution.historyTraversalMode === 'firstParent'
+      ? ['--first-parent']
+      : [];
     const rawLog = await this.git.raw([
       'log',
-      '--first-parent',
+      ...historyArgs,
       '--reverse',
       '--format=%H|%ct',
       branch,

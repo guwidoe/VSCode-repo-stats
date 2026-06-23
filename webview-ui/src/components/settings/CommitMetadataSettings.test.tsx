@@ -55,6 +55,7 @@ function createScopedSettings(metadata = createMetadataSettings()): RepoScopedSe
     binaryExtensions: { defaultValue: [], source: 'default' },
     locExcludedExtensions: { defaultValue: [], source: 'default' },
     maxCommitsToAnalyze: { defaultValue: 1000, source: 'default' },
+    'evolution.historyTraversalMode': { defaultValue: 'firstParent', source: 'default' },
     'evolution.samplingMode': { defaultValue: 'auto', source: 'default' },
     'evolution.snapshotIntervalDays': { defaultValue: 30, source: 'default' },
     'evolution.showInactivePeriods': { defaultValue: false, source: 'default' },

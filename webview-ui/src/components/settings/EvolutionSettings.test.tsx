@@ -34,6 +34,7 @@ function createSettings(overrides?: Partial<ExtensionSettings['evolution']>): Ex
     },
     evolution: {
       autoRun: false,
+      historyTraversalMode: 'firstParent',
       samplingMode: 'time',
       snapshotIntervalDays: 30,
       showInactivePeriods: false,
@@ -52,6 +53,10 @@ function createScopedSettings(overrides?: Partial<RepoScopedSettings>): RepoScop
     binaryExtensions: { defaultValue: ['.png'], source: 'default' },
     locExcludedExtensions: { defaultValue: [], source: 'default' },
     maxCommitsToAnalyze: { defaultValue: 10000, source: 'default' },
+    'evolution.historyTraversalMode': {
+      defaultValue: 'firstParent',
+      source: 'default',
+    },
     'evolution.samplingMode': {
       defaultValue: 'time',
       repoValue: 'time',
@@ -141,6 +146,10 @@ describe('EvolutionSettings', () => {
       <EvolutionSettings
         settings={createSettings({ samplingMode: 'commit' })}
         scopedSettings={createScopedSettings({
+          'evolution.historyTraversalMode': {
+            defaultValue: 'firstParent',
+            source: 'default',
+          },
           'evolution.samplingMode': {
             defaultValue: 'time',
             repoValue: 'commit',
@@ -170,7 +179,7 @@ describe('EvolutionSettings', () => {
       />
     );
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Global' })[1]);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Global' })[2]);
     fireEvent.click(screen.getByRole('button', { name: 'Weekly' }));
 
     expect(updateScopedSetting).toHaveBeenCalledWith(

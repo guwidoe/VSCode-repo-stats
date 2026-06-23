@@ -90,6 +90,13 @@ const scopedSettingAppliers: {
   binaryExtensions: (settings, value) => ({ ...settings, binaryExtensions: value }),
   locExcludedExtensions: (settings, value) => ({ ...settings, locExcludedExtensions: value }),
   maxCommitsToAnalyze: (settings, value) => ({ ...settings, maxCommitsToAnalyze: value }),
+  'evolution.historyTraversalMode': (settings, value) => ({
+    ...settings,
+    evolution: {
+      ...settings.evolution,
+      historyTraversalMode: value,
+    },
+  }),
   'evolution.samplingMode': (settings, value) => ({
     ...settings,
     evolution: {
@@ -264,6 +271,7 @@ export function createEvolutionAnalysisSettingsSnapshot(settings: ExtensionSetti
     excludePatterns: sorted(settings.excludePatterns),
     binaryExtensions: sorted(settings.binaryExtensions),
     evolution: {
+      historyTraversalMode: settings.evolution.historyTraversalMode,
       samplingMode: settings.evolution.samplingMode,
       snapshotIntervalDays: settings.evolution.snapshotIntervalDays,
       maxSnapshots: settings.evolution.maxSnapshots,
@@ -346,6 +354,7 @@ export function flattenSettingsUpdate(settings: Partial<ExtensionSettings>): Set
   }
   if (settings.evolution !== undefined) {
     updates.push({ key: 'evolution.autoRun', value: settings.evolution.autoRun });
+    updates.push({ key: 'evolution.historyTraversalMode', value: settings.evolution.historyTraversalMode });
     updates.push({ key: 'evolution.samplingMode', value: settings.evolution.samplingMode });
     updates.push({ key: 'evolution.snapshotIntervalDays', value: settings.evolution.snapshotIntervalDays });
     updates.push({ key: 'evolution.showInactivePeriods', value: settings.evolution.showInactivePeriods });

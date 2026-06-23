@@ -76,6 +76,10 @@ function getProvisionalCopy(isPreliminary: boolean): { badge: string; descriptio
   };
 }
 
+function describeHistoryTraversalMode(mode?: 'firstParent' | 'full'): string {
+  return mode === 'full' ? 'Full history' : 'Mainline only';
+}
+
 export function EvolutionPanel() {
   const {
     evolutionData,
@@ -91,6 +95,8 @@ export function EvolutionPanel() {
     setAxisMode,
     normalize,
     setNormalize,
+    showInactivePeriods,
+    setShowInactivePeriods,
     maxSeries,
     setMaxSeries,
     processed,
@@ -172,6 +178,7 @@ export function EvolutionPanel() {
 
   const targetLabel = data?.target?.label ?? data?.repositories?.[0]?.name ?? 'Evolution';
   const memberHeads = evolutionData.memberHeads ?? [];
+  const historyLabel = describeHistoryTraversalMode(evolutionData.historyTraversalMode);
 
   return (
     <div className="evolution-panel">
@@ -267,6 +274,8 @@ export function EvolutionPanel() {
         onAxisModeChange={setAxisMode}
         normalize={normalize}
         onNormalizeChange={setNormalize}
+        showInactivePeriods={showInactivePeriods}
+        onShowInactivePeriodsChange={setShowInactivePeriods}
         maxSeries={maxSeries}
         onMaxSeriesChange={setMaxSeries}
         onRun={requestEvolutionRefresh}
@@ -274,6 +283,9 @@ export function EvolutionPanel() {
       />
 
       <div className="evolution-timeline-note">
+        <div className="evolution-timeline-pill">
+          History: {historyLabel}
+        </div>
         <div className="evolution-timeline-pill">
           Sampling: {timeline.samplingLabel}
         </div>

@@ -2,6 +2,8 @@ export type EvolutionDimension = 'cohort' | 'author' | 'ext' | 'dir' | 'domain';
 
 export type EvolutionSamplingMode = 'time' | 'commit' | 'auto';
 
+export type EvolutionHistoryTraversalMode = 'firstParent' | 'full';
+
 export interface EvolutionSnapshotPoint {
   /** Actual commit represented by this snapshot. */
   commitSha: string;
@@ -43,6 +45,7 @@ export interface EvolutionResult {
   generatedAt: string;
   targetId: string;
   historyMode: 'singleBranch' | 'mergedMembers';
+  historyTraversalMode?: EvolutionHistoryTraversalMode;
   revisionHash: string;
   settingsHash: string;
   memberHeads: EvolutionTargetHead[];

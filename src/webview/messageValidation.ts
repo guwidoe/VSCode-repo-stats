@@ -1,5 +1,6 @@
 import type {
   ExtensionSettings,
+  EvolutionHistoryTraversalMode,
   EvolutionSamplingMode,
   RepoScopableSettingKey,
   RepoScopableSettingValueMap,
@@ -11,6 +12,7 @@ import { REPO_SCOPABLE_SETTING_KEYS } from '../types/index.js';
 
 const SETTING_WRITE_TARGETS = ['global', 'repo'] as const satisfies readonly SettingWriteTarget[];
 const EVOLUTION_SAMPLING_MODES = ['time', 'commit', 'auto'] as const satisfies readonly EvolutionSamplingMode[];
+const EVOLUTION_HISTORY_TRAVERSAL_MODES = ['firstParent', 'full'] as const satisfies readonly EvolutionHistoryTraversalMode[];
 const TREEMAP_COLOR_MODES = ['language', 'age', 'complexity', 'density'] as const;
 const GRANULARITY_MODES = ['auto', 'weekly', 'monthly'] as const;
 const OVERVIEW_DISPLAY_MODES = ['percent', 'count'] as const;
@@ -85,6 +87,7 @@ function isEvolutionSettings(value: unknown): value is ExtensionSettings['evolut
   }
 
   return isBoolean(value.autoRun)
+    && isEnumValue(value.historyTraversalMode, EVOLUTION_HISTORY_TRAVERSAL_MODES)
     && isEnumValue(value.samplingMode, EVOLUTION_SAMPLING_MODES)
     && isNumber(value.snapshotIntervalDays)
     && isBoolean(value.showInactivePeriods)
@@ -151,6 +154,8 @@ function isScopedSettingValue<K extends RepoScopableSettingKey>(
       return isNumber(value);
     case 'evolution.showInactivePeriods':
       return isBoolean(value);
+    case 'evolution.historyTraversalMode':
+      return isEnumValue(value, EVOLUTION_HISTORY_TRAVERSAL_MODES);
     case 'evolution.samplingMode':
       return isEnumValue(value, EVOLUTION_SAMPLING_MODES);
     case 'evolution.cohortFormat':

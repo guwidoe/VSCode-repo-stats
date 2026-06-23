@@ -37,6 +37,22 @@
   background: color-mix(in srgb, var(--vscode-editor-background) 90%, black 10%);
 }
 
+.evolution-controls-heading {
+  grid-column: 1 / -1;
+}
+
+.evolution-controls-heading h3 {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.evolution-controls-heading p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
 .evolution-controls label {
   display: flex;
   flex-direction: column;

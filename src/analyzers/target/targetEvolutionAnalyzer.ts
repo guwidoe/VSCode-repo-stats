@@ -244,6 +244,7 @@ export class TargetEvolutionAnalyzer {
       generatedAt: new Date().toISOString(),
       targetId: this.target.id,
       historyMode: this.target.members.length === 1 ? 'singleBranch' : 'mergedMembers',
+      historyTraversalMode: this.settings.evolution.historyTraversalMode,
       revisionHash: createEvolutionRevisionHash(memberHeads),
       settingsHash: this.createSettingsHash(),
       memberHeads,

@@ -22,10 +22,12 @@ export function useEvolutionPanelState() {
   const [axisMode, setAxisMode] = useState<EvolutionAxisMode>('time');
   const [normalize, setNormalize] = useState(false);
   const [maxSeries, setMaxSeries] = useState(settings?.evolution.maxSeries ?? 20);
+  const [showInactivePeriods, setShowInactivePeriods] = useState(settings?.evolution.showInactivePeriods ?? false);
 
   useEffect(() => {
     if (settings) {
       setMaxSeries(settings.evolution.maxSeries);
+      setShowInactivePeriods(settings.evolution.showInactivePeriods);
     }
   }, [settings]);
 
@@ -51,9 +53,9 @@ export function useEvolutionPanelState() {
       maxSeries,
       normalize,
       dimension,
-      settings.evolution.showInactivePeriods
+      showInactivePeriods
     );
-  }, [sourceData, maxSeries, normalize, dimension, settings]);
+  }, [sourceData, maxSeries, normalize, dimension, showInactivePeriods]);
 
   const timeline = useMemo(() => {
     if (!processed || !settings) {
@@ -71,10 +73,10 @@ export function useEvolutionPanelState() {
       explanation: buildTimelineExplanation(
         samplingMode,
         axisMode,
-        settings.evolution.showInactivePeriods
+        showInactivePeriods
       ),
     };
-  }, [axisMode, processed, settings]);
+  }, [axisMode, processed, settings, showInactivePeriods]);
 
   return {
     evolutionData,
@@ -90,6 +92,8 @@ export function useEvolutionPanelState() {
     setAxisMode,
     normalize,
     setNormalize,
+    showInactivePeriods,
+    setShowInactivePeriods,
     maxSeries,
     setMaxSeries,
     processed,

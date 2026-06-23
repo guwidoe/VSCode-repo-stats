@@ -57,6 +57,10 @@ describe('getScopedSettingDisplayValue', () => {
       repoValue: 500,
       source: 'repo',
     },
+    'evolution.historyTraversalMode': {
+      defaultValue: 'firstParent',
+      source: 'default',
+    },
     'evolution.samplingMode': {
       defaultValue: 'time',
       source: 'default',

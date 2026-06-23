@@ -116,6 +116,7 @@ function createSettings(overrides: Partial<ExtensionSettings['evolution']> = {})
     },
     evolution: {
       autoRun: false,
+      historyTraversalMode: 'firstParent',
       samplingMode: 'time',
       snapshotIntervalDays: 7,
       showInactivePeriods: false,
@@ -275,6 +276,65 @@ describe('TargetEvolutionAnalyzer', () => {
     expect(result.authors.seriesValues[bobIndex]).toEqual([0, 0, 3]);
     expect(result.authors.snapshots).toHaveLength(3);
     expect(result.authors.snapshots?.map((snapshot) => snapshot.commitIndex)).toEqual([0, 1, 2]);
+  });
+
+  it('can include merged branch commits when Evolution full history mode is enabled', async () => {
+    const repoPath = mkdtempSync(path.join(tmpdir(), 'repo-stats-target-evo-history-'));
+    repos.push(repoPath);
+    initializeRepo(repoPath);
+
+    commitFile({
+      repoPath,
+      filePath: 'base.txt',
+      content: 'base\n',
+      name: 'Alice',
+      email: 'alice@example.com',
+      date: '2024-01-01T12:00:00Z',
+      message: 'base',
+    });
+    runGit(['checkout', '-b', 'feature'], repoPath);
+    commitFile({
+      repoPath,
+      filePath: 'feature.txt',
+      content: 'feature\n',
+      name: 'Feature Author',
+      email: 'feature@example.com',
+      date: '2024-01-02T12:00:00Z',
+      message: 'feature work',
+    });
+    runGit(['checkout', 'main'], repoPath);
+    commitFile({
+      repoPath,
+      filePath: 'main.txt',
+      content: 'main\n',
+      name: 'Main Author',
+      email: 'main@example.com',
+      date: '2024-01-03T12:00:00Z',
+      message: 'main work',
+    });
+    runGit(['merge', '--no-ff', 'feature', '-m', 'merge feature'], repoPath, {
+      GIT_AUTHOR_NAME: 'Merge Author',
+      GIT_AUTHOR_EMAIL: 'merge@example.com',
+      GIT_AUTHOR_DATE: '2024-01-04T12:00:00Z',
+      GIT_COMMITTER_NAME: 'Merge Author',
+      GIT_COMMITTER_EMAIL: 'merge@example.com',
+      GIT_COMMITTER_DATE: '2024-01-04T12:00:00Z',
+    });
+
+    const target = createTarget([{ repoPath, displayName: 'history-repo' }], 'repo:history', 'repository');
+    const firstParent = await createTargetEvolutionAnalyzer(
+      target,
+      createSettings({ samplingMode: 'commit', maxSnapshots: 10, historyTraversalMode: 'firstParent' })
+    ).analyze();
+    const fullHistory = await createTargetEvolutionAnalyzer(
+      target,
+      createSettings({ samplingMode: 'commit', maxSnapshots: 10, historyTraversalMode: 'full' })
+    ).analyze();
+
+    expect(firstParent.historyTraversalMode).toBe('firstParent');
+    expect(firstParent.authors.snapshots?.at(-1)?.totalCommitCount).toBe(3);
+    expect(fullHistory.historyTraversalMode).toBe('full');
+    expect(fullHistory.authors.snapshots?.at(-1)?.totalCommitCount).toBe(4);
   });
 
   it('supports commit-based snapshot distribution for single-member targets', async () => {

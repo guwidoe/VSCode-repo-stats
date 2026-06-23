@@ -65,6 +65,7 @@ export class RepositorySettingsService {
       binaryExtensions: this.getScopedSettingValue(config, 'binaryExtensions'),
       locExcludedExtensions: this.getScopedSettingValue(config, 'locExcludedExtensions'),
       maxCommitsToAnalyze: this.getScopedSettingValue(config, 'maxCommitsToAnalyze'),
+      'evolution.historyTraversalMode': this.getScopedSettingValue(config, 'evolution.historyTraversalMode'),
       'evolution.samplingMode': this.getScopedSettingValue(config, 'evolution.samplingMode'),
       'evolution.snapshotIntervalDays': this.getScopedSettingValue(config, 'evolution.snapshotIntervalDays'),
       'evolution.showInactivePeriods': this.getScopedSettingValue(config, 'evolution.showInactivePeriods'),
@@ -97,6 +98,7 @@ export class RepositorySettingsService {
       },
       evolution: {
         autoRun: this.getRequiredConfigValue<boolean>(config, 'evolution.autoRun'),
+        historyTraversalMode: this.getRequiredConfigValue<ExtensionSettings['evolution']['historyTraversalMode']>(config, 'evolution.historyTraversalMode'),
         samplingMode: this.getRequiredConfigValue<ExtensionSettings['evolution']['samplingMode']>(config, 'evolution.samplingMode'),
         snapshotIntervalDays: this.getRequiredConfigValue<number>(config, 'evolution.snapshotIntervalDays'),
         showInactivePeriods: this.getRequiredConfigValue<boolean>(config, 'evolution.showInactivePeriods'),

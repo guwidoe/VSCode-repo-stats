@@ -38,6 +38,7 @@ function createSettings(): ExtensionSettings {
     },
     evolution: {
       autoRun: false,
+      historyTraversalMode: 'firstParent',
       samplingMode: 'time',
       snapshotIntervalDays: 30,
       showInactivePeriods: false,
@@ -72,6 +73,10 @@ function createScopedSettings(): RepoScopedSettings {
       defaultValue: 10000,
       globalValue: 2000,
       source: 'global',
+    },
+    'evolution.historyTraversalMode': {
+      defaultValue: 'firstParent',
+      source: 'default',
     },
     'evolution.samplingMode': {
       defaultValue: 'time',

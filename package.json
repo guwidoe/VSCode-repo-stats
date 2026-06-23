@@ -301,6 +301,16 @@
           "default": "auto",
           "description": "How Evolution selects snapshots: by elapsed time, by evenly spaced commit snapshots, or auto-distributed across history"
         },
+        "repoStats.evolution.historyTraversalMode": {
+          "type": "string",
+          "scope": "resource",
+          "enum": [
+            "firstParent",
+            "full"
+          ],
+          "default": "firstParent",
+          "description": "Which Git history Evolution follows: first-parent/mainline commits only, or full reachable history including commits from merged branches. Full history can be slower and noisier."
+        },
         "repoStats.evolution.snapshotIntervalDays": {
           "type": "number",
           "scope": "resource",

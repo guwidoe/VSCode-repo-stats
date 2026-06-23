@@ -28,6 +28,10 @@ function createScopedSettings(): RepoScopedSettings {
       globalValue: 1000,
       source: 'global',
     },
+    'evolution.historyTraversalMode': {
+      defaultValue: 'firstParent',
+      source: 'default',
+    },
     'evolution.samplingMode': {
       defaultValue: 'time',
       source: 'default',
