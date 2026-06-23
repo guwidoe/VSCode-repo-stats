@@ -123,6 +123,8 @@ export function CommitMetadataPlot({ result, metric, chartType, bucketMode, onSe
             gridcolor: 'var(--vscode-panel-border)',
             zerolinecolor: 'var(--vscode-panel-border)',
             ticksuffix: chartType === 'normalizedStackedBar' ? '%' : undefined,
+            range: chartType === 'normalizedStackedBar' ? [0, 100] : undefined,
+            fixedrange: true,
             automargin: true,
           },
           legend: {
