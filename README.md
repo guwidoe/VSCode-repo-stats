@@ -10,7 +10,8 @@ Visualize your repository statistics directly in VS Code with interactive dashbo
 
 1. Open a workspace folder (single repo, monorepo, or multi-repo workspace)
 2. Run the command **Repo Stats: Show Dashboard** from the Command Palette (Ctrl+Shift+P / Cmd+Shift+P)
-3. Or click the **Repo Stats** button in the status bar
+
+Repo Stats activates on its own commands only. It does not activate automatically on VS Code startup or merely because a workspace contains Git repositories.
 
 Results are cached based on the current Git HEAD, so subsequent opens are instant.
 
@@ -20,6 +21,7 @@ Results are cached based on the current Git HEAD, so subsequent opens are instan
 | `Repo Stats: Refresh`             | Clear cache and re-analyze                               |
 | `Repo Stats: Select Repositories` | Include/exclude repositories in the current aggregation |
 | `Repo Stats: Add Repository`      | Add another local repository folder to the workspace     |
+| `Repo Stats: Show Diagnostics`    | Show activation, discovery, exclude, and inotify diagnostics |
 
 ## Screenshots
 
@@ -155,7 +157,8 @@ This extension uses [scc](https://github.com/boyter/scc) for accurate lines-of-c
 
 | Setting | Default | Description |
 | --- | --- | --- |
-| `repoStats.excludePatterns` | `[]` | Additional file or folder exclude patterns beyond `.gitignore` |
+| `repoStats.excludePatterns` | See below | File or folder exclude patterns beyond `.gitignore` |
+| `repoStats.discovery.scanNestedRepositories` | `false` | Opt into VS Code file-search discovery for nested Git repositories |
 | `repoStats.maxCommitsToAnalyze` | `10000` | Maximum commits to analyze for history-based views |
 | `repoStats.defaultColorMode` | `"language"` | Default treemap color mode (`language`, `age`, `complexity`, or `density`) |
 | `repoStats.showEmptyTimePeriods` | `true` | Show weeks/months with no activity in charts |
@@ -175,7 +178,9 @@ This extension uses [scc](https://github.com/boyter/scc) for accurate lines-of-c
 
 Tip: If assets like `.svg` files inflate LOC totals for your project, add `.svg` to `repoStats.locExcludedExtensions`.
 
-`repoStats.excludePatterns` accepts simple directory names (`vendor`), repo-relative paths (`backend/fixtures`), exact repo-root paths prefixed with `/` (`/src`, `/README.md`), and glob-style patterns (`**/backend/fixtures/**`).
+`repoStats.excludePatterns` accepts simple directory names (`vendor`), repo-relative paths (`backend/fixtures`), exact repo-root paths prefixed with `/` (`/src`, `/README.md`), and glob-style patterns (`**/backend/fixtures/**`). Defaults exclude high-cardinality/generated directories such as `.git`, `node_modules`, `.pnpm`, `.next`, `.turbo`, `dist`, `build`, `coverage`, `output`, `.cache`, and `target`. Repo Stats also merges enabled VS Code `files.watcherExclude` and `files.exclude` patterns into its effective analysis excludes.
+
+Nested repository discovery through VS Code file search is disabled by default to avoid broad traversal in large monorepos. Workspace folder roots, bookmarked repositories, and declared Git submodules are still discovered. If you enable `repoStats.discovery.scanNestedRepositories`, Repo Stats prunes the search with built-in high-cardinality excludes and enabled VS Code `files.watcherExclude` / `files.exclude` patterns.
 
 The following settings can be saved per-repository via the Settings UI and VS Code workspace-folder settings (`.vscode/settings.json`) when repo scope is available: `excludePatterns`, `generatedPatterns`, `binaryExtensions`, `locExcludedExtensions`, `maxCommitsToAnalyze`, Evolution sampling settings, and `commitMetadata`.
 
@@ -242,6 +247,8 @@ Repo Stats is designed to handle large repositories efficiently:
 - **Caching**: Results cached by target revision hash - instant reload if no member repo changed
 - **Progress reporting**: Visual feedback during analysis
 - **Commit limits**: Configurable maximum commits to analyze
+- **On-demand activation**: The extension activates only when a Repo Stats command is run, not on VS Code startup or every Git workspace
+- **Pruned discovery**: Broad nested repository scans are opt-in and honor VS Code file exclude settings
 - **On-demand evolution cache**: Heavy blame-based evolution analysis only runs when requested and is cached separately
 - **Canvas rendering**: Treemap uses HTML5 Canvas for smooth performance with 50K+ files
 

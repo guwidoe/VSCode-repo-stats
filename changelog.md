@@ -6,6 +6,12 @@ This changelog was reconstructed retroactively from the repository's version bum
 
 - No unreleased changes yet.
 
+## 1.4.7 - 2026-07-02
+
+- Prevented Repo Stats from activating automatically on VS Code startup or merely because a workspace contains Git repositories.
+- Disabled broad nested repository discovery by default and pruned opt-in discovery with VS Code file exclude settings.
+- Added safer default analysis excludes for generated, dependency, cache, and build directories, plus a diagnostics command for activation and inotify investigation.
+
 ## 1.4.6 - 2026-06-23
 
 - Added Commit Metadata Trends with configurable extractors, calendar and commit-count bucketing, Plotly charts, and commit drilldown.

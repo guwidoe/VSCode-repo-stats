@@ -10,6 +10,7 @@ import { AnalysisTargetService } from './analysisTargetService.js';
 import { BookmarkedRepositoryManager } from './bookmarkedRepositoryManager.js';
 import { parseWebviewMessage } from './messageValidation.js';
 import { ProviderContextSync } from './providerContextSync.js';
+import { RepoStatsDiagnosticsService } from './diagnosticsService.js';
 import {
   ProviderFileActionFailureReason,
   ProviderFileActions,
@@ -33,6 +34,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
   private readonly analysisService: RepoAnalysisService;
   private readonly messageRouter: ProviderMessageRouter;
   private readonly contextSync: ProviderContextSync;
+  private readonly diagnosticsService: RepoStatsDiagnosticsService;
   private readonly fileActions: ProviderFileActions;
   private readonly bookmarkedRepositoryManager: BookmarkedRepositoryManager;
 
@@ -50,6 +52,7 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
       this.settingsService
     );
     this.bookmarkedRepositoryManager = new BookmarkedRepositoryManager();
+    this.diagnosticsService = new RepoStatsDiagnosticsService(this.settingsService);
     this.fileActions = new ProviderFileActions({
       getSelectedTarget: () => this.analysisTargetService.getSelectedTarget(),
     });
@@ -207,6 +210,11 @@ export class RepoStatsProvider implements vscode.WebviewViewProvider {
     if (!currentSelection.selectedTarget && selection.selectedTarget) {
       await this.analysisService.runAnalysis(this.panel.webview, selection.selectedTarget);
     }
+  }
+
+  public async showDiagnostics(): Promise<void> {
+    const selection = await this.analysisTargetService.resolveSelection(undefined, { persist: false });
+    await this.diagnosticsService.show(selection);
   }
 
   private async initializePanel(panel: vscode.WebviewPanel): Promise<void> {

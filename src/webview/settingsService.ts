@@ -12,6 +12,10 @@ import {
   settingsAffectCoreAnalysis,
 } from '../shared/settings.js';
 import type { RepositoryContext } from './context.js';
+import {
+  getEnabledExcludePatterns,
+  mergeExcludePatterns,
+} from './workspaceRepositoryScanner.js';
 
 export class RepositorySettingsService {
   async updateSettings(
@@ -80,7 +84,7 @@ export class RepositorySettingsService {
     const config = this.getConfig(repository);
 
     return {
-      excludePatterns: this.getRequiredConfigValue<string[]>(config, 'excludePatterns'),
+      excludePatterns: this.getEffectiveExcludePatterns(config, repository),
       maxCommitsToAnalyze: this.getRequiredConfigValue<number>(config, 'maxCommitsToAnalyze'),
       defaultColorMode: this.getRequiredConfigValue<'language' | 'age' | 'complexity' | 'density'>(config, 'defaultColorMode'),
       generatedPatterns: this.getRequiredConfigValue<string[]>(config, 'generatedPatterns'),
@@ -127,6 +131,23 @@ export class RepositorySettingsService {
       );
     }
     return value;
+  }
+
+  private getEffectiveExcludePatterns(
+    config: vscode.WorkspaceConfiguration,
+    repository?: RepositoryContext
+  ): string[] {
+    const repoStatsExcludes = this.getRequiredConfigValue<string[]>(config, 'excludePatterns');
+    const fileExcludesConfig = vscode.workspace.getConfiguration(
+      'files',
+      repository?.workspaceFolder?.uri ?? repository?.rootUri
+    );
+
+    return mergeExcludePatterns([
+      ...repoStatsExcludes,
+      ...getEnabledExcludePatterns(fileExcludesConfig.get('watcherExclude')),
+      ...getEnabledExcludePatterns(fileExcludesConfig.get('exclude')),
+    ]);
   }
 
   private getScopedSettingValue<K extends RepoScopableSettingKey>(

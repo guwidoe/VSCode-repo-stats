@@ -1,7 +1,7 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import simpleGit, { type SimpleGit } from 'simple-git';
-import type { GitExtensionExports, RepositoryDiscoveryWarning } from './context.js';
+import type { RepositoryDiscoveryWarning } from './context.js';
 import { RepositoryRootResolver } from './repositoryRootResolver.js';
 
 interface RepositoryUriDiscovery {
@@ -11,6 +11,31 @@ interface RepositoryUriDiscovery {
 
 type GitFactory = (repoPath: string) => SimpleGit;
 
+const nestedRepositoryDiscoverySetting = 'discovery.scanNestedRepositories';
+
+export const defaultNestedRepositoryDiscoveryExcludePatterns = [
+  '**/node_modules/**',
+  '**/.pnpm/**',
+  '**/.pnpm-store/**',
+  '**/.next/**',
+  '**/.nuxt/**',
+  '**/.turbo/**',
+  '**/.yarn/**',
+  '**/dist/**',
+  '**/build/**',
+  '**/coverage/**',
+  '**/output/**',
+  '**/.cache/**',
+  '**/.pytest_cache/**',
+  '**/.mypy_cache/**',
+  '**/.ruff_cache/**',
+  '**/__pycache__/**',
+  '**/.venv/**',
+  '**/venv/**',
+  '**/target/**',
+  '**/.autoresearch-runs/**',
+];
+
 export function parseSubmoduleStatusPaths(output: string): string[] {
   return output
     .split('\n')
@@ -18,6 +43,71 @@ export function parseSubmoduleStatusPaths(output: string): string[] {
     .filter((line) => line.length > 0)
     .map((line) => line.match(/^[+-]?\s*[a-f0-9]+\s+(\S+)/)?.[1] ?? null)
     .filter((pathValue): pathValue is string => pathValue !== null);
+}
+
+export function isNestedRepositoryDiscoveryEnabled(): boolean {
+  return vscode.workspace
+    .getConfiguration('repoStats')
+    .get<boolean>(nestedRepositoryDiscoverySetting) ?? false;
+}
+
+export function getEnabledExcludePatterns(value: unknown): string[] {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return [];
+  }
+
+  return Object.entries(value)
+    .filter((entry): entry is [string, true] => typeof entry[0] === 'string' && entry[1] === true)
+    .map(([pattern]) => pattern.trim())
+    .filter((pattern) => pattern.length > 0);
+}
+
+export function mergeExcludePatterns(patterns: readonly string[]): string[] {
+  const seen = new Set<string>();
+  const merged: string[] = [];
+
+  for (const pattern of patterns) {
+    const normalized = pattern.trim();
+    if (!normalized || seen.has(normalized)) {
+      continue;
+    }
+
+    seen.add(normalized);
+    merged.push(normalized);
+  }
+
+  return merged;
+}
+
+export function toFindFilesExcludePattern(patterns: readonly string[]): string | undefined {
+  const merged = mergeExcludePatterns(patterns);
+  if (merged.length === 0) {
+    return undefined;
+  }
+
+  if (merged.length === 1) {
+    return merged[0];
+  }
+
+  return `{${merged.join(',')}}`;
+}
+
+export function getWorkspaceFileExcludePatterns(
+  workspaceFolder: vscode.WorkspaceFolder
+): string[] {
+  const filesConfig = vscode.workspace.getConfiguration('files', workspaceFolder.uri);
+
+  return mergeExcludePatterns([
+    ...defaultNestedRepositoryDiscoveryExcludePatterns,
+    ...getEnabledExcludePatterns(filesConfig.get('watcherExclude')),
+    ...getEnabledExcludePatterns(filesConfig.get('exclude')),
+  ]);
+}
+
+export function getWorkspaceFindFilesExcludePattern(
+  workspaceFolder: vscode.WorkspaceFolder
+): string | undefined {
+  return toFindFilesExcludePattern(getWorkspaceFileExcludePatterns(workspaceFolder));
 }
 
 export class WorkspaceRepositoryScanner {
@@ -43,13 +133,15 @@ export class WorkspaceRepositoryScanner {
       repositories.push(rootUri);
     };
 
-    const gitExtensionDiscovery = await this.getGitExtensionRepositoryUris();
-    warnings.push(...gitExtensionDiscovery.warnings);
-    gitExtensionDiscovery.repositories.forEach(addRepositoryUri);
+    const workspaceRootDiscovery = await this.findWorkspaceFolderRepositoryRootUris(workspaceFolders);
+    warnings.push(...workspaceRootDiscovery.warnings);
+    workspaceRootDiscovery.repositories.forEach(addRepositoryUri);
 
-    const scannedDiscovery = await this.findNestedRepositoryRootUris(workspaceFolders);
-    warnings.push(...scannedDiscovery.warnings);
-    scannedDiscovery.repositories.forEach(addRepositoryUri);
+    if (isNestedRepositoryDiscoveryEnabled()) {
+      const scannedDiscovery = await this.findNestedRepositoryRootUris(workspaceFolders);
+      warnings.push(...scannedDiscovery.warnings);
+      scannedDiscovery.repositories.forEach(addRepositoryUri);
+    }
 
     const submoduleDiscovery = await this.findSubmoduleRootUris(repositories);
     warnings.push(...submoduleDiscovery.warnings);
@@ -58,43 +150,25 @@ export class WorkspaceRepositoryScanner {
     return { repositories, warnings };
   }
 
-  private async getGitExtensionRepositoryUris(): Promise<RepositoryUriDiscovery> {
-    const gitExtension = vscode.extensions.getExtension<GitExtensionExports>('vscode.git');
-    if (!gitExtension) {
-      return { repositories: [], warnings: [] };
+  private async findWorkspaceFolderRepositoryRootUris(
+    workspaceFolders: readonly vscode.WorkspaceFolder[]
+  ): Promise<RepositoryUriDiscovery> {
+    const discovered = new Map<string, vscode.Uri>();
+    const warnings: RepositoryDiscoveryWarning[] = [];
+
+    for (const workspaceFolder of workspaceFolders) {
+      const resolution = await this.rootResolver.resolve(workspaceFolder.uri.fsPath, 'workspace');
+      if (resolution.kind === 'resolved') {
+        discovered.set(resolution.rootUri.fsPath, resolution.rootUri);
+      } else if (resolution.kind === 'error') {
+        warnings.push(resolution.warning);
+      }
     }
 
-    let gitApi: GitExtensionExports | undefined;
-    try {
-      gitApi = (gitExtension.isActive ? gitExtension.exports : await gitExtension.activate()) as GitExtensionExports;
-    } catch (error) {
-      return {
-        repositories: [],
-        warnings: [{
-          source: 'git-extension',
-          message: `Failed to activate the Git extension while discovering repositories: ${this.formatErrorMessage(error)}`,
-        }],
-      };
-    }
-
-    if (!gitApi) {
-      return { repositories: [], warnings: [] };
-    }
-
-    try {
-      return {
-        repositories: gitApi.getAPI(1).repositories.map((repository) => repository.rootUri),
-        warnings: [],
-      };
-    } catch (error) {
-      return {
-        repositories: [],
-        warnings: [{
-          source: 'git-extension',
-          message: `Failed to read repositories from the Git extension: ${this.formatErrorMessage(error)}`,
-        }],
-      };
-    }
+    return {
+      repositories: [...discovered.values()],
+      warnings,
+    };
   }
 
   private async findNestedRepositoryRootUris(
@@ -107,7 +181,7 @@ export class WorkspaceRepositoryScanner {
       try {
         const configUris = await vscode.workspace.findFiles(
           new vscode.RelativePattern(workspaceFolder, '**/.git/config'),
-          new vscode.RelativePattern(workspaceFolder, '**/{node_modules,dist,build,.next,.nuxt,.yarn,.pnpm-store}/**')
+          getWorkspaceFindFilesExcludePattern(workspaceFolder)
         );
 
         for (const configUri of configUris) {
