@@ -17,5 +17,25 @@
   "search.exclude": {
     "out": true,
     "dist": true
+  },
+  "files.watcherExclude": {
+    "**/.git/**": true,
+    "**/node_modules/**": true,
+    "**/.pnpm/**": true,
+    "**/.next/**": true,
+    "**/.turbo/**": true,
+    "**/dist/**": true,
+    "**/build/**": true,
+    "**/coverage/**": true,
+    "**/output/**": true,
+    "**/.cache/**": true,
+    "**/.pytest_cache/**": true,
+    "**/.mypy_cache/**": true,
+    "**/.ruff_cache/**": true,
+    "**/__pycache__/**": true,
+    "**/.venv/**": true,
+    "**/venv/**": true,
+    "**/target/**": true,
+    "**/.autoresearch-runs/**": true
   }
 }
