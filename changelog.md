@@ -6,6 +6,11 @@ This changelog was reconstructed retroactively from the repository's version bum
 
 - No unreleased changes yet.
 
+## 1.4.8 - 2026-10-07
+
+- Fixed "Failed to count lines of code: stdout maxBuffer length exceeded" in repositories with paths ignored via `.git/info/exclude` or global Git excludes (such as nested worktrees): LOC counting now skips everything Git ignores, not only `.gitignore` entries.
+- Raised the scc output limit so repositories with very large text files no longer hit it.
+
 ## 1.4.7 - 2026-07-02
 
 - Prevented Repo Stats from activating automatically on VS Code startup or merely because a workspace contains Git repositories.
