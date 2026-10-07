@@ -5,11 +5,17 @@
  * Note: scc respects .gitignore by default. The excludePatterns setting
  * provides ADDITIONAL exclusions beyond what's in .gitignore.
  *
+ * scc only understands .gitignore/.ignore files, so paths ignored through
+ * .git/info/exclude or the global core.excludesFile (e.g. nested worktrees)
+ * would otherwise be scanned. We ask git for its ignored paths and exclude
+ * them as well, so the counted file set matches git's view of the repo.
+ *
  * Files with extensions listed in `locExcludedExtensions` are excluded from
  * LOC counting.
  */
 
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
+import { constants as bufferConstants } from 'node:buffer';
 import { promisify } from 'util';
 import * as path from 'path';
 import { AnalyzerExecutionError, TreemapNode } from '../types/index.js';
@@ -23,7 +29,12 @@ import {
   getLiteralExcludeDirNames,
 } from './pathMatching.js';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
+
+// scc emits per-line complexity data, so its output for repos with very large
+// text files gets big quickly. Allow up to the largest string V8 can hold,
+// which is the hard limit for decoding and parsing the output anyway.
+const MAX_CHILD_OUTPUT_BYTES = bufferConstants.MAX_STRING_LENGTH;
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -134,6 +145,68 @@ export function shouldExcludeFileByExtension(
 }
 
 // ============================================================================
+// Git Ignore Helpers
+// ============================================================================
+
+export interface GitIgnoredPaths {
+  /** Ignored directories, relative to the repo root, without trailing slash. */
+  directories: string[];
+  /** Ignored files outside of ignored directories, relative to the repo root. */
+  files: string[];
+}
+
+/**
+ * Parses `git ls-files --others --ignored --exclude-standard --directory -z`
+ * output. Directory entries are the ones git reports with a trailing slash.
+ */
+export function parseGitIgnoredPaths(stdout: string): GitIgnoredPaths {
+  const directories: string[] = [];
+  const files: string[] = [];
+
+  for (const entry of stdout.split('\0')) {
+    if (!entry) {
+      continue;
+    }
+    if (entry.endsWith('/')) {
+      directories.push(entry.slice(0, -1));
+    } else {
+      files.push(entry);
+    }
+  }
+
+  return { directories, files };
+}
+
+/**
+ * Lists untracked paths that git ignores (via .gitignore, .git/info/exclude
+ * and core.excludesFile). Fully ignored directories are collapsed into a
+ * single entry, so the result stays small even for large ignored trees.
+ */
+export async function listGitIgnoredPaths(repoPath: string): Promise<GitIgnoredPaths> {
+  const { stdout } = await execFileAsync(
+    'git',
+    ['ls-files', '--others', '--ignored', '--exclude-standard', '--directory', '-z'],
+    { cwd: repoPath, maxBuffer: MAX_CHILD_OUTPUT_BYTES }
+  );
+  return parseGitIgnoredPaths(stdout);
+}
+
+/**
+ * Returns a predicate for repo-relative, forward-slash paths that are ignored
+ * by git.
+ */
+export function createGitIgnoredPathMatcher(
+  ignored: GitIgnoredPaths
+): (relativePath: string) => boolean {
+  const ignoredFiles = new Set(ignored.files);
+  const ignoredDirPrefixes = ignored.directories.map((dir) => `${dir}/`);
+
+  return (relativePath: string) =>
+    ignoredFiles.has(relativePath) ||
+    ignoredDirPrefixes.some((prefix) => relativePath.startsWith(prefix));
+}
+
+// ============================================================================
 // SCC Output Types
 // ============================================================================
 
@@ -223,8 +296,8 @@ export class LOCCounter implements LOCClient {
 
   /**
    * Count lines of code in the repository.
-   * Note: scc respects .gitignore by default.
-   * @param excludePatterns Additional patterns to exclude beyond .gitignore
+   * Note: honors everything git ignores (.gitignore, info/exclude, global excludes).
+   * @param excludePatterns Additional patterns to exclude beyond git-ignored paths
    * @param locExcludedExtensions File extensions to exclude from LOC counting
    */
   async countLines(
@@ -237,18 +310,30 @@ export class LOCCounter implements LOCClient {
       );
     }
 
-    const excludeArgs = getLiteralExcludeDirNames(excludePatterns)
-      .map((pattern) => `--exclude-dir=${pattern}`)
-      .join(' ');
-
     const shouldExcludePath = createPathPatternMatcher(excludePatterns);
     const excludedExtensionSet = buildExcludedExtensionSet(locExcludedExtensions);
 
     try {
-      const { stdout } = await execAsync(
-        `"${this.sccPath}" --by-file --format=json ${excludeArgs} "${this.repoPath}"`,
-        { maxBuffer: 50 * 1024 * 1024 } // 50MB buffer for large repos
-      );
+      const gitIgnored = await listGitIgnoredPaths(this.repoPath);
+      const isGitIgnored = createGitIgnoredPathMatcher(gitIgnored);
+
+      // scc matches --exclude-dir values as path suffixes, so absolute paths
+      // exclude exactly the git-ignored directory and nothing else.
+      const sccArgs = [
+        '--by-file',
+        '--format=json',
+        ...getLiteralExcludeDirNames(excludePatterns).map(
+          (pattern) => `--exclude-dir=${pattern}`
+        ),
+        ...gitIgnored.directories.map(
+          (dir) => `--exclude-dir=${path.join(this.repoPath, dir)}`
+        ),
+        this.repoPath,
+      ];
+
+      const { stdout } = await execFileAsync(this.sccPath, sccArgs, {
+        maxBuffer: MAX_CHILD_OUTPUT_BYTES,
+      });
 
       // scc outputs array of language groups, each containing a Files array
       const languageGroups = parseSccLanguageGroups(stdout);
@@ -268,6 +353,7 @@ export class LOCCounter implements LOCClient {
       const filteredFiles = allFiles.filter((file) => {
         const relativePath = this.toRelativePath(file.Location);
         return (
+          !isGitIgnored(relativePath) &&
           !shouldExcludePath(relativePath) &&
           !shouldExcludeFileByExtension(relativePath, excludedExtensionSet)
         );
