@@ -1,4 +1,3 @@
-@~/repositories/vibe-setup/AGENTS.md
 
 # VSCode Repo Stats Extension
 
